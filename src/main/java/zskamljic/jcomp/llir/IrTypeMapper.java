@@ -22,12 +22,4 @@ public class IrTypeMapper {
             }
         });
     }
-
-    public static Optional<String> mapType(TypeKind typeKind) {
-        return Optional.ofNullable(switch (typeKind) {
-            case IntType -> "i32";
-            case VoidType -> "void";
-            default -> null;
-        });
-    }
 }
