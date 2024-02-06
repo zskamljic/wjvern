@@ -142,13 +142,13 @@ public class FunctionBuilder {
         for (var _ : parameters) {
             paramValues.push(stack.pop());
         }
-        for (var parameter: parameters) {
+        for (var parameter : parameters) {
             var type = IrTypeMapper.mapType(parameter)
                 .orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} parameter type not supported."));
             builder.append(type).append(" ").append(paramValues.pop());
         }
         builder.append(")").append(";\n");
-        if(!returnType.equals("void")) {
+        if (!returnType.equals("void")) {
             var unnamedName = STR."%\{currentUnnamed}";
             stack.push(unnamedName);
             return currentUnnamed + 1;
