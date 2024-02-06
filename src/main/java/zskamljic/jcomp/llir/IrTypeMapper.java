@@ -11,13 +11,31 @@ public class IrTypeMapper {
 
     public static Optional<String> mapType(ClassDesc classDesc) {
         if (!classDesc.isPrimitive()) {
-            return Optional.empty();
+            return mapComplexType(classDesc);
         }
         return Optional.ofNullable(switch (classDesc.displayName()) {
             case "int" -> "i32";
             case "void" -> "void";
             default -> {
                 System.err.println(STR."Unsupported type: \{classDesc.displayName()}");
+                yield null;
+            }
+        });
+    }
+
+    private static Optional<String> mapComplexType(ClassDesc classDesc) {
+        if (classDesc.isArray()) {
+            return Optional.of("ptr"); // TODO: check if all arrays should use ptr
+        }
+
+        return Optional.empty();
+    }
+
+    public static Optional<String> mapType(TypeKind typeKind) {
+        return Optional.ofNullable(switch (typeKind) {
+            case ByteType -> "i8";
+            default -> {
+                System.err.println(STR."Unsupported type: \{typeKind.typeName()}");
                 yield null;
             }
         });

@@ -14,8 +14,10 @@ import java.util.stream.Collectors;
 
 public class IrGenerator {
     private final ClassModel classModel;
+    private final boolean debug;
 
-    public IrGenerator(File inputClass) throws IOException {
+    public IrGenerator(File inputClass, boolean debug) throws IOException {
+        this.debug = debug;
         var classFile = ClassFile.of();
         classModel = classFile.parse(inputClass.toPath());
     }
@@ -39,7 +41,7 @@ public class IrGenerator {
             return null;
         }
         if (!method.flags().has(AccessFlag.NATIVE)) {
-            var builder = new FunctionBuilder(method);
+            var builder = new FunctionBuilder(method, debug);
             try {
                 return builder.generate();
             } catch (IllegalArgumentException e) {
@@ -55,7 +57,8 @@ public class IrGenerator {
         var declaration = new StringBuilder();
         declaration.append("declare ");
 
-        var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
+        var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType())
+            .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type: \{method.methodTypeSymbol().returnType()}"));
         declaration.append(type);
         declaration.append(" @").append(method.methodName()).append("() nounwind");
         return declaration.toString();

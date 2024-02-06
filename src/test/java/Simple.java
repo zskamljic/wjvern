@@ -8,6 +8,9 @@ public class Simple {
     }
 
     static int print() {
+        puts(new byte[]{'H','e','l','l','o','!','\0'});
         return 1;
     }
+
+    static native int puts(byte[] str);
 }

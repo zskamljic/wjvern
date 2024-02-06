@@ -22,7 +22,7 @@ public class Main {
         }
 
         try {
-            var generator = new IrGenerator(options.inputClass);
+            var generator = new IrGenerator(options.inputClass, options.debug);
             var files = generator.generate();
 
             var processes = ProcessBuilder.startPipeline(List.of(
@@ -31,7 +31,7 @@ public class Main {
                 new ProcessBuilder("llc"), // Generate assembly
                 new ProcessBuilder("clang", "-x", "assembler", "-") // Compile
             ));
-            if (!options.dirty) {
+            if (!options.debug) {
                 for (var file : files) {
                     Files.delete(Path.of(file));
                 }
