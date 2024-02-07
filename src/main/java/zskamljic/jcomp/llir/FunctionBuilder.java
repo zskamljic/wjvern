@@ -12,6 +12,8 @@ import java.lang.classfile.instruction.StackInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FunctionBuilder {
     private final MethodModel method;
@@ -49,14 +51,15 @@ public class FunctionBuilder {
         var currentUnnamed = 1;
         var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
+        var types = new HashMap<String, String>();
         for (var element : code) {
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
-                case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, as, currentUnnamed);
+                case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, i, currentUnnamed);
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
-                case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, a, currentUnnamed);
+                case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
                 case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 default -> line += ": not handled";
@@ -73,35 +76,46 @@ public class FunctionBuilder {
         }
     }
 
-    private int handleArrayStore(StringBuilder builder, Deque<String> stack, ArrayStoreInstruction instruction, int currentUnnamed) {
+    private int handleArrayStore(StringBuilder builder, Deque<String> stack, HashMap<String, String> types, ArrayStoreInstruction instruction, int currentUnnamed) {
         var value = stack.pop();
         var index = stack.pop();
         var arrayReference = stack.pop();
 
+        builder.append(" ".repeat(2))
+            .append("%").append(currentUnnamed).append(" = getelementptr inbounds ").append(types.get(arrayReference))
+            .append(", ptr ").append(arrayReference)
+            .append(", i64 0") // Index through array pointer
+            .append(", i32 ").append(index) // Index through field
+            .append("\n");
+
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{instruction.typeKind()} in not a supported type for array store"));
-
-        builder.append(" ".repeat(2))
-            .append("%").append(currentUnnamed).append(" = getelementptr inbounds ").append(type)
-            .append(", ptr ").append(arrayReference)
-            .append(", i32 ").append(index)
-            .append(";\n");
         builder.append(" ".repeat(2))
             .append("store ").append(type).append(" ").append(value)
             .append(", ptr %").append(currentUnnamed)
-            .append(";\n");
+            .append("\n");
         currentUnnamed++;
         return currentUnnamed;
     }
 
-    private int handleCreatePrimitiveArray(StringBuilder builder, Deque<String> stack, NewPrimitiveArrayInstruction instruction, int currentUnnamed) {
-        builder.append(" ".repeat(2))
-            .append("%").append(currentUnnamed).append(" = alloca ");
-
+    private int handleCreatePrimitiveArray(
+        StringBuilder builder, Deque<String> stack, Map<String, String> types, NewPrimitiveArrayInstruction instruction, int currentUnnamed
+    ) {
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{instruction.typeKind()}"));
-        builder.append(type).append(", i32 ").append(stack.pop()).append(";\n");
-        stack.push(STR."%\{currentUnnamed}");
+
+        var size = stack.pop();
+        String arrayType;
+        if (size.matches("\\d+")) {
+            arrayType = STR."[\{size} x \{type}]";
+        } else {
+            throw new IllegalArgumentException("Dynamic arrays are not supported yet");
+        }
+        builder.append(" ".repeat(2))
+            .append("%").append(currentUnnamed).append(" = alloca ").append(arrayType).append("\n");
+        var varName = STR."%\{currentUnnamed}";
+        stack.push(varName);
+        types.put(varName, arrayType);
 
         currentUnnamed++;
         return currentUnnamed;
@@ -147,7 +161,7 @@ public class FunctionBuilder {
                 .orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} parameter type not supported."));
             builder.append(type).append(" ").append(paramValues.pop());
         }
-        builder.append(")").append(";\n");
+        builder.append(")").append("\n");
         if (!returnType.equals("void")) {
             var unnamedName = STR."%\{currentUnnamed}";
             stack.push(unnamedName);
@@ -162,7 +176,7 @@ public class FunctionBuilder {
         if (instruction.opcode() != Opcode.RETURN) {
             builder.append(" ").append(stack.pop());
         }
-        builder.append(";\n");
+        builder.append("\n");
     }
 
     private void handleStackInstruction(Deque<String> stack, StackInstruction instruction) {
