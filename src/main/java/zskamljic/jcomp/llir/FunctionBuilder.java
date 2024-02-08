@@ -6,6 +6,7 @@ import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LineNumber;
+import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.NewPrimitiveArrayInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
@@ -25,10 +26,6 @@ public class FunctionBuilder {
     }
 
     public String generate() {
-        if (!method.flags().has(AccessFlag.STATIC)) {
-            throw new IllegalArgumentException("Non-static functions are not yet supported");
-        }
-
         var optionalReturnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
         if (optionalReturnType.isEmpty()) {
             throw new IllegalArgumentException(STR."Unsupported return type: \{method.methodTypeSymbol().returnType()}");
@@ -59,6 +56,7 @@ public class FunctionBuilder {
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, i, currentUnnamed);
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
+                case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
                 case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
                 case StackInstruction s -> handleStackInstruction(stack, s);
@@ -95,6 +93,14 @@ public class FunctionBuilder {
             .append(", ptr %").append(currentUnnamed)
             .append("\n");
         currentUnnamed++;
+        return currentUnnamed;
+    }
+
+    private int handleCreateNewObject(StringBuilder builder, Deque<String> stack, NewObjectInstruction instruction, int currentUnnamed) {
+        var varName = STR."%\{currentUnnamed}";
+        currentUnnamed++;
+        builder.append(" ".repeat(2)).append(varName).append(" = alloca %").append(instruction.className().name()).append("\n");
+        stack.push(varName);
         return currentUnnamed;
     }
 
@@ -136,13 +142,6 @@ public class FunctionBuilder {
     }
 
     private int handleInvoke(StringBuilder builder, Deque<String> stack, InvokeInstruction invocation, int currentUnnamed) {
-        var isSameClass = method.parent()
-            .map(parent -> invocation.owner().equals(parent.thisClass()))
-            .orElse(false);
-        if (!isSameClass) {
-            throw new IllegalArgumentException("Calling methods from other classes is not yet supported");
-        }
-
         var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
         builder.append(" ".repeat(2));
@@ -150,7 +149,10 @@ public class FunctionBuilder {
             var unnamedName = STR."%\{currentUnnamed}";
             builder.append(unnamedName).append(" = ");
         }
-        builder.append("call ").append(returnType).append(" @").append(invocation.method().name()).append("(");
+
+        var functionName = getFunctionName(invocation);
+
+        builder.append("call ").append(returnType).append(" @").append(functionName).append("(");
         var parameters = invocation.typeSymbol().parameterList();
         var paramValues = new ArrayDeque<String>();
         for (var _ : parameters) {
@@ -168,6 +170,14 @@ public class FunctionBuilder {
             return currentUnnamed + 1;
         }
         return currentUnnamed;
+    }
+
+    private String getFunctionName(InvokeInstruction invoke) {
+        return switch (invoke.opcode()) {
+            case INVOKESPECIAL -> STR."\"\{invoke.method().owner().name()}_\{invoke.method().name()}\"";
+            case INVOKESTATIC -> invoke.method().name().stringValue();
+            default -> throw new IllegalArgumentException(STR."\{invoke.opcode()} invocation not yet supported");
+        };
     }
 
     private void handleReturn(StringBuilder builder, Deque<String> stack, ReturnInstruction instruction, String returnType) {
@@ -192,6 +202,31 @@ public class FunctionBuilder {
             throw new IllegalArgumentException("Methods with parameters are not yet supported");
         }
 
-        return STR."define \{returnType} @\{method.methodName()}() {\n";
+        var methodQualifier = "";
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            var parentClass = method.parent()
+                .orElseThrow(() -> new IllegalArgumentException(STR."Non static function \{method.methodName()} has no parent"));
+            methodQualifier = STR."\{parentClass.thisClass().name()}_";
+        }
+
+        var methodName = method.methodName().stringValue();
+        if (!methodQualifier.isBlank()) {
+            methodName = methodQualifier + methodName;
+        }
+
+        if (methodName.contains("<")) {
+            methodName = STR."\"\{methodName}\"";
+        }
+
+        if (method.methodTypeSymbol().parameterCount() != 0) {
+            throw new IllegalArgumentException("Functions with parameters are not yet supported");
+        }
+
+        var parametes = "";
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            parametes = "ptr %this";
+        }
+
+        return STR."define \{returnType} @\{methodName}(\{parametes}) {\n";
     }
 }

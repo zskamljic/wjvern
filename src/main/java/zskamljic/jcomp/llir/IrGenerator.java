@@ -7,7 +7,9 @@ import java.io.PrintWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.reflect.AccessFlag;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -24,22 +26,34 @@ public class IrGenerator {
 
     public List<String> generate() throws IOException {
         var className = classModel.thisClass().name();
+
         try (var output = new PrintWriter(new FileOutputStream(STR."\{className}.ll"))) {
-            var methods = classModel.methods()
-                .stream()
-                .map(this::generateMethod)
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining("\n\n"));
-            output.println(methods);
+            var classDefinition = generateClass(classModel.thisClass());
+            output.println(classDefinition);
+
+            // TODO: remove when superclasses are supported
+            output.println("define void @\"java/lang/Object_<init>\"() {\n  ret void\n}\n");
+
+            var methods = new ArrayList<String>();
+            for(var method: classModel.methods()) {
+                var generated = generateMethod(method);
+                if (generated == null) {
+                    return List.of();
+                }
+                methods.add(generated);
+            }
+            output.println(String.join("\n\n", methods));
         }
         return List.of(STR."\{className}.ll");
     }
 
+    private String generateClass(ClassEntry entry) {
+        var builder = new StringBuilder();
+        builder.append("%").append(entry.name()).append(" = type {}").append("\n");
+        return builder.toString();
+    }
+
     private String generateMethod(MethodModel method) {
-        if (method.methodName().equalsString("<init>")) {
-            System.err.println("Constructors are not yet supported");
-            return null;
-        }
         if (!method.flags().has(AccessFlag.NATIVE)) {
             var builder = new FunctionBuilder(method, debug);
             try {

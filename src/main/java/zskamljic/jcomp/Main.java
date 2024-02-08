@@ -24,6 +24,10 @@ public class Main {
         try {
             var generator = new IrGenerator(options.inputClass, options.debug);
             var files = generator.generate();
+            if (files.isEmpty()) {
+                System.err.println("Failed to generate IR code, aborting");
+                return;
+            }
 
             var processes = ProcessBuilder.startPipeline(List.of(
                 linkFiles(files),
