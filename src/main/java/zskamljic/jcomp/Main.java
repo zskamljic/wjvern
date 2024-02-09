@@ -1,7 +1,7 @@
 package zskamljic.jcomp;
 
 import picocli.CommandLine;
-import zskamljic.jcomp.llir.IrGenerator;
+import zskamljic.jcomp.llir.ClassBuilder;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +22,7 @@ public class Main {
         }
 
         try {
-            var generator = new IrGenerator(options.inputClass, options.debug);
+            var generator = new ClassBuilder(options.inputClass, options.debug);
             var files = generator.generate();
             if (files.isEmpty()) {
                 System.err.println("Failed to generate IR code, aborting");

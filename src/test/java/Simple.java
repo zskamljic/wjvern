@@ -1,12 +1,23 @@
 public class Simple {
+    int i;
 //    public static void main(String[] args) {
 //        main();
 //    }
+    public Simple() {
+        //i = 0;
+        print();
+    }
+
+    void doSomething() {
+        //i = 1;
+        print();
+    }
 
     public static int main() {
-        new Simple();
+        var instance = new Simple();
+        instance.doSomething();
         call2();
-        return print();
+        return 0;
     }
 
     static int print() {

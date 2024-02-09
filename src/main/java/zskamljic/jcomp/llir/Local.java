@@ -1,6 +1,4 @@
 package zskamljic.jcomp.llir;
 
-public class Local {
-    public Local(String name) {
-    }
+public record Local(String varName, String type) {
 }

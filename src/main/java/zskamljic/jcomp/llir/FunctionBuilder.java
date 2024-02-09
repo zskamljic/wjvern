@@ -1,15 +1,20 @@
 package zskamljic.jcomp.llir;
 
+import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.ConstantInstruction;
+import java.lang.classfile.instruction.FieldInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LineNumber;
+import java.lang.classfile.instruction.LoadInstruction;
+import java.lang.classfile.instruction.LocalVariable;
 import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.NewPrimitiveArrayInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
+import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -54,12 +59,18 @@ public class FunctionBuilder {
             switch (element) {
                 case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
                 case ConstantInstruction c -> handleConstant(stack, c);
+                case FieldInstruction f -> currentUnnamed = handleFieldInstruction(builder, stack, f, currentUnnamed);
                 case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, i, currentUnnamed);
+                case Label _ -> {
+                }// TODO: handle labels
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
+                case LoadInstruction l -> currentUnnamed = loadValue(builder, stack, locals, l, currentUnnamed);
+                case LocalVariable v -> declareLocal(locals, v);
                 case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
                 case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
                 case StackInstruction s -> handleStackInstruction(stack, s);
+                case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, s);
                 default -> line += ": not handled";
             }
             if (debug) {
@@ -141,6 +152,41 @@ public class FunctionBuilder {
         }
     }
 
+    private int handleFieldInstruction(StringBuilder builder, Deque<String> stack, FieldInstruction instruction, int currentUnnamed) {
+        builder.append(" ".repeat(2));
+
+        if (instruction.opcode() == Opcode.GETFIELD) {
+            var varName = STR."%\{currentUnnamed}";
+            builder.append(varName).append(" = getelementptr %").append(instruction.field().owner().name()).append(", ")
+                .append("%").append(instruction.field().owner().name()).append("* ").append(stack.pop()).append(", ")
+                .append("i32 0, i32 0") // Index into pointer (get this) then index to field at index 0 TODO: change index
+                .append("\n");
+
+            currentUnnamed++;
+            var valueVar = STR."%\{currentUnnamed}";
+            builder.append(" ".repeat(2))
+                .append(valueVar).append(" = load i32, i32* ").append(varName).append("\n"); // TODO: change type
+            stack.push(valueVar);
+            currentUnnamed++;
+            return currentUnnamed;
+        } else if (instruction.opcode() == Opcode.PUTFIELD) {
+            var value = stack.pop();
+            var objectReference = stack.pop();
+
+            var varName = STR."%\{currentUnnamed}";
+            currentUnnamed++;
+            builder.append(varName).append(" = getelementptr %").append(instruction.owner().name())
+                .append(", %").append(instruction.owner().name()).append("* ")
+                .append(objectReference)
+                .append(", i32 0, i32 0").append("\n");
+            builder.append(" ".repeat(2)).append("store i32 ").append(value).append(", i32* ").append(varName).append("\n");
+
+            return currentUnnamed;
+        } else {
+            throw new IllegalArgumentException(STR."\{instruction.opcode()} field instruction is not yet supported");
+        }
+    }
+
     private int handleInvoke(StringBuilder builder, Deque<String> stack, InvokeInstruction invocation, int currentUnnamed) {
         var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
@@ -158,6 +204,9 @@ public class FunctionBuilder {
         for (var _ : parameters) {
             paramValues.push(stack.pop());
         }
+        if (invocation.opcode() != Opcode.INVOKESTATIC) {
+            builder.append("ptr ").append(stack.pop()); // Add implicit this
+        }
         for (var parameter : parameters) {
             var type = IrTypeMapper.mapType(parameter)
                 .orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} parameter type not supported."));
@@ -174,10 +223,36 @@ public class FunctionBuilder {
 
     private String getFunctionName(InvokeInstruction invoke) {
         return switch (invoke.opcode()) {
-            case INVOKESPECIAL -> STR."\"\{invoke.method().owner().name()}_\{invoke.method().name()}\"";
+            case INVOKESPECIAL, INVOKEVIRTUAL -> STR."\"\{invoke.method().owner().name()}_\{invoke.method().name()}\"";
             case INVOKESTATIC -> invoke.method().name().stringValue();
             default -> throw new IllegalArgumentException(STR."\{invoke.opcode()} invocation not yet supported");
         };
+    }
+
+    private int loadValue(StringBuilder builder, Deque<String> stack, Local[] locals, LoadInstruction instruction, int currentUnnamed) {
+        var varName = STR."%\{currentUnnamed}";
+        builder.append(" ".repeat(2)).append(varName).append(" = load ");
+
+        var local = switch (instruction.opcode()) {
+            case ALOAD_0 -> locals[0];
+            case ALOAD_1 -> locals[1];
+            case ALOAD_2 -> locals[2];
+            case ALOAD_3 -> locals[3];
+            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
+        };
+
+        builder.append("ptr").append(", ") // type of pointer
+            .append("%").append(local.type()).append("* ").append(local.varName()); //variable cast
+
+        builder.append("\n");
+        stack.push(varName);
+
+        currentUnnamed++;
+        return currentUnnamed;
+    }
+
+    private void declareLocal(Local[] locals, LocalVariable variable) {
+        locals[variable.slot()] = new Local(STR."%\{variable.name()}", variable.typeSymbol().displayName());
     }
 
     private void handleReturn(StringBuilder builder, Deque<String> stack, ReturnInstruction instruction, String returnType) {
@@ -195,6 +270,20 @@ public class FunctionBuilder {
             case DUP -> stack.push(stack.peekLast());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} stack instruction not supported yet");
         }
+    }
+
+    private void handleStoreInstruction(StringBuilder builder, Deque<String> stack, Local[] locals, StoreInstruction instruction) {
+        var reference = stack.pop();
+        var index = switch (instruction.opcode()) {
+            case ASTORE_0 -> 0;
+            case ASTORE_1 -> 1;
+            case ASTORE_2 -> 2;
+            case ASTORE_3 -> 3;
+            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
+        };
+        var local = locals[index];
+        builder.append(" ".repeat(2))
+            .append(local.varName()).append(" = load %").append(local.type()).append("*, ptr ").append(reference).append("\n"); // TODO: unnamed types
     }
 
     private String getMethodDefinition(String returnType) {
@@ -224,7 +313,8 @@ public class FunctionBuilder {
 
         var parametes = "";
         if (!method.flags().has(AccessFlag.STATIC)) {
-            parametes = "ptr %this";
+            var parent = method.parent().orElseThrow();
+            parametes = STR."%\{parent.thisClass().name()}* %this";
         }
 
         return STR."define \{returnType} @\{methodName}(\{parametes}) {\n";

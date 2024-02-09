@@ -11,14 +11,12 @@ import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class IrGenerator {
+public class ClassBuilder {
     private final ClassModel classModel;
     private final boolean debug;
 
-    public IrGenerator(File inputClass, boolean debug) throws IOException {
+    public ClassBuilder(File inputClass, boolean debug) throws IOException {
         this.debug = debug;
         var classFile = ClassFile.of();
         classModel = classFile.parse(inputClass.toPath());
@@ -32,10 +30,10 @@ public class IrGenerator {
             output.println(classDefinition);
 
             // TODO: remove when superclasses are supported
-            output.println("define void @\"java/lang/Object_<init>\"() {\n  ret void\n}\n");
+            output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");
 
             var methods = new ArrayList<String>();
-            for(var method: classModel.methods()) {
+            for (var method : classModel.methods()) {
                 var generated = generateMethod(method);
                 if (generated == null) {
                     return List.of();
@@ -49,7 +47,21 @@ public class IrGenerator {
 
     private String generateClass(ClassEntry entry) {
         var builder = new StringBuilder();
-        builder.append("%").append(entry.name()).append(" = type {}").append("\n");
+        builder.append("%").append(entry.name()).append(" = type { ");
+
+        var fieldDefinitions = new ArrayList<String>();
+        for (var field : classModel.fields()) {
+            var type = IrTypeMapper.mapType(field.fieldTypeSymbol())
+                .orElseThrow(() -> new IllegalArgumentException(STR."Invalid field type \{field.fieldType()} for field \{field.fieldName()}"));
+
+           fieldDefinitions.add(type);
+        }
+        var fields = String.join(", ", fieldDefinitions);
+        if (!fields.isBlank()) {
+            builder.append(fields).append(" ");
+        }
+
+        builder.append("}").append("\n");
         return builder.toString();
     }
 
