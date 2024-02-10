@@ -1,15 +1,17 @@
 public class Simple {
     int i;
-//    public static void main(String[] args) {
+    int j;
+
+    //    public static void main(String[] args) {
 //        main();
 //    }
     public Simple() {
-        i = 0;
+        i = 1;
         print();
     }
 
     void doSomething() {
-        i = 1;
+        j = 2;
         print();
     }
 
@@ -17,11 +19,11 @@ public class Simple {
         var instance = new Simple();
         instance.doSomething();
         call2();
-        return instance.i;
+        return instance.i + instance.j;
     }
 
     static int print() {
-        puts(new byte[]{'H','e','l','l','o','!','\0'});
+        puts(new byte[]{'H', 'e', 'l', 'l', 'o', '!', '\0'});
         return 1;
     }
 

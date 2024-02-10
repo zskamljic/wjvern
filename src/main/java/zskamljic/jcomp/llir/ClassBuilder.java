@@ -30,12 +30,11 @@ public class ClassBuilder {
             output.println("%\"java/lang/Object\" = type { }\n");
             output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");
 
-            var classDefinition = generateClass(classModel.thisClass());
-            output.println(classDefinition);
+            var fieldNames = generateClass(output, classModel.thisClass());
 
             var methods = new ArrayList<String>();
             for (var method : classModel.methods()) {
-                var generated = generateMethod(method);
+                var generated = generateMethod(fieldNames, method);
                 if (generated == null) {
                     return List.of();
                 }
@@ -46,16 +45,18 @@ public class ClassBuilder {
         return List.of(STR."\{className}.ll");
     }
 
-    private String generateClass(ClassEntry entry) {
+    private List<String> generateClass(PrintWriter output, ClassEntry entry) {
         var builder = new StringBuilder();
         builder.append("%").append(entry.name()).append(" = type { ");
 
+        var fieldNames = new ArrayList<String>();
         var fieldDefinitions = new ArrayList<String>();
         for (var field : classModel.fields()) {
             var type = IrTypeMapper.mapType(field.fieldTypeSymbol())
                 .orElseThrow(() -> new IllegalArgumentException(STR."Invalid field type \{field.fieldType()} for field \{field.fieldName()}"));
 
            fieldDefinitions.add(type);
+           fieldNames.add(field.fieldName().stringValue());
         }
         var fields = String.join(", ", fieldDefinitions);
         if (!fields.isBlank()) {
@@ -63,12 +64,13 @@ public class ClassBuilder {
         }
 
         builder.append("}").append("\n");
-        return builder.toString();
+        output.println(builder);
+        return fieldNames;
     }
 
-    private String generateMethod(MethodModel method) {
+    private String generateMethod(List<String> fieldNames, MethodModel method) {
         if (!method.flags().has(AccessFlag.NATIVE)) {
-            var builder = new FunctionBuilder(method, debug);
+            var builder = new FunctionBuilder(method, fieldNames, debug);
             try {
                 return builder.generate();
             } catch (IllegalArgumentException e) {

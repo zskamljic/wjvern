@@ -12,6 +12,7 @@ import java.lang.classfile.instruction.LoadInstruction;
 import java.lang.classfile.instruction.LocalVariable;
 import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.NewPrimitiveArrayInstruction;
+import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
@@ -19,14 +20,17 @@ import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FunctionBuilder {
     private final MethodModel method;
+    private final List<String> fieldDefinition;
     private final boolean debug;
 
-    public FunctionBuilder(MethodModel method, boolean debug) {
+    public FunctionBuilder(MethodModel method, List<String> fieldNames, boolean debug) {
         this.method = method;
+        this.fieldDefinition = fieldNames;
         this.debug = debug;
     }
 
@@ -68,6 +72,7 @@ public class FunctionBuilder {
                 case LocalVariable v -> declareLocal(locals, v);
                 case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
+                case OperatorInstruction o -> currentUnnamed = handleOperatorInstruction(builder, stack, o, currentUnnamed);
                 case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, s);
@@ -138,6 +143,23 @@ public class FunctionBuilder {
         return currentUnnamed;
     }
 
+    private int handleOperatorInstruction(StringBuilder builder, Deque<String> stack, OperatorInstruction instruction, int currentUnnamed) {
+        var operand2 = stack.pop();
+        var operand1 = stack.pop();
+
+        var resultVar = STR."%\{currentUnnamed}";
+        stack.push(resultVar);
+        currentUnnamed++;
+
+        builder.append(" ".repeat(2));
+
+        switch (instruction.opcode()) {
+            case IADD -> builder.append(resultVar).append(" = add i32 ").append(operand1).append(", ").append(operand2).append("\n");
+            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
+        }
+        return currentUnnamed;
+    }
+
     private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
         switch (instruction.opcode()) {
             case ICONST_M1 -> stack.push("-1");
@@ -157,10 +179,15 @@ public class FunctionBuilder {
 
         if (instruction.opcode() == Opcode.GETFIELD) {
             var varName = STR."%\{currentUnnamed}";
+
+            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol())
+                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
+
             builder.append(varName).append(" = getelementptr %").append(instruction.field().owner().name()).append(", ")
                 .append("%").append(instruction.field().owner().name()).append("* ").append(stack.pop()).append(", ")
-                .append("i32 0, i32 0") // Index into pointer (get this) then index to field at index 0 TODO: change index
-                .append("\n");
+                .append("i32 0, ")
+                .append(fieldType)
+                .append(" ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
 
             currentUnnamed++;
             var valueVar = STR."%\{currentUnnamed}";
@@ -173,12 +200,17 @@ public class FunctionBuilder {
             var value = stack.pop();
             var objectReference = stack.pop();
 
+            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol())
+                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
+
             var varName = STR."%\{currentUnnamed}";
             currentUnnamed++;
             builder.append(varName).append(" = getelementptr %").append(instruction.owner().name())
                 .append(", %").append(instruction.owner().name()).append("* ")
                 .append(objectReference)
-                .append(", i32 0, i32 0").append("\n");
+                .append(", i32 0, ")
+                .append(fieldType)
+                .append(" ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
             builder.append(" ".repeat(2)).append("store i32 ").append(value).append(", i32* ").append(varName).append("\n");
 
             return currentUnnamed;
