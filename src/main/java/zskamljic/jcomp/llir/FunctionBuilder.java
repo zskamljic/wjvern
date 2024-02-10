@@ -64,7 +64,7 @@ public class FunctionBuilder {
                 case Label _ -> {
                 }// TODO: handle labels
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
-                case LoadInstruction l -> currentUnnamed = loadValue(builder, stack, locals, l, currentUnnamed);
+                case LoadInstruction l -> loadValue(stack, locals, l);
                 case LocalVariable v -> declareLocal(locals, v);
                 case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
@@ -205,7 +205,11 @@ public class FunctionBuilder {
             paramValues.push(stack.pop());
         }
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
-            builder.append("ptr ").append(stack.pop()); // Add implicit this
+            var typeName = STR."%\"\{invocation.method().owner().name()}\"*";
+            if (!typeName.contains("/")) {
+                typeName = typeName.replaceAll("\"", "");
+            }
+            builder.append(typeName).append(" ").append(stack.pop()); // Add implicit this
         }
         for (var parameter : parameters) {
             var type = IrTypeMapper.mapType(parameter)
@@ -229,10 +233,7 @@ public class FunctionBuilder {
         };
     }
 
-    private int loadValue(StringBuilder builder, Deque<String> stack, Local[] locals, LoadInstruction instruction, int currentUnnamed) {
-        var varName = STR."%\{currentUnnamed}";
-        builder.append(" ".repeat(2)).append(varName).append(" = load ");
-
+    private void loadValue(Deque<String> stack, Local[] locals, LoadInstruction instruction) {
         var local = switch (instruction.opcode()) {
             case ALOAD_0 -> locals[0];
             case ALOAD_1 -> locals[1];
@@ -240,15 +241,7 @@ public class FunctionBuilder {
             case ALOAD_3 -> locals[3];
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
         };
-
-        builder.append("ptr").append(", ") // type of pointer
-            .append("%").append(local.type()).append("* ").append(local.varName()); //variable cast
-
-        builder.append("\n");
-        stack.push(varName);
-
-        currentUnnamed++;
-        return currentUnnamed;
+        stack.push(local.varName());
     }
 
     private void declareLocal(Local[] locals, LocalVariable variable) {
@@ -283,7 +276,9 @@ public class FunctionBuilder {
         };
         var local = locals[index];
         builder.append(" ".repeat(2))
-            .append(local.varName()).append(" = load %").append(local.type()).append("*, ptr ").append(reference).append("\n"); // TODO: unnamed types
+            .append(local.varName()).append(" = bitcast %").append(local.type()).append("* ").append(reference)
+            .append(" to %").append(local.type()).append("*")
+            .append("\n");
     }
 
     private String getMethodDefinition(String returnType) {

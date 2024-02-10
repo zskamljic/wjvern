@@ -4,12 +4,12 @@ public class Simple {
 //        main();
 //    }
     public Simple() {
-        //i = 0;
+        i = 0;
         print();
     }
 
     void doSomething() {
-        //i = 1;
+        i = 1;
         print();
     }
 
@@ -17,7 +17,7 @@ public class Simple {
         var instance = new Simple();
         instance.doSomething();
         call2();
-        return 0;
+        return instance.i;
     }
 
     static int print() {

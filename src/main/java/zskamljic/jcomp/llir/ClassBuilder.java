@@ -26,11 +26,12 @@ public class ClassBuilder {
         var className = classModel.thisClass().name();
 
         try (var output = new PrintWriter(new FileOutputStream(STR."\{className}.ll"))) {
+            // TODO: remove when superclasses are supported
+            output.println("%\"java/lang/Object\" = type { }\n");
+            output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");
+
             var classDefinition = generateClass(classModel.thisClass());
             output.println(classDefinition);
-
-            // TODO: remove when superclasses are supported
-            output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");
 
             var methods = new ArrayList<String>();
             for (var method : classModel.methods()) {
