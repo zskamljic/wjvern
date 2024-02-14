@@ -10,7 +10,9 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ClassBuilder {
     private final ClassModel classModel;
@@ -32,13 +34,24 @@ public class ClassBuilder {
 
             var fieldNames = generateClass(output, classModel.thisClass());
 
+            var varargs = new HashSet<String>();
+            classModel.methods()
+                .stream()
+                .filter(m -> m.flags().has(AccessFlag.VARARGS))
+                .map(m -> m.methodName() + m.methodTypeSymbol().descriptorString())
+                .forEach(varargs::add);
+
+            var declared = new HashSet<String>();
             var methods = new ArrayList<String>();
             for (var method : classModel.methods()) {
-                var generated = generateMethod(fieldNames, method);
+                var generated = generateMethod(fieldNames, method, varargs);
                 if (generated == null) {
                     return List.of();
                 }
-                methods.add(generated);
+                if (!declared.contains(generated)) {
+                    declared.add(generated);
+                    methods.add(generated);
+                }
             }
             output.println(String.join("\n\n", methods));
         }
@@ -55,8 +68,8 @@ public class ClassBuilder {
             var type = IrTypeMapper.mapType(field.fieldTypeSymbol())
                 .orElseThrow(() -> new IllegalArgumentException(STR."Invalid field type \{field.fieldType()} for field \{field.fieldName()}"));
 
-           fieldDefinitions.add(type);
-           fieldNames.add(field.fieldName().stringValue());
+            fieldDefinitions.add(type);
+            fieldNames.add(field.fieldName().stringValue());
         }
         var fields = String.join(", ", fieldDefinitions);
         if (!fields.isBlank()) {
@@ -68,9 +81,9 @@ public class ClassBuilder {
         return fieldNames;
     }
 
-    private String generateMethod(List<String> fieldNames, MethodModel method) {
+    private String generateMethod(List<String> fieldNames, MethodModel method, Set<String> varargs) {
         if (!method.flags().has(AccessFlag.NATIVE)) {
-            var builder = new FunctionBuilder(method, fieldNames, debug);
+            var builder = new FunctionBuilder(method, fieldNames, varargs, debug);
             try {
                 return builder.generate();
             } catch (IllegalArgumentException e) {
@@ -89,7 +102,20 @@ public class ClassBuilder {
         var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type: \{method.methodTypeSymbol().returnType()}"));
         declaration.append(type);
-        declaration.append(" @").append(method.methodName()).append("() nounwind");
+        declaration.append(" @").append(method.methodName()).append("(");
+        var parameters = new ArrayList<String>();
+        var isVarArg = method.flags().has(AccessFlag.VARARGS);
+        var symbol = method.methodTypeSymbol();
+        for (int i = 0; i < symbol.parameterCount(); i++) {
+            var parameter = symbol.parameterType(i);
+            if (isVarArg && i == symbol.parameterCount() - 1) {
+                parameters.add("...");
+            } else {
+                parameters.add(IrTypeMapper.mapType(parameter).orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} type not supported in declare")));
+            }
+        }
+        declaration.append(String.join(", ", parameters));
+        declaration.append(") nounwind");
         return declaration.toString();
     }
 }

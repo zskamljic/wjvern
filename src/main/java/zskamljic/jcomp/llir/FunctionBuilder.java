@@ -1,5 +1,7 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.llir.models.LlvmType;
+
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
@@ -22,15 +24,18 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class FunctionBuilder {
     private final MethodModel method;
     private final List<String> fieldDefinition;
+    private final Set<String> varargs;
     private final boolean debug;
 
-    public FunctionBuilder(MethodModel method, List<String> fieldNames, boolean debug) {
+    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, boolean debug) {
         this.method = method;
         this.fieldDefinition = fieldNames;
+        this.varargs = varargs;
         this.debug = debug;
     }
 
@@ -57,14 +62,14 @@ public class FunctionBuilder {
         var currentUnnamed = 1;
         var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
-        var types = new HashMap<String, String>();
+        var types = new HashMap<String, LlvmType>();
         for (var element : code) {
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case FieldInstruction f -> currentUnnamed = handleFieldInstruction(builder, stack, f, currentUnnamed);
-                case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, i, currentUnnamed);
+                case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, types, i, currentUnnamed);
                 case Label _ -> {
                 }// TODO: handle labels
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
@@ -90,7 +95,7 @@ public class FunctionBuilder {
         }
     }
 
-    private int handleArrayStore(StringBuilder builder, Deque<String> stack, HashMap<String, String> types, ArrayStoreInstruction instruction, int currentUnnamed) {
+    private int handleArrayStore(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction, int currentUnnamed) {
         var value = stack.pop();
         var index = stack.pop();
         var arrayReference = stack.pop();
@@ -121,7 +126,7 @@ public class FunctionBuilder {
     }
 
     private int handleCreatePrimitiveArray(
-        StringBuilder builder, Deque<String> stack, Map<String, String> types, NewPrimitiveArrayInstruction instruction, int currentUnnamed
+        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction, int currentUnnamed
     ) {
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{instruction.typeKind()}"));
@@ -137,7 +142,7 @@ public class FunctionBuilder {
             .append("%").append(currentUnnamed).append(" = alloca ").append(arrayType).append("\n");
         var varName = STR."%\{currentUnnamed}";
         stack.push(varName);
-        types.put(varName, arrayType);
+        types.put(varName, new LlvmType.Array(Integer.parseInt(size), type));
 
         currentUnnamed++;
         return currentUnnamed;
@@ -162,6 +167,7 @@ public class FunctionBuilder {
 
     private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
         switch (instruction.opcode()) {
+            case BIPUSH -> stack.push(instruction.constantValue().toString());
             case ICONST_M1 -> stack.push("-1");
             case ICONST_0 -> stack.push("0");
             case ICONST_1 -> stack.push("1");
@@ -169,7 +175,7 @@ public class FunctionBuilder {
             case ICONST_3 -> stack.push("3");
             case ICONST_4 -> stack.push("4");
             case ICONST_5 -> stack.push("5");
-            case BIPUSH -> stack.push(instruction.constantValue().toString());
+            case LDC, LDC2_W -> stack.push(((ConstantInstruction.LoadConstantInstruction) instruction).constantEntry().constantValue().toString());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} constant is not supported yet");
         }
     }
@@ -185,14 +191,13 @@ public class FunctionBuilder {
 
             builder.append(varName).append(" = getelementptr %").append(instruction.field().owner().name()).append(", ")
                 .append("%").append(instruction.field().owner().name()).append("* ").append(stack.pop()).append(", ")
-                .append("i32 0, ")
-                .append(fieldType)
-                .append(" ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
+                .append("i32 0, i32 ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
 
             currentUnnamed++;
             var valueVar = STR."%\{currentUnnamed}";
             builder.append(" ".repeat(2))
-                .append(valueVar).append(" = load i32, i32* ").append(varName).append("\n"); // TODO: change type
+                .append(valueVar).append(" = load ").append(fieldType)
+                .append(", ").append(fieldType).append("* ").append(varName).append("\n");
             stack.push(valueVar);
             currentUnnamed++;
             return currentUnnamed;
@@ -209,9 +214,9 @@ public class FunctionBuilder {
                 .append(", %").append(instruction.owner().name()).append("* ")
                 .append(objectReference)
                 .append(", i32 0, ")
-                .append(fieldType)
-                .append(" ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
-            builder.append(" ".repeat(2)).append("store i32 ").append(value).append(", i32* ").append(varName).append("\n");
+                .append("i32 ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
+            builder.append(" ".repeat(2)).append("store ").append(fieldType).append(" ").append(value).append(", ")
+                .append(fieldType).append("* ").append(varName).append("\n");
 
             return currentUnnamed;
         } else {
@@ -219,7 +224,44 @@ public class FunctionBuilder {
         }
     }
 
-    private int handleInvoke(StringBuilder builder, Deque<String> stack, InvokeInstruction invocation, int currentUnnamed) {
+    private int handleInvoke(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation, int currentUnnamed) {
+        var isVarArg = varargs.contains(invocation.method().name() + invocation.typeSymbol().descriptorString());
+
+        var parameterCount = invocation.typeSymbol().parameterCount();
+        if (isVarArg) {
+            var parameter = stack.pop();
+            if (types.get(parameter) instanceof LlvmType.Array array) {
+                parameterCount = parameterCount - 1 + array.length();
+                for (int i = 0; i < array.length(); i++) {
+                    var pointerName = STR."%\{currentUnnamed}";
+                    currentUnnamed++;
+                    builder.append(" ".repeat(2))
+                        .append(pointerName).append(" = getelementptr inbounds ").append(array).append(", ptr ").append(parameter)
+                        .append(", i64 0, i32 ").append(i).append("\n");
+                    var varName = STR."%\{currentUnnamed}";
+                    currentUnnamed++;
+                    builder.append(" ".repeat(2))
+                        .append(varName).append(" = load ").append(array.type()).append(", ").append(array.type()).append("* ").append(pointerName)
+                        .append("\n");
+                    switch (array.type()) {
+                        case "float" -> {
+                            var extendedName = STR."%\{currentUnnamed}";
+                            currentUnnamed++;
+                            builder.append(" ".repeat(2)).append(extendedName).append(" = fpext float ").append(varName).append(" to double\n");
+                            stack.push(extendedName);
+                        }
+                        case "i8", "i16" -> {
+                            var extendedName = STR."%\{currentUnnamed}";
+                            currentUnnamed++;
+                            builder.append(" ".repeat(2)).append(extendedName).append(" = sext ").append(array.type()).append(" ").append(varName).append(" to i32\n");
+                            stack.push(extendedName);
+                        }
+                        default -> stack.push(varName);
+                    }
+                }
+            }
+        }
+
         var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
         builder.append(" ".repeat(2));
@@ -231,10 +273,20 @@ public class FunctionBuilder {
         var functionName = getFunctionName(invocation);
 
         builder.append("call ").append(returnType).append(" @").append(functionName).append("(");
-        var parameters = invocation.typeSymbol().parameterList();
         var paramValues = new ArrayDeque<String>();
-        for (var _ : parameters) {
-            paramValues.push(stack.pop());
+        for (int i = parameterCount - 1; i >= 0; i--) {
+            var type = invocation.typeSymbol().parameterType(Math.min(i, invocation.typeSymbol().parameterCount()));
+            var shouldUnwrap = isVarArg && i >= invocation.typeSymbol().parameterCount() - 1;
+            if (type.isArray() && shouldUnwrap) type = type.componentType();
+
+            var finalType = type;
+            var irType = IrTypeMapper.mapType(type)
+                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported parameter type \{finalType}"));
+            if (shouldUnwrap) {
+                irType = extendType(irType);
+            }
+
+            paramValues.push(STR."\{irType} \{stack.pop()}");
         }
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
             var typeName = STR."%\"\{invocation.method().owner().name()}\"*";
@@ -243,11 +295,7 @@ public class FunctionBuilder {
             }
             builder.append(typeName).append(" ").append(stack.pop()); // Add implicit this
         }
-        for (var parameter : parameters) {
-            var type = IrTypeMapper.mapType(parameter)
-                .orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} parameter type not supported."));
-            builder.append(type).append(" ").append(paramValues.pop());
-        }
+        builder.append(String.join(", ", paramValues));
         builder.append(")").append("\n");
         if (!returnType.equals("void")) {
             var unnamedName = STR."%\{currentUnnamed}";
@@ -255,6 +303,14 @@ public class FunctionBuilder {
             return currentUnnamed + 1;
         }
         return currentUnnamed;
+    }
+
+    private String extendType(String irType) {
+        return switch (irType) {
+            case "float" -> "double";
+            case "i8", "i16" -> "i32";
+            default -> irType;
+        };
     }
 
     private String getFunctionName(InvokeInstruction invoke) {
@@ -292,7 +348,7 @@ public class FunctionBuilder {
     private void handleStackInstruction(Deque<String> stack, StackInstruction instruction) {
         switch (instruction.opcode()) {
             case POP -> stack.pop();
-            case DUP -> stack.push(stack.peekLast());
+            case DUP -> stack.push(stack.peekFirst());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} stack instruction not supported yet");
         }
     }

@@ -14,7 +14,9 @@ public class IrTypeMapper {
             return mapComplexType(classDesc);
         }
         return Optional.ofNullable(switch (classDesc.displayName()) {
+            case "double", "float" -> classDesc.displayName();
             case "int" -> "i32";
+            case "long" -> "i64";
             case "void" -> "void";
             default -> {
                 System.err.println(STR."Unsupported type: \{classDesc.displayName()}");
@@ -34,6 +36,9 @@ public class IrTypeMapper {
     public static Optional<String> mapType(TypeKind typeKind) {
         return Optional.ofNullable(switch (typeKind) {
             case ByteType -> "i8";
+            case DoubleType -> "double";
+            case FloatType -> "float";
+            case IntType -> "i32";
             default -> {
                 System.err.println(STR."Unsupported type: \{typeKind.typeName()}");
                 yield null;

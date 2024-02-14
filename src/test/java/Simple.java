@@ -1,12 +1,15 @@
 public class Simple {
     int i;
     int j;
-
+    float f;
+    double d;
     //    public static void main(String[] args) {
 //        main();
 //    }
     public Simple() {
         i = 1;
+        f = 5;
+        d = 7;
         print();
     }
 
@@ -19,6 +22,9 @@ public class Simple {
         var instance = new Simple();
         instance.doSomething();
         call2();
+        printf(new byte[]{'%', 'd', '\n', '\0'}, instance.i);
+        printf(new byte[]{'%', 'f', '\n', '\0'}, instance.f);
+        printf(new byte[]{'%', 'f', '\n', '\0'}, instance.d);
         return instance.i + instance.j;
     }
 
@@ -32,4 +38,10 @@ public class Simple {
     }
 
     static native int puts(byte[] str);
+
+    static native int printf(byte[] str, int... params);
+
+    static native int printf(byte[] str, float... params);
+
+    static native int printf(byte[] str, double... params);
 }
