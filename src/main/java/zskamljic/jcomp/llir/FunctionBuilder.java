@@ -6,6 +6,7 @@ import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.ArrayStoreInstruction;
+import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.FieldInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
@@ -63,15 +64,29 @@ public class FunctionBuilder {
         var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
         var types = new HashMap<String, LlvmType>();
-        for (var element : code) {
+        for (var it = code.iterator(); it.hasNext(); ) {
+            var element = it.next();
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
+                case BranchInstruction b -> handleBranch(builder, stack, b);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case FieldInstruction f -> currentUnnamed = handleFieldInstruction(builder, stack, f, currentUnnamed);
                 case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, types, i, currentUnnamed);
-                case Label _ -> {
-                }// TODO: handle labels
+                case Label label -> {
+                    if (it.hasNext()) { // Ignore labels at end of block
+                        // TODO: don't build multiple strings
+                        var content = builder.toString();
+                        if (content.trim().endsWith("{")) {
+                            currentUnnamed--;
+                        }
+                        var lastNewLine = content.lastIndexOf("\n", content.length() - 2);
+                        if (lastNewLine != -1 && !content.substring(lastNewLine).trim().startsWith("br")) {
+                            builder.append(" ".repeat(2)).append("br label %").append(sanitize(label)).append("\n");
+                        }
+                        builder.append(sanitize(label)).append(":\n");
+                    }
+                }
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
                 case LoadInstruction l -> loadValue(stack, locals, l);
                 case LocalVariable v -> declareLocal(locals, v);
@@ -115,6 +130,22 @@ public class FunctionBuilder {
             .append("\n");
         currentUnnamed++;
         return currentUnnamed;
+    }
+
+    private void handleBranch(StringBuilder builder, Deque<String> stack, BranchInstruction instruction) {
+        switch (instruction.opcode()) {
+            case GOTO -> builder.append(" ".repeat(2)).append("br label %").append(sanitize(instruction.target())).append("\n");
+            case IFNE -> {
+                var value = stack.pop();
+                var target = sanitize(instruction.target());
+                builder.append(" ".repeat(2)).append("br i1 ").append(value)
+                    .append(", label %").append(target)
+                    .append(", label %not_").append(target)
+                    .append("\n");
+                builder.append("not_").append(target).append(":\n");
+            }
+            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} jump not supported yet");
+        }
     }
 
     private int handleCreateNewObject(StringBuilder builder, Deque<String> stack, NewObjectInstruction instruction, int currentUnnamed) {
@@ -303,6 +334,10 @@ public class FunctionBuilder {
             return currentUnnamed + 1;
         }
         return currentUnnamed;
+    }
+
+    private String sanitize(Label label) {
+        return label.toString().replaceAll("\\W+", "_");
     }
 
     private String extendType(String irType) {

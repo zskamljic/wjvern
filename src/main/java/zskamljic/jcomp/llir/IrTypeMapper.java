@@ -14,6 +14,7 @@ public class IrTypeMapper {
             return mapComplexType(classDesc);
         }
         return Optional.ofNullable(switch (classDesc.displayName()) {
+            case "boolean" -> "i1";
             case "double", "float" -> classDesc.displayName();
             case "int" -> "i32";
             case "long" -> "i64";

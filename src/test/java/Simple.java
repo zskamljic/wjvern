@@ -3,6 +3,8 @@ public class Simple {
     int j;
     float f;
     double d;
+    boolean b;
+
     //    public static void main(String[] args) {
 //        main();
 //    }
@@ -10,18 +12,25 @@ public class Simple {
         i = 1;
         f = 5;
         d = 7;
-        print();
+        b = false;
     }
 
     void doSomething() {
-        j = 2;
-        print();
+        if (!b) {
+            b = true;
+            j = 1;
+        } else {
+            print();
+            j = 2;
+        }
     }
 
     public static int main() {
         var instance = new Simple();
         instance.doSomething();
-        call2();
+        printf(new byte[]{'j', ':', '%', 'd', '\n', '\0'}, instance.j);
+        instance.doSomething();
+        printf(new byte[]{'j', ':', '%', 'd', '\n', '\0'}, instance.j);
         printf(new byte[]{'%', 'd', '\n', '\0'}, instance.i);
         printf(new byte[]{'%', 'f', '\n', '\0'}, instance.f);
         printf(new byte[]{'%', 'f', '\n', '\0'}, instance.d);
@@ -31,10 +40,6 @@ public class Simple {
     static int print() {
         puts(new byte[]{'H', 'e', 'l', 'l', 'o', '!', '\0'});
         return 1;
-    }
-
-    static void call2() {
-        print();
     }
 
     static native int puts(byte[] str);
