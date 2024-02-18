@@ -9,6 +9,7 @@ import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.FieldInstruction;
+import java.lang.classfile.instruction.IncrementInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LineNumber;
 import java.lang.classfile.instruction.LoadInstruction;
@@ -69,9 +70,10 @@ public class FunctionBuilder {
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
-                case BranchInstruction b -> handleBranch(builder, stack, b);
+                case BranchInstruction b -> currentUnnamed = handleBranch(builder, stack, types, b, currentUnnamed);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case FieldInstruction f -> currentUnnamed = handleFieldInstruction(builder, stack, f, currentUnnamed);
+                case IncrementInstruction i -> currentUnnamed = handleIncrement(builder, locals, i, currentUnnamed);
                 case InvokeInstruction i -> currentUnnamed = handleInvoke(builder, stack, types, i, currentUnnamed);
                 case Label label -> {
                     if (it.hasNext()) { // Ignore labels at end of block
@@ -89,13 +91,13 @@ public class FunctionBuilder {
                 }
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
                 case LoadInstruction l -> loadValue(stack, locals, l);
-                case LocalVariable v -> declareLocal(locals, v);
+                case LocalVariable v -> declareLocal(locals, types, v);
                 case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
                 case OperatorInstruction o -> currentUnnamed = handleOperatorInstruction(builder, stack, o, currentUnnamed);
                 case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
                 case StackInstruction s -> handleStackInstruction(stack, s);
-                case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, s);
+                case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, types, s);
                 default -> line += ": not handled";
             }
             if (debug) {
@@ -115,24 +117,34 @@ public class FunctionBuilder {
         var index = stack.pop();
         var arrayReference = stack.pop();
 
+        var varName = STR."%\{currentUnnamed}";
         builder.append(" ".repeat(2))
-            .append("%").append(currentUnnamed).append(" = getelementptr inbounds ").append(types.get(arrayReference))
+            .append(varName).append(" = getelementptr inbounds ").append(types.get(arrayReference))
             .append(", ptr ").append(arrayReference)
             .append(", i64 0") // Index through array pointer
             .append(", i32 ").append(index) // Index through field
             .append("\n");
+        currentUnnamed++;
 
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{instruction.typeKind()} in not a supported type for array store"));
+        if (types.get(value) instanceof LlvmType.Pointer p) {
+            var tempValue = STR."%\{currentUnnamed}";
+            currentUnnamed++;
+            builder.append(" ".repeat(2))
+                .append(tempValue).append(" = load ").append(p.type())
+                .append(", ").append(p.type()).append("* ").append(value)
+                .append("\n");
+            value = tempValue;
+        }
         builder.append(" ".repeat(2))
             .append("store ").append(type).append(" ").append(value)
-            .append(", ptr %").append(currentUnnamed)
+            .append(", ptr ").append(varName)
             .append("\n");
-        currentUnnamed++;
         return currentUnnamed;
     }
 
-    private void handleBranch(StringBuilder builder, Deque<String> stack, BranchInstruction instruction) {
+    private int handleBranch(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, BranchInstruction instruction, int currentUnnamed) {
         switch (instruction.opcode()) {
             case GOTO -> builder.append(" ".repeat(2)).append("br label %").append(sanitize(instruction.target())).append("\n");
             case IFNE -> {
@@ -144,8 +156,40 @@ public class FunctionBuilder {
                     .append("\n");
                 builder.append("not_").append(target).append(":\n");
             }
+            case IF_ICMPGE -> {
+                var b = loadIfNeeded(builder, types, stack.pop(), currentUnnamed);
+                currentUnnamed = b.currentUnnamed();
+                var a = loadIfNeeded(builder, types, stack.pop(), currentUnnamed);
+                currentUnnamed = a.currentUnnamed();
+
+                var varName = STR."%\{currentUnnamed}";
+                currentUnnamed++;
+                builder.append(" ".repeat(2))
+                    .append(varName).append(" = icmp sge i32 ").append(a.name()).append(", ").append(b.name())
+                    .append("\n");
+                var target = sanitize(instruction.target());
+                builder.append(" ".repeat(2))
+                    .append("br i1 ").append(varName)
+                    .append(", label %").append(target)
+                    .append(", label %not_").append(target)
+                    .append("\n");
+                builder.append("not_").append(target).append(":\n");
+            }
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} jump not supported yet");
         }
+        return currentUnnamed;
+    }
+
+    private LoadResult loadIfNeeded(StringBuilder builder, Map<String, LlvmType> types, String name, int currentUnnamed) {
+        if (types.get(name) instanceof LlvmType.Pointer) {
+            var variableValue = STR."%\{currentUnnamed}";
+            builder.append(" ".repeat(2))
+                .append(variableValue).append(" = load i32, ptr ").append(name)
+                .append("\n");
+            currentUnnamed++;
+            return new LoadResult(currentUnnamed, variableValue);
+        }
+        return new LoadResult(currentUnnamed, name);
     }
 
     private int handleCreateNewObject(StringBuilder builder, Deque<String> stack, NewObjectInstruction instruction, int currentUnnamed) {
@@ -255,6 +299,31 @@ public class FunctionBuilder {
         }
     }
 
+    private int handleIncrement(StringBuilder builder, Local[] locals, IncrementInstruction instruction, int currentUnnamed) {
+        var source = switch (instruction.opcode()) {
+            case IINC -> locals[instruction.slot()];
+            default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
+        };
+        var valueName = STR."%\{currentUnnamed}";
+        currentUnnamed++;
+        builder.append(" ".repeat(2))
+            .append(valueName).append(" = load ").append(source.type())
+            .append(", ptr ").append(source.varName())
+            .append("\n");
+        var updatedName = STR."%\{currentUnnamed}";
+        currentUnnamed++;
+        builder.append(" ".repeat(2))
+            .append(updatedName).append(" = add ").append(source.type()).append(" ").append(valueName)
+            .append(", ").append(instruction.constant())
+            .append("\n");
+        builder.append(" ".repeat(2))
+            .append("store ").append(source.type()).append(" ").append(updatedName)
+            .append(", ptr ").append(source.varName())
+            .append("\n");
+
+        return currentUnnamed;
+    }
+
     private int handleInvoke(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation, int currentUnnamed) {
         var isVarArg = varargs.contains(invocation.method().name() + invocation.typeSymbol().descriptorString());
 
@@ -358,17 +427,25 @@ public class FunctionBuilder {
 
     private void loadValue(Deque<String> stack, Local[] locals, LoadInstruction instruction) {
         var local = switch (instruction.opcode()) {
-            case ALOAD_0 -> locals[0];
-            case ALOAD_1 -> locals[1];
-            case ALOAD_2 -> locals[2];
-            case ALOAD_3 -> locals[3];
+            case ALOAD_0, ILOAD_0 -> locals[0];
+            case ALOAD_1, ILOAD_1 -> locals[1];
+            case ALOAD_2, ILOAD_2 -> locals[2];
+            case ALOAD_3, ILOAD_3 -> locals[3];
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
         };
         stack.push(local.varName());
     }
 
-    private void declareLocal(Local[] locals, LocalVariable variable) {
-        locals[variable.slot()] = new Local(STR."%\{variable.name()}", variable.typeSymbol().displayName());
+    private void declareLocal(Local[] locals, Map<String, LlvmType> types, LocalVariable variable) {
+        locals[variable.slot()] = new Local(STR."%\{variable.name()}", IrTypeMapper.mapType(variable.typeSymbol())
+            .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{variable.typeSymbol().displayName()}")));
+
+        var type = IrTypeMapper.mapType(variable.typeSymbol())
+            .orElseThrow(() -> new IllegalArgumentException(STR."Local of type \{variable.typeSymbol()} is not supported"));
+        if (type.equals("ptr")) {
+            throw new IllegalArgumentException(STR."Locals of type \{variable.typeSymbol()} not yet supported");
+        }
+        types.put(STR."%\{variable.name().stringValue()}", new LlvmType.Pointer(type));
     }
 
     private void handleReturn(StringBuilder builder, Deque<String> stack, ReturnInstruction instruction, String returnType) {
@@ -388,20 +465,30 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleStoreInstruction(StringBuilder builder, Deque<String> stack, Local[] locals, StoreInstruction instruction) {
+    private void handleStoreInstruction(StringBuilder builder, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
         var reference = stack.pop();
         var index = switch (instruction.opcode()) {
-            case ASTORE_0 -> 0;
-            case ASTORE_1 -> 1;
-            case ASTORE_2 -> 2;
-            case ASTORE_3 -> 3;
+            case ASTORE_0, ISTORE_0 -> 0;
+            case ASTORE_1, ISTORE_1 -> 1;
+            case ASTORE_2, ISTORE_2 -> 2;
+            case ASTORE_3, ISTORE_3 -> 3;
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
         };
         var local = locals[index];
-        builder.append(" ".repeat(2))
-            .append(local.varName()).append(" = bitcast %").append(local.type()).append("* ").append(reference)
-            .append(" to %").append(local.type()).append("*")
-            .append("\n");
+        if (reference.startsWith("%")) {
+            builder.append(" ".repeat(2))
+                .append(local.varName()).append(" = bitcast %").append(local.type()).append("* ").append(reference)
+                .append(" to %").append(local.type()).append("*")
+                .append("\n");
+        } else {
+            builder.append(" ".repeat(2))
+                .append(local.varName()).append(" = alloca ").append(types.get(local.varName()))
+                .append("\n");
+            builder.append(" ".repeat(2))
+                .append("store ").append(types.get(local.varName())).append(" ").append(reference)
+                .append(", ptr ").append(local.varName())
+                .append("\n");
+        }
     }
 
     private String getMethodDefinition(String returnType) {
@@ -436,5 +523,8 @@ public class FunctionBuilder {
         }
 
         return STR."define \{returnType} @\{methodName}(\{parametes}) {\n";
+    }
+
+    record LoadResult(int currentUnnamed, String name) {
     }
 }

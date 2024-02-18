@@ -31,7 +31,7 @@ public class IrTypeMapper {
             return Optional.of("ptr"); // TODO: check if all arrays should use ptr
         }
 
-        return Optional.empty();
+        return Optional.of(classDesc.displayName());
     }
 
     public static Optional<String> mapType(TypeKind typeKind) {

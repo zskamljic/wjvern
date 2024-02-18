@@ -34,6 +34,11 @@ public class Simple {
         printf(new byte[]{'%', 'd', '\n', '\0'}, instance.i);
         printf(new byte[]{'%', 'f', '\n', '\0'}, instance.f);
         printf(new byte[]{'%', 'f', '\n', '\0'}, instance.d);
+
+        printf(new byte[]{'C', 'o', 'u', 'n', 't', 'i', 'n', 'g', '\n', '\0'});
+        for (int i = 0; i < 5; i++) {
+            printf(new byte[]{'%', 'd', '\n', '\0'}, i);
+        }
         return instance.i + instance.j;
     }
 
