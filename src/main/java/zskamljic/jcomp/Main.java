@@ -22,25 +22,25 @@ public class Main {
         }
 
         try {
+            var buildDir = Path.of("build");
+            if (!Files.exists(buildDir)) {
+                Files.createDirectory(buildDir);
+            }
             var generator = new ClassBuilder(options.inputClass, options.debug);
-            var files = generator.generate();
+            var files = generator.generate(buildDir);
             if (files.isEmpty()) {
                 System.err.println("Failed to generate IR code, aborting");
                 return;
             }
 
             var processes = ProcessBuilder.startPipeline(List.of(
-                linkFiles(files),
+                linkFiles(buildDir, files),
                 new ProcessBuilder("opt", "-S", "--O3"), // Optimize
                 new ProcessBuilder("llc"), // Generate assembly
                 new ProcessBuilder("clang", "-x", "assembler", "-") // Compile
             ));
-            if (!options.debug) {
-                for (var file : files) {
-                    Files.delete(Path.of(file));
-                }
-            }
             for (var process : processes) {
+                process.waitFor();
                 try (var error = process.getErrorStream()) {
                     var errorData = error.readAllBytes();
                     var errorString = new String(errorData, StandardCharsets.UTF_8);
@@ -49,14 +49,22 @@ public class Main {
                     }
                 }
             }
-        } catch (IOException e) {
+            if (!options.debug) {
+                for (var file : files) {
+                    Files.deleteIfExists(buildDir.resolve(file));
+                }
+            }
+        } catch (IOException | InterruptedException e) {
             System.err.println(STR."Unable to parse class file \{options.inputClass}: \{e.getMessage()}");
         }
     }
 
-    private static ProcessBuilder linkFiles(List<String> files) throws IOException {
+    private static ProcessBuilder linkFiles(Path buildDir, List<String> files) throws IOException {
         var command = new ArrayList<>(List.of("llvm-link", "-S"));
-        command.addAll(files);
+        files.stream()
+            .map(buildDir::resolve)
+            .map(Path::toString)
+            .forEach(command::add);
         return new ProcessBuilder(command.toArray(new String[0]));
     }
 }

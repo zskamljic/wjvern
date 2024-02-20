@@ -9,6 +9,7 @@ import java.lang.classfile.ClassModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.reflect.AccessFlag;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,16 +19,16 @@ public class ClassBuilder {
     private final ClassModel classModel;
     private final boolean debug;
 
-    public ClassBuilder(File inputClass, boolean debug) throws IOException {
+    public ClassBuilder(Path inputClass, boolean debug) throws IOException {
         this.debug = debug;
         var classFile = ClassFile.of();
-        classModel = classFile.parse(inputClass.toPath());
+        classModel = classFile.parse(inputClass);
     }
 
-    public List<String> generate() throws IOException {
+    public List<String> generate(Path path) throws IOException {
         var className = classModel.thisClass().name();
 
-        try (var output = new PrintWriter(new FileOutputStream(STR."\{className}.ll"))) {
+        try (var output = new PrintWriter(new FileOutputStream(path.resolve(STR."\{className}.ll").toFile()))) {
             // TODO: remove when superclasses are supported
             output.println("%\"java/lang/Object\" = type { }\n");
             output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");

@@ -65,12 +65,13 @@ public class FunctionBuilder {
         var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
         var types = new HashMap<String, LlvmType>();
+        var labelGenerator = new LabelGenerator();
         for (var it = code.iterator(); it.hasNext(); ) {
             var element = it.next();
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> currentUnnamed = handleArrayStore(builder, stack, types, as, currentUnnamed);
-                case BranchInstruction b -> currentUnnamed = handleBranch(builder, stack, types, b, currentUnnamed);
+                case BranchInstruction b -> currentUnnamed = handleBranch(builder, stack, types, labelGenerator, b, currentUnnamed);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case FieldInstruction f -> currentUnnamed = handleFieldInstruction(builder, stack, f, currentUnnamed);
                 case IncrementInstruction i -> currentUnnamed = handleIncrement(builder, locals, i, currentUnnamed);
@@ -84,9 +85,9 @@ public class FunctionBuilder {
                         }
                         var lastNewLine = content.lastIndexOf("\n", content.length() - 2);
                         if (lastNewLine != -1 && !content.substring(lastNewLine).trim().startsWith("br")) {
-                            builder.append(" ".repeat(2)).append("br label %").append(sanitize(label)).append("\n");
+                            builder.append(" ".repeat(2)).append("br label %").append(labelGenerator.getLabel(label)).append("\n");
                         }
-                        builder.append(sanitize(label)).append(":\n");
+                        builder.append(labelGenerator.getLabel(label)).append(":\n");
                     }
                 }
                 case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
@@ -95,7 +96,7 @@ public class FunctionBuilder {
                 case NewObjectInstruction n -> currentUnnamed = handleCreateNewObject(builder, stack, n, currentUnnamed);
                 case NewPrimitiveArrayInstruction a -> currentUnnamed = handleCreatePrimitiveArray(builder, stack, types, a, currentUnnamed);
                 case OperatorInstruction o -> currentUnnamed = handleOperatorInstruction(builder, stack, o, currentUnnamed);
-                case ReturnInstruction r -> handleReturn(builder, stack, r, returnType);
+                case ReturnInstruction r -> currentUnnamed = handleReturn(builder, stack, types, r, returnType, currentUnnamed);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, types, s);
                 default -> line += ": not handled";
@@ -144,12 +145,14 @@ public class FunctionBuilder {
         return currentUnnamed;
     }
 
-    private int handleBranch(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, BranchInstruction instruction, int currentUnnamed) {
+    private int handleBranch(
+        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction, int currentUnnamed
+    ) {
         switch (instruction.opcode()) {
-            case GOTO -> builder.append(" ".repeat(2)).append("br label %").append(sanitize(instruction.target())).append("\n");
+            case GOTO -> builder.append(" ".repeat(2)).append("br label %").append(labelGenerator.getLabel(instruction.target())).append("\n");
             case IFNE -> {
                 var value = stack.pop();
-                var target = sanitize(instruction.target());
+                var target = labelGenerator.getLabel(instruction.target());
                 builder.append(" ".repeat(2)).append("br i1 ").append(value)
                     .append(", label %").append(target)
                     .append(", label %not_").append(target)
@@ -167,7 +170,7 @@ public class FunctionBuilder {
                 builder.append(" ".repeat(2))
                     .append(varName).append(" = icmp sge i32 ").append(a.name()).append(", ").append(b.name())
                     .append("\n");
-                var target = sanitize(instruction.target());
+                var target = labelGenerator.getLabel(instruction.target());
                 builder.append(" ".repeat(2))
                     .append("br i1 ").append(varName)
                     .append(", label %").append(target)
@@ -250,6 +253,9 @@ public class FunctionBuilder {
             case ICONST_3 -> stack.push("3");
             case ICONST_4 -> stack.push("4");
             case ICONST_5 -> stack.push("5");
+            case FCONST_0 -> stack.push("0.0");
+            case FCONST_1 -> stack.push("1.0");
+            case FCONST_2 -> stack.push("2.0");
             case LDC, LDC2_W -> stack.push(((ConstantInstruction.LoadConstantInstruction) instruction).constantEntry().constantValue().toString());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} constant is not supported yet");
         }
@@ -405,10 +411,6 @@ public class FunctionBuilder {
         return currentUnnamed;
     }
 
-    private String sanitize(Label label) {
-        return label.toString().replaceAll("\\W+", "_");
-    }
-
     private String extendType(String irType) {
         return switch (irType) {
             case "float" -> "double";
@@ -448,13 +450,26 @@ public class FunctionBuilder {
         types.put(STR."%\{variable.name().stringValue()}", new LlvmType.Pointer(type));
     }
 
-    private void handleReturn(StringBuilder builder, Deque<String> stack, ReturnInstruction instruction, String returnType) {
+    private int handleReturn(StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction, String returnType, int currentUnnamed) {
+        if (instruction.opcode() != Opcode.RETURN) {
+            if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
+                var varName = STR."%\{currentUnnamed}";
+                currentUnnamed++;
+                builder.append(" ".repeat(2))
+                    .append(varName).append(" = ").append("load ").append(p.type()).append(", ptr ").append(stack.pop())
+                    .append("\n");
+                stack.push(varName);
+            }
+        }
+
         builder.append(" ".repeat(2)).append("ret ").append(returnType);
 
+        // Plain return does not have a value
         if (instruction.opcode() != Opcode.RETURN) {
             builder.append(" ").append(stack.pop());
         }
         builder.append("\n");
+        return currentUnnamed;
     }
 
     private void handleStackInstruction(Deque<String> stack, StackInstruction instruction) {

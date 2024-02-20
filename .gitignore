@@ -40,5 +40,5 @@ build/
 
 ### Project specific ###
 a.out
-*.ll
-*.s
+testBuild/**
+build/**
