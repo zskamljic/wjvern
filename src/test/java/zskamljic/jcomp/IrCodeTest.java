@@ -39,8 +39,9 @@ class IrCodeTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
-        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop"
+    @ValueSource(strings = {
+        "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
+        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath"
     })
     void compilesSimple(String fileName) throws IOException {
         var classGenerator = new ClassBuilder(Path.of(STR."target/test-classes/\{fileName}.class"), true);
