@@ -13,6 +13,8 @@ public class IrCodeGenerator {
     private final List<Map.Entry<String, LlvmType>> parameters;
     private final List<CodeEntry> codeEntries = new ArrayList<>();
 
+    private final UnnamedGenerator unnamedGenerator = new UnnamedGenerator();
+
     public IrCodeGenerator(LlvmType returnType, String methodName) {
         this.returnType = returnType;
         if (methodName.contains("<")) {
@@ -26,6 +28,12 @@ public class IrCodeGenerator {
         parameters.add(Map.entry(name, type));
     }
 
+    public String alloca(LlvmType type) {
+        var varName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.Alloca(varName, type));
+        return varName;
+    }
+
     public void alloca(String varName, LlvmType type) {
         codeEntries.add(new CodeEntry.Alloca(varName, type));
     }
@@ -34,8 +42,10 @@ public class IrCodeGenerator {
         codeEntries.add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
     }
 
-    public void binaryOperator(String newVar, Operator operator, LlvmType.Primitive type, String operand1, String operand2) {
+    public String binaryOperator(Operator operator, LlvmType.Primitive type, String operand1, String operand2) {
+        var newVar = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.BinaryOperation(newVar, operator, type, operand1, operand2));
+        return newVar;
     }
 
     public void branchBool(String value, String ifTrue, String ifFalse) {
@@ -50,30 +60,48 @@ public class IrCodeGenerator {
         codeEntries.add(new CodeEntry.Comment(comment));
     }
 
-    public void compare(String varName, Condition condition, LlvmType type, String a, String b) {
+    public String compare(Condition condition, LlvmType type, String a, String b) {
+        var varName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Compare(varName, condition, type, a, b));
+        return varName;
     }
-    public void floatingPointExtend(String newName, String varName) {
+
+    public String floatingPointExtend(String varName) {
+        var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.FloatingPointExtend(newName, varName));
+        return newName;
     }
 
-    public void getElementPointer(String variableName, LlvmType targetType, LlvmType sourceType, String source, String index) {
+    public String getElementPointer(LlvmType targetType, LlvmType sourceType, String source, String index) {
+        var variableName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.GetElementByPointer(variableName, targetType, sourceType, source, index));
+        return variableName;
     }
 
-    public void invoke(String returnVar, LlvmType returnType, String functionName, List<Map.Entry<String, LlvmType>> parameters) {
+    public String invoke(LlvmType returnType, String functionName, List<Map.Entry<String, LlvmType>> parameters) {
+        String returnVar = null;
+        if (returnType != LlvmType.Primitive.VOID) {
+            returnVar = unnamedGenerator.generateNext();
+        }
+
         codeEntries.add(new CodeEntry.Invoke(returnVar, returnType, functionName, parameters));
+        return returnVar;
     }
 
     public void label(String label) {
+        if (codeEntries.isEmpty()) {
+            unnamedGenerator.skipAnonymousBlock();
+        }
         if (!codeEntries.isEmpty() && !(codeEntries.getLast() instanceof CodeEntry.Branch)) {
             branchLabel(label);
         }
         codeEntries.add(new CodeEntry.Label(label));
     }
 
-    public void load(String newName, LlvmType targetType, LlvmType sourceType, String variable) {
+    public String load(LlvmType targetType, LlvmType sourceType, String variable) {
+        var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Load(newName, targetType, sourceType, variable));
+        return newName;
     }
 
     public void returnValue(String variable) {
@@ -84,8 +112,10 @@ public class IrCodeGenerator {
         codeEntries.add(new CodeEntry.Return(returnType, null));
     }
 
-    public void signedExtend(String newName, LlvmType originalType, String targetType, String source) {
+    public String signedExtend(LlvmType originalType, String targetType, String source) {
+        var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.SignedExtend(newName, originalType, targetType, source));
+        return newName;
     }
 
     public void store(LlvmType type, String value, LlvmType targetType, String varName) {
@@ -96,6 +126,15 @@ public class IrCodeGenerator {
         var builder = new StringBuilder();
 
         writeMethodDefinition(builder);
+
+        // Java sometimes has labels at the end, without instructions following. That's invalid in LLVM IR
+        if (codeEntries.getLast() instanceof CodeEntry.Label) {
+            codeEntries.removeLast();
+            // Automatically added if there is a label inserted
+            if (codeEntries.getLast() instanceof CodeEntry.Branch.Label) {
+                codeEntries.removeLast();
+            }
+        }
 
         codeEntries.forEach(e -> {
             if (!(e instanceof CodeEntry.Label)) {
@@ -126,10 +165,6 @@ public class IrCodeGenerator {
         }
 
         builder.append(") {\n");
-    }
-
-    public boolean isEmpty() {
-        return codeEntries.isEmpty();
     }
 
     public enum Condition {
