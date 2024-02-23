@@ -97,9 +97,9 @@ label1:
   br label %label2
 label2:
   ; Line 18
-  %40 = load i32, ptr %i
+  %40 = load i32, i32* %i
   %41 = add i32 %40, 2
-  store i32 %41, ptr %i
+  store i32 %41, i32* %i
   ; Line 19
   %42 = load i32, i32* %i
   %43 = sdiv i32 %42, 3
@@ -109,9 +109,9 @@ label2:
   %45 = mul i32 %44, 4
   store i32 %45, i32* %i
   ; Line 21
-  %46 = load i32, ptr %i
+  %46 = load i32, i32* %i
   %47 = add i32 %46, -1
-  store i32 %47, ptr %i
+  store i32 %47, i32* %i
   ; Line 22
   %48 = load i32, ptr %i
   ret i32 %48

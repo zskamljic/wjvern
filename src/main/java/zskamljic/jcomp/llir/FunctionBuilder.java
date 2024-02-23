@@ -22,6 +22,7 @@ import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -42,21 +43,34 @@ public class FunctionBuilder {
     }
 
     public String generate() {
-        var optionalReturnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
-        if (optionalReturnType.isEmpty()) {
-            throw new IllegalArgumentException(STR."Unsupported return type: \{method.methodTypeSymbol().returnType()}");
+        var parent = method.parent()
+            .orElseThrow(() -> new IllegalArgumentException("Method must have a parent class"))
+            .thisClass()
+            .name()
+            .stringValue();
+
+        var name = method.methodName().stringValue();
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            name = STR."\{parent}_\{name}";
         }
 
-        var returnType = optionalReturnType.get();
-        var builder = new StringBuilder();
-        builder.append(getMethodDefinition(returnType));
-        generateCode(builder, returnType);
-        builder.append("}");
+        var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType())
+            .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported method return type: \{method.methodTypeSymbol().returnType()}"));
 
-        return builder.toString();
+        var codeGenerator = new IrCodeGenerator(
+            returnType,
+            name
+        );
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            codeGenerator.addParameter("this", new LlvmType.Pointer(new LlvmType.Declared(parent)));
+        }
+
+        generateCode(codeGenerator);
+
+        return codeGenerator.generate();
     }
 
-    private void generateCode(StringBuilder builder, String returnType) {
+    private void generateCode(IrCodeGenerator generator) {
         var optionalCode = method.code();
         if (optionalCode.isEmpty()) return;
 
@@ -70,35 +84,30 @@ public class FunctionBuilder {
             var element = it.next();
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
-                case ArrayStoreInstruction as -> handleArrayStore(builder, stack, types, as, unnamedGenerator);
-                case BranchInstruction b -> handleBranch(builder, stack, types, labelGenerator, b, unnamedGenerator);
+                case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, as, unnamedGenerator);
+                case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, b, unnamedGenerator);
                 case ConstantInstruction c -> handleConstant(stack, c);
-                case FieldInstruction f -> handleFieldInstruction(builder, stack, f, unnamedGenerator);
-                case IncrementInstruction i -> handleIncrement(builder, locals, i, unnamedGenerator);
-                case InvokeInstruction i -> handleInvoke(builder, stack, types, i, unnamedGenerator);
+                case FieldInstruction f -> handleFieldInstruction(generator, stack, f, unnamedGenerator);
+                case IncrementInstruction i -> handleIncrement(generator, locals, i, unnamedGenerator);
+                case InvokeInstruction i -> handleInvoke(generator, stack, types, i, unnamedGenerator);
                 case Label label -> {
                     if (it.hasNext()) { // Ignore labels at end of block
-                        // TODO: don't build multiple strings
-                        var content = builder.toString();
-                        if (content.trim().endsWith("{")) {
+                        // TODO: move to IrCodeGenerator
+                        if (generator.isEmpty()) {
                             unnamedGenerator.skipAnonymousBlock();
                         }
-                        var lastNewLine = content.lastIndexOf("\n", content.length() - 2);
-                        if (lastNewLine != -1 && !content.substring(lastNewLine).trim().startsWith("br")) {
-                            builder.append(" ".repeat(2)).append("br label %").append(labelGenerator.getLabel(label)).append("\n");
-                        }
-                        builder.append(labelGenerator.getLabel(label)).append(":\n");
+                        generator.label(labelGenerator.getLabel(label));
                     }
                 }
-                case LineNumber l -> builder.append(STR."  ; Line \{l.line()}\n");
+                case LineNumber l -> generator.comment(STR."Line \{l.line()}");
                 case LoadInstruction l -> loadValue(stack, locals, l);
-                case LocalVariable v -> declareLocal(builder, locals, types, v);
-                case NewObjectInstruction n -> handleCreateNewObject(builder, stack, types, n, unnamedGenerator);
-                case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(builder, stack, types, a, unnamedGenerator);
-                case OperatorInstruction o -> handleOperatorInstruction(builder, stack, types, o, unnamedGenerator);
-                case ReturnInstruction r -> handleReturn(builder, stack, types, r, returnType, unnamedGenerator);
+                case LocalVariable v -> declareLocal(locals, types, v);
+                case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n, unnamedGenerator);
+                case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(generator, stack, types, a, unnamedGenerator);
+                case OperatorInstruction o -> handleOperatorInstruction(generator, stack, types, o, unnamedGenerator);
+                case ReturnInstruction r -> handleReturn(generator, stack, types, r, unnamedGenerator);
                 case StackInstruction s -> handleStackInstruction(stack, s);
-                case StoreInstruction s -> handleStoreInstruction(builder, stack, locals, types, s);
+                case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
                 default -> line += ": not handled";
             }
             if (debug) {
@@ -114,160 +123,131 @@ public class FunctionBuilder {
     }
 
     private void handleArrayStore(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction, UnnamedGenerator unnamed
     ) {
         var value = stack.pop();
         var index = stack.pop();
         var arrayReference = stack.pop();
 
         var varName = unnamed.generateNext();
-        builder.append(" ".repeat(2))
-            .append(varName).append(" = getelementptr inbounds ").append(types.get(arrayReference))
-            .append(", ptr ").append(arrayReference)
-            .append(", i64 0") // Index through array pointer
-            .append(", i32 ").append(index) // Index through field
-            .append("\n");
+        generator.getElementPointer(varName, types.get(arrayReference), LlvmType.Primitive.POINTER, arrayReference, index);
 
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."\{instruction.typeKind()} in not a supported type for array store"));
-        value = loadPointerIfNeeded(builder, types, unnamed, value);
-        builder.append(" ".repeat(2))
-            .append("store ").append(type).append(" ").append(value)
-            .append(", ptr ").append(varName)
-            .append("\n");
+        value = loadPointerIfNeeded(generator, types, unnamed, value);
+        generator.store(type, value, LlvmType.Primitive.POINTER, varName);
     }
 
-    private static String loadPointerIfNeeded(StringBuilder builder, Map<String, LlvmType> types, UnnamedGenerator unnamed, String value) {
+    private static String loadPointerIfNeeded(IrCodeGenerator generator, Map<String, LlvmType> types, UnnamedGenerator unnamed, String value) {
         if (types.get(value) instanceof LlvmType.Pointer p) {
             var tempValue = unnamed.generateNext();
-            builder.append(" ".repeat(2))
-                .append(tempValue).append(" = load ").append(p.type())
-                .append(", ").append(p.type()).append("* ").append(value)
-                .append("\n");
+            generator.load(tempValue, p.type(), p, value);
             value = tempValue;
         }
         return value;
     }
 
     private void handleBranch(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction, UnnamedGenerator unnamed
     ) {
         switch (instruction.opcode()) {
-            case GOTO -> builder.append(" ".repeat(2)).append("br label %").append(labelGenerator.getLabel(instruction.target())).append("\n");
+            case GOTO -> generator.branchLabel(labelGenerator.getLabel(instruction.target()));
             case IF_ICMPGE -> {
-                var b = loadIfNeeded(builder, types, stack.pop(), unnamed);
-                var a = loadIfNeeded(builder, types, stack.pop(), unnamed);
+                var b = loadIfNeeded(generator, types, stack.pop(), unnamed);
+                var a = loadIfNeeded(generator, types, stack.pop(), unnamed);
 
                 var varName = unnamed.generateNext();
-                builder.append(" ".repeat(2))
-                    .append(varName).append(" = icmp sge i32 ").append(a).append(", ").append(b)
-                    .append("\n");
-                var target = labelGenerator.getLabel(instruction.target());
-                builder.append(" ".repeat(2))
-                    .append("br i1 ").append(varName)
-                    .append(", label %").append(target)
-                    .append(", label %not_").append(target)
-                    .append("\n");
-                builder.append("not_").append(target).append(":\n");
+                generator.compare(varName, IrCodeGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
             }
             case IFLE -> {
                 var value = stack.pop();
-                value = loadPointerIfNeeded(builder, types, unnamed, value);
+                value = loadPointerIfNeeded(generator, types, unnamed, value);
 
                 var varName = unnamed.generateNext();
-                builder.append(" ".repeat(2))
-                    .append(varName).append(" = icmp sle i32 ").append(value).append(", 0")
-                    .append("\n");
-                var target = labelGenerator.getLabel(instruction.target());
-                builder.append(" ".repeat(2))
-                    .append("br i1 ").append(varName)
-                    .append(", label %").append(target)
-                    .append(", label %not_").append(target)
-                    .append("\n");
-                builder.append("not_").append(target).append(":\n");
+                generator.compare(varName, IrCodeGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
             }
             case IFNE -> {
                 var value = stack.pop();
-                var target = labelGenerator.getLabel(instruction.target());
-                builder.append(" ".repeat(2)).append("br i1 ").append(value)
-                    .append(", label %").append(target)
-                    .append(", label %not_").append(target)
-                    .append("\n");
-                builder.append("not_").append(target).append(":\n");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(value, ifTrue, ifFalse);
+                generator.label(ifFalse);
             }
 
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} jump not supported yet");
         }
     }
 
-    private String loadIfNeeded(StringBuilder builder, Map<String, LlvmType> types, String name, UnnamedGenerator unnamed) {
-        if (types.get(name) instanceof LlvmType.Pointer) {
+    private String loadIfNeeded(IrCodeGenerator generator, Map<String, LlvmType> types, String name, UnnamedGenerator unnamed) {
+        if (types.get(name) instanceof LlvmType.Pointer p) {
             var variableValue = unnamed.generateNext();
-            builder.append(" ".repeat(2))
-                .append(variableValue).append(" = load i32, ptr ").append(name)
-                .append("\n");
+            generator.load(variableValue, p.type(), p, name);
             return variableValue;
         }
         return name;
     }
 
     private void handleCreateNewObject(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, NewObjectInstruction instruction, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewObjectInstruction instruction, UnnamedGenerator unnamed
     ) {
         var varName = unnamed.generateNext();
-        builder.append(" ".repeat(2)).append(varName).append(" = alloca %").append(instruction.className().name()).append("\n");
-        types.put(varName, new LlvmType.Pointer(instruction.className().name().stringValue()));
+        generator.alloca(varName, new LlvmType.Declared(instruction.className().name().stringValue()));
+        types.put(varName, new LlvmType.Pointer(new LlvmType.Declared(instruction.className().name().stringValue())));
         stack.push(varName);
     }
 
     private void handleCreatePrimitiveArray(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction, UnnamedGenerator unnamed
     ) {
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{instruction.typeKind()}"));
 
         var size = stack.pop();
-        String arrayType;
+        LlvmType.Array arrayType;
         if (size.matches("\\d+")) {
-            arrayType = STR."[\{size} x \{type}]";
+            arrayType = new LlvmType.Array(Integer.parseInt(size), type);
         } else {
             throw new IllegalArgumentException("Dynamic arrays are not supported yet");
         }
         var varName = unnamed.generateNext();
-        builder.append(" ".repeat(2))
-            .append(varName).append(" = alloca ").append(arrayType).append("\n");
+        generator.alloca(varName, arrayType);
         stack.push(varName);
-        types.put(varName, new LlvmType.Array(Integer.parseInt(size), type));
+        types.put(varName, arrayType);
     }
 
     private void handleOperatorInstruction(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction, UnnamedGenerator unnamed
     ) {
-        var operand2 = loadPointerIfNeeded(builder, types, unnamed, stack.pop());
-        var operand1 = loadPointerIfNeeded(builder, types, unnamed, stack.pop());
+        var operand2 = loadPointerIfNeeded(generator, types, unnamed, stack.pop());
+        var operand1 = loadPointerIfNeeded(generator, types, unnamed, stack.pop());
 
         var resultVar = unnamed.generateNext();
         stack.push(resultVar);
 
-        builder.append(" ".repeat(2))
-            .append(resultVar);
-
+        // TODO: parameterize by type
         switch (instruction.opcode()) {
-            case DADD -> builder.append(" = fadd double ").append(operand1).append(", ").append(operand2);
-            case DDIV -> builder.append(" = fdiv double ").append(operand1).append(", ").append(operand2);
-            case DMUL -> builder.append(" = fmul double ").append(operand1).append(", ").append(operand2);
-            case DSUB -> builder.append(" = fsub double ").append(operand1).append(", ").append(operand2);
-            case FADD -> builder.append(" = fadd float ").append(operand1).append(", ").append(operand2);
-            case FDIV -> builder.append(" = fdiv float ").append(operand1).append(", ").append(operand2);
-            case FMUL -> builder.append(" = fmul float ").append(operand1).append(", ").append(operand2);
-            case FSUB -> builder.append(" = fsub float ").append(operand1).append(", ").append(operand2);
-            case IADD -> builder.append(" = add i32 ").append(operand1).append(", ").append(operand2);
-            case IDIV -> builder.append(" = sdiv i32 ").append(operand1).append(", ").append(operand2);
-            case IMUL -> builder.append(" = mul i32 ").append(operand1).append(", ").append(operand2);
-            case ISUB -> builder.append(" = sub i32 ").append(operand1).append(", ").append(operand2);
+            case DADD -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.ADD, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DDIV -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.DIV, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DMUL -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.MUL, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DSUB -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.SUB, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case FADD -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.ADD, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FDIV -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.DIV, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FMUL -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.MUL, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FSUB -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.SUB, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case IADD -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.ADD, LlvmType.Primitive.INT, operand1, operand2);
+            case IDIV -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.DIV, LlvmType.Primitive.INT, operand1, operand2);
+            case IMUL -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.MUL, LlvmType.Primitive.INT, operand1, operand2);
+            case ISUB -> generator.binaryOperator(resultVar, IrCodeGenerator.Operator.SUB, LlvmType.Primitive.INT, operand1, operand2);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
         }
-        builder.append("\n");
     }
 
     private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
@@ -288,8 +268,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleFieldInstruction(StringBuilder builder, Deque<String> stack, FieldInstruction instruction, UnnamedGenerator unnamed) {
-        builder.append(" ".repeat(2));
+    private void handleFieldInstruction(IrCodeGenerator generator, Deque<String> stack, FieldInstruction instruction, UnnamedGenerator unnamed) {
 
         if (instruction.opcode() == Opcode.GETFIELD) {
             var varName = unnamed.generateNext();
@@ -297,14 +276,14 @@ public class FunctionBuilder {
             var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol())
                 .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
 
-            builder.append(varName).append(" = getelementptr %").append(instruction.field().owner().name()).append(", ")
-                .append("%").append(instruction.field().owner().name()).append("* ").append(stack.pop()).append(", ")
-                .append("i32 0, i32 ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
+            var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
+            generator.getElementPointer(
+                varName, parentType, new LlvmType.Pointer(parentType), stack.pop(),
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()))
+            );
 
             var valueVar = unnamed.generateNext();
-            builder.append(" ".repeat(2))
-                .append(valueVar).append(" = load ").append(fieldType)
-                .append(", ").append(fieldType).append("* ").append(varName).append("\n");
+            generator.load(valueVar, fieldType, new LlvmType.Pointer(fieldType), varName);
             stack.push(valueVar);
         } else if (instruction.opcode() == Opcode.PUTFIELD) {
             var value = stack.pop();
@@ -314,41 +293,31 @@ public class FunctionBuilder {
                 .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
 
             var varName = unnamed.generateNext();
-            builder.append(varName).append(" = getelementptr %").append(instruction.owner().name())
-                .append(", %").append(instruction.owner().name()).append("* ")
-                .append(objectReference)
-                .append(", i32 0, ")
-                .append("i32 ").append(fieldDefinition.indexOf(instruction.field().name().stringValue())).append("\n");
-            builder.append(" ".repeat(2)).append("store ").append(fieldType).append(" ").append(value).append(", ")
-                .append(fieldType).append("* ").append(varName).append("\n");
+            var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
+            generator.getElementPointer(
+                varName, parentType, new LlvmType.Pointer(parentType), objectReference,
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()))
+            );
+            generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
         } else {
             throw new IllegalArgumentException(STR."\{instruction.opcode()} field instruction is not yet supported");
         }
     }
 
-    private void handleIncrement(StringBuilder builder, Local[] locals, IncrementInstruction instruction, UnnamedGenerator unnamed) {
+    private void handleIncrement(IrCodeGenerator generator, Local[] locals, IncrementInstruction instruction, UnnamedGenerator unnamed) {
         var source = switch (instruction.opcode()) {
             case IINC -> locals[instruction.slot()];
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
         var valueName = unnamed.generateNext();
-        builder.append(" ".repeat(2))
-            .append(valueName).append(" = load ").append(source.type())
-            .append(", ptr ").append(source.varName())
-            .append("\n");
+        generator.load(valueName, source.type(), new LlvmType.Pointer(source.type()), source.varName());
         var updatedName = unnamed.generateNext();
-        builder.append(" ".repeat(2))
-            .append(updatedName).append(" = add ").append(source.type()).append(" ").append(valueName)
-            .append(", ").append(instruction.constant())
-            .append("\n");
-        builder.append(" ".repeat(2))
-            .append("store ").append(source.type()).append(" ").append(updatedName)
-            .append(", ptr ").append(source.varName())
-            .append("\n");
+        generator.binaryOperator(updatedName, IrCodeGenerator.Operator.ADD, (LlvmType.Primitive) source.type(), valueName, String.valueOf(instruction.constant()));
+        generator.store(source.type(), updatedName, new LlvmType.Pointer(source.type()), source.varName());
     }
 
     private void handleInvoke(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation, UnnamedGenerator unnamed
     ) {
         var isVarArg = varargs.contains(invocation.method().name() + invocation.typeSymbol().descriptorString());
 
@@ -359,22 +328,18 @@ public class FunctionBuilder {
                 parameterCount = parameterCount - 1 + array.length();
                 for (int i = 0; i < array.length(); i++) {
                     var pointerName = unnamed.generateNext();
-                    builder.append(" ".repeat(2))
-                        .append(pointerName).append(" = getelementptr inbounds ").append(array).append(", ptr ").append(parameter)
-                        .append(", i64 0, i32 ").append(i).append("\n");
+                    generator.getElementPointer(pointerName, array, LlvmType.Primitive.POINTER, parameter, String.valueOf(i));
                     var varName = unnamed.generateNext();
-                    builder.append(" ".repeat(2))
-                        .append(varName).append(" = load ").append(array.type()).append(", ").append(array.type()).append("* ").append(pointerName)
-                        .append("\n");
+                    generator.load(varName, array.type(), new LlvmType.Pointer(array.type()), pointerName);
                     switch (array.type()) {
-                        case "float" -> {
+                        case LlvmType.Primitive p when p == LlvmType.Primitive.FLOAT -> {
                             var extendedName = unnamed.generateNext();
-                            builder.append(" ".repeat(2)).append(extendedName).append(" = fpext float ").append(varName).append(" to double\n");
+                            generator.floatingPointExtend(extendedName, varName);
                             stack.push(extendedName);
                         }
-                        case "i8", "i16" -> {
+                        case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> {
                             var extendedName = unnamed.generateNext();
-                            builder.append(" ".repeat(2)).append(extendedName).append(" = sext ").append(array.type()).append(" ").append(varName).append(" to i32\n");
+                            generator.signedExtend(extendedName, array.type(), "i32", varName);
                             stack.push(extendedName);
                         }
                         default -> stack.push(varName);
@@ -383,18 +348,8 @@ public class FunctionBuilder {
             }
         }
 
-        var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
-            .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
-        builder.append(" ".repeat(2));
-        if (!returnType.equals("void")) {
-            var unnamedName = unnamed.generateNext();
-            builder.append(unnamedName).append(" = ");
-        }
-
-        var functionName = getFunctionName(invocation);
-
-        builder.append("call ").append(returnType).append(" @").append(functionName).append("(");
-        var paramValues = new ArrayDeque<String>();
+        var parameters = new ArrayList<Map.Entry<String, LlvmType>>();
+        // Parameters are on stack, reverse order
         for (int i = parameterCount - 1; i >= 0; i--) {
             var type = invocation.typeSymbol().parameterType(Math.min(i, invocation.typeSymbol().parameterCount()));
             var shouldUnwrap = isVarArg && i >= invocation.typeSymbol().parameterCount() - 1;
@@ -407,28 +362,38 @@ public class FunctionBuilder {
                 irType = extendType(irType);
             }
 
-            paramValues.push(STR."\{irType} \{stack.pop()}");
+            parameters.addFirst(Map.entry(stack.pop(), irType));
         }
+        // Add implicit this
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
-            var typeName = STR."%\"\{invocation.method().owner().name()}\"*";
+            var typeName = STR."\"\{invocation.method().owner().name()}\"";
             if (!typeName.contains("/")) {
                 typeName = typeName.replaceAll("\"", "");
             }
-            builder.append(typeName).append(" ").append(stack.pop()); // Add implicit this
+            parameters.addFirst(Map.entry(stack.pop(), new LlvmType.Pointer(new LlvmType.Declared(typeName))));
         }
-        builder.append(String.join(", ", paramValues));
-        builder.append(")").append("\n");
-        if (!returnType.equals("void")) {
-            var unnamedName = unnamed.getCurrent();
-            stack.push(unnamedName);
+
+        var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
+            .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
+
+        String returnVar = null;
+        if (returnType != LlvmType.Primitive.VOID) {
+            returnVar = unnamed.generateNext();
+        }
+
+        var functionName = getFunctionName(invocation);
+        generator.invoke(returnVar, returnType, functionName, parameters);
+
+        if (returnType != LlvmType.Primitive.VOID) {
+            stack.push(returnVar);
         }
     }
 
-    private String extendType(String irType) {
-        return switch (irType) {
-            case "float" -> "double";
-            case "i8", "i16" -> "i32";
-            default -> irType;
+    private LlvmType extendType(LlvmType type) {
+        return switch (type) {
+            case LlvmType.Primitive p when p == LlvmType.Primitive.FLOAT -> LlvmType.Primitive.DOUBLE;
+            case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> LlvmType.Primitive.INT;
+            default -> type;
         };
     }
 
@@ -451,38 +416,35 @@ public class FunctionBuilder {
         stack.push(local.varName());
     }
 
-    private void declareLocal(StringBuilder builder, Local[] locals, Map<String, LlvmType> types, LocalVariable variable) {
+    private void declareLocal(Local[] locals, Map<String, LlvmType> types, LocalVariable variable) {
         locals[variable.slot()] = new Local(STR."%\{variable.name()}", IrTypeMapper.mapType(variable.typeSymbol())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{variable.typeSymbol().displayName()}")));
 
         var type = IrTypeMapper.mapType(variable.typeSymbol())
             .orElseThrow(() -> new IllegalArgumentException(STR."Local of type \{variable.typeSymbol()} is not supported"));
-        if (type.equals("ptr")) {
+        if (type == LlvmType.Primitive.POINTER) {
             throw new IllegalArgumentException(STR."Locals of type \{variable.typeSymbol()} not yet supported");
         }
         types.put(STR."%\{variable.name().stringValue()}", new LlvmType.Pointer(type));
     }
 
     private void handleReturn(
-        StringBuilder builder, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction, String returnType, UnnamedGenerator unnamed
+        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction, UnnamedGenerator unnamed
     ) {
         if (instruction.opcode() != Opcode.RETURN) {
             if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
                 var varName = unnamed.generateNext();
-                builder.append(" ".repeat(2))
-                    .append(varName).append(" = ").append("load ").append(p.type()).append(", ptr ").append(stack.pop())
-                    .append("\n");
+                generator.load(varName, p.type(), LlvmType.Primitive.POINTER, stack.pop());
                 stack.push(varName);
             }
         }
 
-        builder.append(" ".repeat(2)).append("ret ").append(returnType);
-
         // Plain return does not have a value
         if (instruction.opcode() != Opcode.RETURN) {
-            builder.append(" ").append(stack.pop());
+            generator.returnValue(stack.pop());
+        } else {
+            generator.returnVoid();
         }
-        builder.append("\n");
     }
 
     private void handleStackInstruction(Deque<String> stack, StackInstruction instruction) {
@@ -493,7 +455,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleStoreInstruction(StringBuilder builder, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
+    private void handleStoreInstruction(IrCodeGenerator generator, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
         var reference = stack.pop();
         var index = switch (instruction.opcode()) {
             case ASTORE_0, DSTORE_0, FSTORE_0, ISTORE_0 -> 0;
@@ -503,58 +465,14 @@ public class FunctionBuilder {
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
         };
         var local = locals[index];
-        if (types.get(local.varName()) instanceof LlvmType.Pointer p && builder.toString().contains(STR."\{local.varName()} = alloca")) {
-            builder.append(" ".repeat(2))
-                .append("store ").append(p.type()).append(" ").append(reference)
-                .append(", ").append(p.type()).append("* ").append(local.varName())
-                .append("\n");
+        // TODO: don't generate string
+        if (types.get(local.varName()) instanceof LlvmType.Pointer p && generator.generate().contains(STR."\{local.varName()} = alloca")) {
+            generator.store(p.type(), reference, p, local.varName());
         } else if (reference.startsWith("%")) {
-            builder.append(" ".repeat(2))
-                .append(local.varName()).append(" = bitcast %").append(local.type()).append("* ").append(reference)
-                .append(" to %").append(local.type()).append("*")
-                .append("\n");
+            generator.bitcast(local.varName(), new LlvmType.Pointer(local.type()), reference, new LlvmType.Pointer(local.type()));
         } else {
-            builder.append(" ".repeat(2))
-                .append(local.varName()).append(" = alloca ").append(types.get(local.varName()))
-                .append("\n");
-            builder.append(" ".repeat(2))
-                .append("store ").append(types.get(local.varName())).append(" ").append(reference)
-                .append(", ptr ").append(local.varName())
-                .append("\n");
+            generator.alloca(local.varName(), local.type());
+            generator.store(local.type(), reference, LlvmType.Primitive.POINTER, local.varName());
         }
-    }
-
-    private String getMethodDefinition(String returnType) {
-        if (method.methodTypeSymbol().parameterCount() > 0) {
-            throw new IllegalArgumentException("Methods with parameters are not yet supported");
-        }
-
-        var methodQualifier = "";
-        if (!method.flags().has(AccessFlag.STATIC)) {
-            var parentClass = method.parent()
-                .orElseThrow(() -> new IllegalArgumentException(STR."Non static function \{method.methodName()} has no parent"));
-            methodQualifier = STR."\{parentClass.thisClass().name()}_";
-        }
-
-        var methodName = method.methodName().stringValue();
-        if (!methodQualifier.isBlank()) {
-            methodName = methodQualifier + methodName;
-        }
-
-        if (methodName.contains("<")) {
-            methodName = STR."\"\{methodName}\"";
-        }
-
-        if (method.methodTypeSymbol().parameterCount() != 0) {
-            throw new IllegalArgumentException("Functions with parameters are not yet supported");
-        }
-
-        var parametes = "";
-        if (!method.flags().has(AccessFlag.STATIC)) {
-            var parent = method.parent().orElseThrow();
-            parametes = STR."%\{parent.thisClass().name()}* %this";
-        }
-
-        return STR."define \{returnType} @\{methodName}(\{parametes}) {\n";
     }
 }

@@ -42,9 +42,9 @@ not_label1:
   %12 = load i32, i32* %11
   %13 = call i32 @printf(ptr %3, i32 %12)
   ; Line 6
-  %14 = load i32, ptr %i
+  %14 = load i32, i32* %i
   %15 = add i32 %14, -1
-  store i32 %15, ptr %i
+  store i32 %15, i32* %i
   br label %label0
 label1:
   ; Line 8

@@ -1,4 +1,6 @@
 package zskamljic.jcomp.llir;
 
-public record Local(String varName, String type) {
+import zskamljic.jcomp.llir.models.LlvmType;
+
+public record Local(String varName, LlvmType type) {
 }

@@ -1,5 +1,7 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.llir.models.LlvmType;
+
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
 import java.util.Optional;
@@ -9,16 +11,17 @@ public class IrTypeMapper {
         // Prevent instantiation
     }
 
-    public static Optional<String> mapType(ClassDesc classDesc) {
+    public static Optional<LlvmType> mapType(ClassDesc classDesc) {
         if (!classDesc.isPrimitive()) {
             return mapComplexType(classDesc);
         }
         return Optional.ofNullable(switch (classDesc.displayName()) {
-            case "boolean" -> "i1";
-            case "double", "float" -> classDesc.displayName();
-            case "int" -> "i32";
-            case "long" -> "i64";
-            case "void" -> "void";
+            case "boolean" -> LlvmType.Primitive.BOOLEAN;
+            case "double" -> LlvmType.Primitive.DOUBLE;
+            case "float" -> LlvmType.Primitive.FLOAT;
+            case "int" -> LlvmType.Primitive.INT;
+            case "long" -> LlvmType.Primitive.LONG;
+            case "void" -> LlvmType.Primitive.VOID;
             default -> {
                 System.err.println(STR."Unsupported type: \{classDesc.displayName()}");
                 yield null;
@@ -26,20 +29,20 @@ public class IrTypeMapper {
         });
     }
 
-    private static Optional<String> mapComplexType(ClassDesc classDesc) {
+    private static Optional<LlvmType> mapComplexType(ClassDesc classDesc) {
         if (classDesc.isArray()) {
-            return Optional.of("ptr"); // TODO: check if all arrays should use ptr
+            return Optional.of(LlvmType.Primitive.POINTER); // TODO: check if all arrays should use ptr
         }
 
-        return Optional.of(classDesc.displayName());
+        return Optional.of(new LlvmType.Declared(classDesc.displayName()));
     }
 
-    public static Optional<String> mapType(TypeKind typeKind) {
+    public static Optional<LlvmType> mapType(TypeKind typeKind) {
         return Optional.ofNullable(switch (typeKind) {
-            case ByteType -> "i8";
-            case DoubleType -> "double";
-            case FloatType -> "float";
-            case IntType -> "i32";
+            case ByteType -> LlvmType.Primitive.BYTE;
+            case DoubleType -> LlvmType.Primitive.DOUBLE;
+            case FloatType -> LlvmType.Primitive.FLOAT;
+            case IntType -> LlvmType.Primitive.INT;
             default -> {
                 System.err.println(STR."Unsupported type: \{typeKind.typeName()}");
                 yield null;

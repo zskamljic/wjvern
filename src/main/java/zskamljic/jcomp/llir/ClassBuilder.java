@@ -1,6 +1,5 @@
 package zskamljic.jcomp.llir;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -69,7 +68,7 @@ public class ClassBuilder {
             var type = IrTypeMapper.mapType(field.fieldTypeSymbol())
                 .orElseThrow(() -> new IllegalArgumentException(STR."Invalid field type \{field.fieldType()} for field \{field.fieldName()}"));
 
-            fieldDefinitions.add(type);
+            fieldDefinitions.add(type.toString());
             fieldNames.add(field.fieldName().stringValue());
         }
         var fields = String.join(", ", fieldDefinitions);
@@ -112,7 +111,11 @@ public class ClassBuilder {
             if (isVarArg && i == symbol.parameterCount() - 1) {
                 parameters.add("...");
             } else {
-                parameters.add(IrTypeMapper.mapType(parameter).orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} type not supported in declare")));
+                parameters.add(
+                    IrTypeMapper.mapType(parameter)
+                        .orElseThrow(() -> new IllegalArgumentException(STR."\{parameter} type not supported in declare"))
+                        .toString()
+                );
             }
         }
         declaration.append(String.join(", ", parameters));
