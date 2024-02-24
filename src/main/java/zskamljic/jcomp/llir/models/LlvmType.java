@@ -16,6 +16,13 @@ public sealed interface LlvmType {
         }
     }
 
+    record Function(String value) implements LlvmType {
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
+
     record Pointer(LlvmType type) implements LlvmType {
 
         @Override

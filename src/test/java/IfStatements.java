@@ -2,7 +2,7 @@ public class IfStatements {
     int i;
     boolean b = false;
 
-    void doSomething() {
+    final void doSomething() {
         if (!b) {
             b = true;
             i = 1;

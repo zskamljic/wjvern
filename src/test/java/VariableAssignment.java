@@ -1,5 +1,5 @@
 public class VariableAssignment {
-    void method() {
+    final void method() {
         // Intentionally empty
     }
 

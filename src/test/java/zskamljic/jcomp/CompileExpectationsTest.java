@@ -22,7 +22,7 @@ class CompileExpectationsTest {
     @ParameterizedTest
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
-        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath"
+        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{STR."target/test-classes/\{fileName}.class"});

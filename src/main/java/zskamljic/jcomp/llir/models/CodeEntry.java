@@ -107,7 +107,8 @@ public interface CodeEntry {
             if (returnType != LlvmType.Primitive.VOID) {
                 invocation += STR."\{returnVar} = ";
             }
-            return STR."\{invocation}call \{returnType} @\{functionName}(\{parameters.stream()
+            var global = !functionName.startsWith("%");
+            return STR."\{invocation}call \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
                 .map(p -> STR."\{p.getValue()} \{p.getKey()}")
                 .collect(Collectors.joining(", "))})";
         }

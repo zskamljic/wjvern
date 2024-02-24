@@ -11,30 +11,27 @@ public class IrTypeMapper {
         // Prevent instantiation
     }
 
-    public static Optional<LlvmType> mapType(ClassDesc classDesc) {
+    public static LlvmType mapType(ClassDesc classDesc) {
         if (!classDesc.isPrimitive()) {
             return mapComplexType(classDesc);
         }
-        return Optional.ofNullable(switch (classDesc.displayName()) {
+        return switch (classDesc.displayName()) {
             case "boolean" -> LlvmType.Primitive.BOOLEAN;
             case "double" -> LlvmType.Primitive.DOUBLE;
             case "float" -> LlvmType.Primitive.FLOAT;
             case "int" -> LlvmType.Primitive.INT;
             case "long" -> LlvmType.Primitive.LONG;
             case "void" -> LlvmType.Primitive.VOID;
-            default -> {
-                System.err.println(STR."Unsupported type: \{classDesc.displayName()}");
-                yield null;
-            }
-        });
+            default -> throw new IllegalArgumentException(STR."\{classDesc} type not supported yet");
+        };
     }
 
-    private static Optional<LlvmType> mapComplexType(ClassDesc classDesc) {
+    private static LlvmType mapComplexType(ClassDesc classDesc) {
         if (classDesc.isArray()) {
-            return Optional.of(LlvmType.Primitive.POINTER); // TODO: check if all arrays should use ptr
+            return LlvmType.Primitive.POINTER; // TODO: check if all arrays should use ptr
         }
 
-        return Optional.of(new LlvmType.Declared(classDesc.displayName()));
+        return new LlvmType.Declared(classDesc.displayName());
     }
 
     public static Optional<LlvmType> mapType(TypeKind typeKind) {

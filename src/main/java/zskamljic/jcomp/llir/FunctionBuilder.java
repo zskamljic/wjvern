@@ -1,6 +1,7 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.VtableInfo;
 
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
@@ -20,6 +21,7 @@ import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -33,29 +35,30 @@ public class FunctionBuilder {
     private final MethodModel method;
     private final List<String> fieldDefinition;
     private final Set<String> varargs;
+    private final Map<MethodTypeDesc, VtableInfo> vtable;
     private final boolean debug;
+    private final String parent;
 
-    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, boolean debug) {
+    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, Map<MethodTypeDesc, VtableInfo> vtable, boolean debug) {
         this.method = method;
         this.fieldDefinition = fieldNames;
         this.varargs = varargs;
+        this.vtable = vtable;
         this.debug = debug;
-    }
-
-    public String generate() {
-        var parent = method.parent()
+        this.parent = method.parent()
             .orElseThrow(() -> new IllegalArgumentException("Method must have a parent class"))
             .thisClass()
             .name()
             .stringValue();
+    }
 
+    public String generate() {
         var name = method.methodName().stringValue();
         if (!method.flags().has(AccessFlag.STATIC)) {
             name = STR."\{parent}_\{name}";
         }
 
-        var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType())
-            .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported method return type: \{method.methodTypeSymbol().returnType()}"));
+        var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
 
         var codeGenerator = new IrCodeGenerator(
             returnType,
@@ -73,6 +76,10 @@ public class FunctionBuilder {
     private void generateCode(IrCodeGenerator generator) {
         var optionalCode = method.code();
         if (optionalCode.isEmpty()) return;
+
+        if (method.methodName().equalsString("<init>")) {
+            addInitVtable(generator);
+        }
 
         var code = optionalCode.get();
         var locals = new Local[code.maxLocals()];
@@ -110,6 +117,16 @@ public class FunctionBuilder {
                 System.out.println(stack.pop());
             }
         }
+    }
+
+    private void addInitVtable(IrCodeGenerator generator) {
+        if (vtable.isEmpty()) return; // No need, no virtual methods
+
+        var parentClass = new LlvmType.Declared(parent);
+        var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%this", "0");
+        var vtableType = new LlvmType.Pointer(new LlvmType.Declared(STR."\{parent}_vtable_type"));
+        var vtableTypePointer = new LlvmType.Pointer(vtableType);
+        generator.store(vtableType, STR."@\{parent}_vtable_data", vtableTypePointer, vtablePointer);
     }
 
     private void handleArrayStore(
@@ -251,13 +268,12 @@ public class FunctionBuilder {
     private void handleFieldInstruction(IrCodeGenerator generator, Deque<String> stack, FieldInstruction instruction) {
         if (instruction.opcode() == Opcode.GETFIELD) {
 
-            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol())
-                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
+            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
 
             var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
             var varName = generator.getElementPointer(
                 parentType, new LlvmType.Pointer(parentType), stack.pop(),
-                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()))
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + (vtable.isEmpty() ? 0 : 1))
             );
 
             var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
@@ -266,13 +282,12 @@ public class FunctionBuilder {
             var value = stack.pop();
             var objectReference = stack.pop();
 
-            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol())
-                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported field type: \{instruction.field().type()}"));
+            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
 
             var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
             var varName = generator.getElementPointer(
                 parentType, new LlvmType.Pointer(parentType), objectReference,
-                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()))
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + (vtable.isEmpty() ? 0 : 1))
             );
             generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
         } else {
@@ -325,9 +340,7 @@ public class FunctionBuilder {
             var shouldUnwrap = isVarArg && i >= invocation.typeSymbol().parameterCount() - 1;
             if (type.isArray() && shouldUnwrap) type = type.componentType();
 
-            var finalType = type;
-            var irType = IrTypeMapper.mapType(type)
-                .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported parameter type \{finalType}"));
+            var irType = IrTypeMapper.mapType(type);
             if (shouldUnwrap) {
                 irType = extendType(irType);
             }
@@ -343,11 +356,14 @@ public class FunctionBuilder {
             parameters.addFirst(Map.entry(stack.pop(), new LlvmType.Pointer(new LlvmType.Declared(typeName))));
         }
 
-        var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType())
-            .orElseThrow(() -> new IllegalArgumentException(STR."\{invocation.typeSymbol().returnType()} return type not supported."));
+        var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType());
 
-
-        var functionName = getFunctionName(invocation);
+        var functionName = switch (invocation.opcode()) {
+            case INVOKESPECIAL -> directCall(invocation);
+            case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, parameters);
+            case INVOKESTATIC -> invocation.method().name().stringValue();
+            default -> throw new IllegalArgumentException(STR."\{invocation.opcode()} invocation not yet supported");
+        };
         var returnVar = generator.invoke(returnType, functionName, parameters);
 
         if (returnVar != null) {
@@ -355,19 +371,35 @@ public class FunctionBuilder {
         }
     }
 
+    private static String directCall(InvokeInstruction invocation) {
+        return STR."\"\{invocation.method().owner().name()}_\{invocation.method().name()}\"";
+    }
+
+    private String handleInvokeVirtual(IrCodeGenerator generator, InvokeInstruction invocation, ArrayList<Map.Entry<String, LlvmType>> parameters) {
+        if (!vtable.containsKey(invocation.typeSymbol())) return directCall(invocation);
+
+        // Load vtable pointer
+        var parentType = new LlvmType.Declared(parent);
+        var vtablePointer = generator.getElementPointer(parentType, new LlvmType.Pointer(parentType), parameters.getFirst().getKey(), "0");
+
+        // Get data from vtable pointer
+        var vtableType = new LlvmType.Declared(STR."\{parent}_vtable_type");
+        var vtableTypePointer = new LlvmType.Pointer(vtableType);
+        var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
+
+        // Get vtable pointer to function
+        var vtableInfo = vtable.get(invocation.typeSymbol());
+        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, String.valueOf(vtableInfo.index()));
+
+        // Load function
+        return generator.load(vtableInfo.signature(), new LlvmType.Pointer(vtableInfo.signature()), methodPointer);
+    }
+
     private LlvmType extendType(LlvmType type) {
         return switch (type) {
             case LlvmType.Primitive p when p == LlvmType.Primitive.FLOAT -> LlvmType.Primitive.DOUBLE;
             case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> LlvmType.Primitive.INT;
             default -> type;
-        };
-    }
-
-    private String getFunctionName(InvokeInstruction invoke) {
-        return switch (invoke.opcode()) {
-            case INVOKESPECIAL, INVOKEVIRTUAL -> STR."\"\{invoke.method().owner().name()}_\{invoke.method().name()}\"";
-            case INVOKESTATIC -> invoke.method().name().stringValue();
-            default -> throw new IllegalArgumentException(STR."\{invoke.opcode()} invocation not yet supported");
         };
     }
 
@@ -383,11 +415,9 @@ public class FunctionBuilder {
     }
 
     private void declareLocal(Local[] locals, Map<String, LlvmType> types, LocalVariable variable) {
-        locals[variable.slot()] = new Local(STR."%\{variable.name()}", IrTypeMapper.mapType(variable.typeSymbol())
-            .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{variable.typeSymbol().displayName()}")));
+        locals[variable.slot()] = new Local(STR."%\{variable.name()}", IrTypeMapper.mapType(variable.typeSymbol()));
 
-        var type = IrTypeMapper.mapType(variable.typeSymbol())
-            .orElseThrow(() -> new IllegalArgumentException(STR."Local of type \{variable.typeSymbol()} is not supported"));
+        var type = IrTypeMapper.mapType(variable.typeSymbol());
         if (type == LlvmType.Primitive.POINTER) {
             throw new IllegalArgumentException(STR."Locals of type \{variable.typeSymbol()} not yet supported");
         }
