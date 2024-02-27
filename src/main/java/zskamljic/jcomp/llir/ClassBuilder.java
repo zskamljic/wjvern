@@ -1,9 +1,9 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.Vtable;
 import zskamljic.jcomp.llir.models.VtableInfo;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.classfile.ClassFile;
@@ -14,11 +14,8 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,44 +24,71 @@ public class ClassBuilder {
     private final ClassModel classModel;
     private final Set<String> definedMethods = new HashSet<>();
     private final Set<String> varargs = new HashSet<>();
-    private final Map<MethodTypeDesc, VtableInfo> vtable = new HashMap<>();
+    private final Vtable vtable = new Vtable();
+    private final Path classPath;
     private final boolean debug;
+    private final List<LlvmType> fieldDefinitions = new ArrayList<>();
+    private final List<String> fieldNames = new ArrayList<>();
+    private final List<String> parentClasses = new ArrayList<>();
 
     public ClassBuilder(Path inputClass, boolean debug) throws IOException {
         this.debug = debug;
         var classFile = ClassFile.of();
         classModel = classFile.parse(inputClass);
+        classPath = inputClass.getParent();
     }
 
-    public List<String> generate(Path path) throws IOException {
-        var className = classModel.thisClass().name();
+    public void generate(PrintWriter output, Path path) throws IOException {
+        if (classModel.superclass().isPresent()) {
+            generateSuperClass(output, classModel.superclass().get(), path);
+        }
 
-        try (var output = new PrintWriter(new FileOutputStream(path.resolve(STR."\{className}.ll").toFile()))) {
+        if (parentClasses.isEmpty()) {
             // TODO: remove when superclasses are supported
             output.println("%\"java/lang/Object\" = type { }\n");
             output.println("define void @\"java/lang/Object_<init>\"(ptr %this) {\n  ret void\n}\n");
-
-            var fieldNames = generateClass(output, classModel.thisClass(), classModel.methods());
-
-            var methods = new ArrayList<String>();
-            for (var method : classModel.methods()) {
-                var generated = generateMethod(fieldNames, method);
-                if (generated == null) {
-                    return List.of();
-                }
-                if (!definedMethods.contains(generated)) {
-                    definedMethods.add(generated);
-                    methods.add(generated);
-                }
-            }
-            output.println(String.join("\n\n", methods));
+        } else {
+            output.println();
         }
-        return List.of(STR."\{className}.ll");
+
+        var fieldNames = generateClass(output, classModel.thisClass(), classModel.methods());
+
+        var methods = new ArrayList<String>();
+        for (var method : classModel.methods()) {
+            if (!method.flags().has(AccessFlag.FINAL) &&
+                !method.flags().has(AccessFlag.STATIC) &&
+                !method.methodName().stringValue().endsWith(">")
+            ) {
+                continue;
+            }
+
+            var generated = generateMethod(fieldNames, method);
+            if (generated == null) {
+                return;
+            }
+            if (!definedMethods.contains(generated)) {
+                definedMethods.add(generated);
+                methods.add(generated);
+            } else {
+                System.err.println(STR."Generated \{method} more than once");
+            }
+        }
+        output.println(String.join("\n\n", methods));
+    }
+
+    private void generateSuperClass(PrintWriter writer, ClassEntry entry, Path path) throws IOException {
+        if (entry.name().stringValue().startsWith("java/lang")) return; // TODO: add stdlib and remove this
+
+        var classBuilder = new ClassBuilder(classPath.resolve(STR."\{entry.name()}.class"), debug);
+        classBuilder.generate(writer, path);
+        fieldDefinitions.addAll(classBuilder.fieldDefinitions);
+        fieldNames.addAll(classBuilder.fieldNames);
+        parentClasses.addAll(classBuilder.parentClasses);
+        parentClasses.add(entry.name().stringValue());
+        vtable.addAll(classBuilder.vtable);
     }
 
     private List<String> generateClass(PrintWriter output, ClassEntry entry, List<MethodModel> methods) {
-        var fieldNames = new ArrayList<String>();
-        var fieldDefinitions = new ArrayList<LlvmType>();
         for (var field : classModel.fields()) {
             var type = IrTypeMapper.mapType(field.fieldTypeSymbol());
 
@@ -87,13 +111,17 @@ public class ClassBuilder {
             .toList();
 
         var vtable = generateVtableIfNeeded(builder, virtualMethods, entry.name().stringValue());
-        vtable.ifPresent(fieldDefinitions::addFirst);
 
         var fields = fieldDefinitions.stream()
             .map(Object::toString)
             .collect(Collectors.joining(", "));
 
         builder.append("%").append(entry.name()).append(" = type { ");
+        vtable.ifPresent(vt -> {
+            builder.append(vt);
+            if (!fields.isBlank()) builder.append(",");
+            builder.append(" ");
+        });
         if (!fields.isBlank()) {
             builder.append(fields).append(" ");
         }
@@ -109,7 +137,7 @@ public class ClassBuilder {
         return fieldNames;
     }
 
-    private void generateVtableData(StringBuilder builder, List<MethodModel> virtualMethods, ArrayList<String> fieldNames, String name) {
+    private void generateVtableData(StringBuilder builder, List<MethodModel> virtualMethods, List<String> fieldNames, String name) {
         for (var method : virtualMethods) {
             var methodDefinition = generateMethod(fieldNames, method);
             builder.append(methodDefinition).append("\n\n");
@@ -119,13 +147,10 @@ public class ClassBuilder {
         var vtableType = STR."\{name}_vtable_type";
         builder.append("@").append(name).append("_vtable_data = global %").append(vtableType).append(" {\n");
 
-        for (var entry : vtable.values()) {
-            builder.append(" ".repeat(2))
-                .append(entry.signature())
-                .append(" ")
-                .append(entry.functionName())
-                .append("\n");
-        }
+        var functions = vtable.stream()
+            .map(vt -> STR."  \{vt.signature()}* \{vt.functionName()}")
+            .collect(Collectors.joining(",\n"));
+        builder.append(functions).append("\n");
 
         builder.append("}\n");
     }
@@ -137,14 +162,20 @@ public class ClassBuilder {
         builder.append("%").append(vtableType).append(" = type { ");
 
         var functionSignatures = new ArrayList<String>();
+        vtable.stream()
+            .map(VtableInfo::signature)
+            .map(s -> STR."\{s.toString()}*")
+            .forEach(functionSignatures::add);
         for (var method : virtualMethods) {
             var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
             var parameterList = generateParameterList(name, method.methodTypeSymbol());
-            var functionSignature = STR."\{returnType}(\{parameterList})";
-            functionSignatures.add(STR."\{functionSignature}*");
+            var functionSignature = new LlvmType.Function(returnType, parameterList);
+            functionSignatures.add(new LlvmType.Pointer(functionSignature).toString());
             var functionName = STR."@\{name}_\{method.methodName()}";
             vtable.put(
-                method.methodTypeSymbol(), new VtableInfo(new LlvmType.Pointer(new LlvmType.Function(functionSignature)), vtable.size(), functionName)
+                method.methodName().stringValue(),
+                method.methodTypeSymbol(),
+                new VtableInfo(functionSignature, functionName)
             );
         }
 
@@ -154,7 +185,7 @@ public class ClassBuilder {
         return Optional.of(new LlvmType.Pointer(new LlvmType.Declared(vtableType)));
     }
 
-    private static String generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
+    private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
         var parameterList = new ArrayList<LlvmType>();
         parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
         for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
@@ -162,9 +193,7 @@ public class ClassBuilder {
             var type = IrTypeMapper.mapType(parameter);
             parameterList.add(type);
         }
-        return parameterList.stream()
-            .map(Objects::toString)
-            .collect(Collectors.joining(","));
+        return parameterList;
     }
 
     private String generateMethod(List<String> fieldNames, MethodModel method) {
@@ -178,19 +207,34 @@ public class ClassBuilder {
             }
         }
 
-        return declareNative(method);
+        return declareMethod(method);
     }
 
-    private String declareNative(MethodModel method) {
+    private String declareMethod(MethodModel method) {
         var declaration = new StringBuilder();
         declaration.append("declare ");
 
+        var parent = method.parent().orElseThrow().thisClass().name();
+
         var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
         declaration.append(type);
-        declaration.append(" @").append(method.methodName()).append("(");
+        declaration.append(" @");
+        if (method.flags().has(AccessFlag.STATIC)) {
+            declaration.append(method.methodName());
+        } else {
+            var functionName = STR."\"\{parent}_\{method.methodName()}\"";
+            if (!functionName.contains("<")) {
+                functionName = functionName.replaceAll("\"", "");
+            }
+            declaration.append(functionName);
+        }
+        declaration.append("(");
         var parameters = new ArrayList<String>();
         var isVarArg = method.flags().has(AccessFlag.VARARGS);
         var symbol = method.methodTypeSymbol();
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            parameters.add(STR."%\{parent}* %this");
+        }
         for (int i = 0; i < symbol.parameterCount(); i++) {
             var parameter = symbol.parameterType(i);
             if (isVarArg && i == symbol.parameterCount() - 1) {

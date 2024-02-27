@@ -42,6 +42,12 @@ public class IrCodeGenerator {
         codeEntries.add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
     }
 
+    public String bitcast(LlvmType oldType, String source, LlvmType newType) {
+        var newVar = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
+        return newVar;
+    }
+
     public String binaryOperator(Operator operator, LlvmType.Primitive type, String operand1, String operand2) {
         var newVar = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.BinaryOperation(newVar, operator, type, operand1, operand2));

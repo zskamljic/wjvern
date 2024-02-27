@@ -42,12 +42,11 @@ label0:
 }
 
 define void @"VirtualMethods_<init>"(%VirtualMethods* %this) {
-  %1 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i64 0, i32 0
-  store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %1
-  br label %label0
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i64 0, i32 0
+  store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %0
   ret void
 }
 

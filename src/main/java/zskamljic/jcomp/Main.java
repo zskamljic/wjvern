@@ -3,7 +3,9 @@ package zskamljic.jcomp;
 import picocli.CommandLine;
 import zskamljic.jcomp.llir.ClassBuilder;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,14 +29,13 @@ public class Main {
                 Files.createDirectory(buildDir);
             }
             var generator = new ClassBuilder(options.inputClass, options.debug);
-            var files = generator.generate(buildDir);
-            if (files.isEmpty()) {
-                System.err.println("Failed to generate IR code, aborting");
-                return;
+
+            try (var output = new PrintWriter(new FileOutputStream(buildDir.resolve("IR.ll").toFile()))) {
+                generator.generate(output, buildDir);
             }
 
             var processes = ProcessBuilder.startPipeline(List.of(
-                linkFiles(buildDir, files),
+                linkFiles(buildDir, "IR.ll"),
                 new ProcessBuilder("opt", "-S", "--O3"), // Optimize
                 new ProcessBuilder("llc"), // Generate assembly
                 new ProcessBuilder("clang", "-x", "assembler", "-") // Compile
@@ -50,21 +51,16 @@ public class Main {
                 }
             }
             if (!options.debug) {
-                for (var file : files) {
-                    Files.deleteIfExists(buildDir.resolve(file));
-                }
+                Files.deleteIfExists(buildDir.resolve("IR.ll"));
             }
         } catch (IOException | InterruptedException e) {
             System.err.println(STR."Unable to parse class file \{options.inputClass}: \{e.getMessage()}");
         }
     }
 
-    private static ProcessBuilder linkFiles(Path buildDir, List<String> files) throws IOException {
+    private static ProcessBuilder linkFiles(Path buildDir, String file) throws IOException {
         var command = new ArrayList<>(List.of("llvm-link", "-S"));
-        files.stream()
-            .map(buildDir::resolve)
-            .map(Path::toString)
-            .forEach(command::add);
+        command.add(buildDir.resolve(file).toString());
         return new ProcessBuilder(command.toArray(new String[0]));
     }
 }

@@ -1,5 +1,9 @@
 package zskamljic.jcomp.llir.models;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 public sealed interface LlvmType {
 
     record Array(int length, LlvmType type) implements LlvmType {
@@ -16,10 +20,10 @@ public sealed interface LlvmType {
         }
     }
 
-    record Function(String value) implements LlvmType {
+    record Function(LlvmType returnType, List<LlvmType> parameters) implements LlvmType {
         @Override
         public String toString() {
-            return value;
+            return STR."\{returnType}(\{parameters.stream().map(Objects::toString).collect(Collectors.joining(", "))})";
         }
     }
 

@@ -6,13 +6,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import zskamljic.jcomp.llir.ClassBuilder;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,7 +42,8 @@ class IrCodeTest {
     @ParameterizedTest
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
-        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods"
+        "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
+        "Inheritance",
     })
     void compilesSimple(String fileName) throws IOException {
         var classGenerator = new ClassBuilder(Path.of(STR."target/test-classes/\{fileName}.class"), true);
@@ -49,17 +51,17 @@ class IrCodeTest {
         if (!Files.exists(BUILD_PATH)) {
             Files.createDirectory(BUILD_PATH);
         }
-        var result = classGenerator.generate(BUILD_PATH);
 
-        var output = STR."\{fileName}.ll";
-        assertEquals(List.of(output), result);
+        var stringWriter = new StringWriter();
+        try (var writer = new PrintWriter(stringWriter)) {
+            classGenerator.generate(writer, BUILD_PATH);
+        }
 
         try (var expectedInput = getClass().getResourceAsStream(STR."/\{fileName}.ll")) {
-            assertNotNull(expectedInput);
+            assertNotNull(expectedInput, STR."\{fileName}.ll was not found.");
 
             var expected = new String(expectedInput.readAllBytes(), StandardCharsets.UTF_8);
-            var actual = Files.readString(BUILD_PATH.resolve(output));
-            assertEquals(expected, actual);
+            assertEquals(expected, stringWriter.toString());
         }
     }
 }

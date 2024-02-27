@@ -1,7 +1,7 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.LlvmType;
-import zskamljic.jcomp.llir.models.VtableInfo;
+import zskamljic.jcomp.llir.models.Vtable;
 
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
@@ -21,7 +21,6 @@ import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
-import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -35,11 +34,11 @@ public class FunctionBuilder {
     private final MethodModel method;
     private final List<String> fieldDefinition;
     private final Set<String> varargs;
-    private final Map<MethodTypeDesc, VtableInfo> vtable;
+    private final Vtable vtable;
     private final boolean debug;
     private final String parent;
 
-    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, Map<MethodTypeDesc, VtableInfo> vtable, boolean debug) {
+    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, Vtable vtable, boolean debug) {
         this.method = method;
         this.fieldDefinition = fieldNames;
         this.varargs = varargs;
@@ -77,10 +76,6 @@ public class FunctionBuilder {
         var optionalCode = method.code();
         if (optionalCode.isEmpty()) return;
 
-        if (method.methodName().equalsString("<init>")) {
-            addInitVtable(generator);
-        }
-
         var code = optionalCode.get();
         var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
@@ -94,7 +89,12 @@ public class FunctionBuilder {
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case FieldInstruction f -> handleFieldInstruction(generator, stack, f);
                 case IncrementInstruction i -> handleIncrement(generator, locals, i);
-                case InvokeInstruction i -> handleInvoke(generator, stack, types, i);
+                case InvokeInstruction i -> {
+                    handleInvoke(generator, stack, types, i);
+                    if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
+                        addInitVtable(generator);
+                    }
+                }
                 case Label label -> generator.label(labelGenerator.getLabel(label));
                 case LineNumber l -> generator.comment(STR."Line \{l.line()}");
                 case LoadInstruction l -> loadValue(stack, locals, l);
@@ -360,7 +360,7 @@ public class FunctionBuilder {
 
         var functionName = switch (invocation.opcode()) {
             case INVOKESPECIAL -> directCall(invocation);
-            case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, parameters);
+            case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, types, parameters);
             case INVOKESTATIC -> invocation.method().name().stringValue();
             default -> throw new IllegalArgumentException(STR."\{invocation.opcode()} invocation not yet supported");
         };
@@ -375,8 +375,10 @@ public class FunctionBuilder {
         return STR."\"\{invocation.method().owner().name()}_\{invocation.method().name()}\"";
     }
 
-    private String handleInvokeVirtual(IrCodeGenerator generator, InvokeInstruction invocation, ArrayList<Map.Entry<String, LlvmType>> parameters) {
-        if (!vtable.containsKey(invocation.typeSymbol())) return directCall(invocation);
+    private String handleInvokeVirtual(
+        IrCodeGenerator generator, InvokeInstruction invocation, Map<String, LlvmType> types, List<Map.Entry<String, LlvmType>> parameters
+    ) {
+        if (!vtable.containsKey(invocation.name().stringValue(), invocation.typeSymbol())) return directCall(invocation);
 
         // Load vtable pointer
         var parentType = new LlvmType.Declared(parent);
@@ -388,11 +390,24 @@ public class FunctionBuilder {
         var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
 
         // Get vtable pointer to function
-        var vtableInfo = vtable.get(invocation.typeSymbol());
-        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, String.valueOf(vtableInfo.index()));
+        var vtableInfo = vtable.get(invocation.name().stringValue(), invocation.typeSymbol());
+        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, String.valueOf(vtable.index(vtableInfo)));
+
+        var function = vtableInfo.signature();
+        var functionPointer = new LlvmType.Pointer(function);
 
         // Load function
-        return generator.load(vtableInfo.signature(), new LlvmType.Pointer(vtableInfo.signature()), methodPointer);
+        var functionName = generator.load(functionPointer, new LlvmType.Pointer(functionPointer), methodPointer);
+
+        var actualType = types.get(parameters.getFirst().getKey());
+        var expectedType = function.parameters().getFirst();
+        if (!actualType.equals(expectedType)) {
+            var parameter = parameters.removeFirst();
+            var newParameter = generator.bitcast(parameter.getValue(), parameter.getKey(), expectedType);
+            parameters.addFirst(Map.entry(newParameter, expectedType));
+        }
+
+        return functionName;
     }
 
     private LlvmType extendType(LlvmType type) {
