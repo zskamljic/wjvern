@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -161,16 +162,10 @@ public class ClassBuilder {
         var vtableType = STR."\{name}_vtable_type";
         builder.append("%").append(vtableType).append(" = type { ");
 
-        var functionSignatures = new ArrayList<String>();
-        vtable.stream()
-            .map(VtableInfo::signature)
-            .map(s -> STR."\{s.toString()}*")
-            .forEach(functionSignatures::add);
         for (var method : virtualMethods) {
             var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
             var parameterList = generateParameterList(name, method.methodTypeSymbol());
             var functionSignature = new LlvmType.Function(returnType, parameterList);
-            functionSignatures.add(new LlvmType.Pointer(functionSignature).toString());
             var functionName = STR."@\{name}_\{method.methodName()}";
             vtable.put(
                 method.methodName().stringValue(),
@@ -179,7 +174,12 @@ public class ClassBuilder {
             );
         }
 
-        builder.append(String.join(", ", functionSignatures))
+        var functions = vtable.stream()
+            .map(VtableInfo::signature)
+            .map(LlvmType.Pointer::new)
+            .map(Objects::toString)
+            .collect(Collectors.joining(", "));
+        builder.append(functions)
             .append(" }\n\n");
 
         return Optional.of(new LlvmType.Pointer(new LlvmType.Declared(vtableType)));

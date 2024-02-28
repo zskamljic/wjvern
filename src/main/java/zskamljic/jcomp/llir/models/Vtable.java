@@ -17,8 +17,13 @@ public class Vtable {
     }
 
     public void put(String name, MethodTypeDesc methodTypeDesc, VtableInfo vtableInfo) {
-        vtableEntries.put(name + methodTypeDesc.descriptorString(), vtableInfo);
-        infoList.add(vtableInfo);
+        var previous = vtableEntries.put(name + methodTypeDesc.descriptorString(), vtableInfo);
+        if (previous != null) {
+            var index = infoList.indexOf(previous);
+            infoList.set(index, vtableInfo);
+        } else {
+            infoList.add(vtableInfo);
+        }
     }
 
     public boolean isEmpty() {
