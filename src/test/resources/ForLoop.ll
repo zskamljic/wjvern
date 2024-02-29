@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%ForLoop = type { }
+%ForLoop_vtable_type = type {  }
+
+%ForLoop = type { %ForLoop_vtable_type* }
+
+@ForLoop_vtable_data = global %ForLoop_vtable_type {
+}
 
 define void @"ForLoop_<init>"(%ForLoop* %this) {
 label0:

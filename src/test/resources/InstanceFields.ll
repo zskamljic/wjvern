@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%InstanceFields = type { i32, float, double }
+%InstanceFields_vtable_type = type {  }
+
+%InstanceFields = type { %InstanceFields_vtable_type*, i32, float, double }
+
+@InstanceFields_vtable_data = global %InstanceFields_vtable_type {
+}
 
 define void @"InstanceFields_<init>"(%InstanceFields* %this) {
 label0:

@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%StaticFunctions = type { }
+%StaticFunctions_vtable_type = type {  }
+
+%StaticFunctions = type { %StaticFunctions_vtable_type* }
+
+@StaticFunctions_vtable_data = global %StaticFunctions_vtable_type {
+}
 
 define void @"StaticFunctions_<init>"(%StaticFunctions* %this) {
 label0:

@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%VariableAssignment = type { }
+%VariableAssignment_vtable_type = type {  }
+
+%VariableAssignment = type { %VariableAssignment_vtable_type* }
+
+@VariableAssignment_vtable_data = global %VariableAssignment_vtable_type {
+}
 
 define void @"VariableAssignment_<init>"(%VariableAssignment* %this) {
 label0:

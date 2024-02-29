@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%NativeVarArgMethods = type { }
+%NativeVarArgMethods_vtable_type = type {  }
+
+%NativeVarArgMethods = type { %NativeVarArgMethods_vtable_type* }
+
+@NativeVarArgMethods_vtable_data = global %NativeVarArgMethods_vtable_type {
+}
 
 define void @"NativeVarArgMethods_<init>"(%NativeVarArgMethods* %this) {
 label0:

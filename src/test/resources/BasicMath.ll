@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%BasicMath = type { }
+%BasicMath_vtable_type = type {  }
+
+%BasicMath = type { %BasicMath_vtable_type* }
+
+@BasicMath_vtable_data = global %BasicMath_vtable_type {
+}
 
 define void @"BasicMath_<init>"(%BasicMath* %this) {
 label0:

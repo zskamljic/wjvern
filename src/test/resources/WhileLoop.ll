@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%WhileLoop = type { }
+%WhileLoop_vtable_type = type {  }
+
+%WhileLoop = type { %WhileLoop_vtable_type* }
+
+@WhileLoop_vtable_data = global %WhileLoop_vtable_type {
+}
 
 define void @"WhileLoop_<init>"(%WhileLoop* %this) {
 label0:

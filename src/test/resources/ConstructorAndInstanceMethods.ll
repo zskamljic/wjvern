@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%ConstructorAndInstanceMethods = type { }
+%ConstructorAndInstanceMethods_vtable_type = type {  }
+
+%ConstructorAndInstanceMethods = type { %ConstructorAndInstanceMethods_vtable_type* }
+
+@ConstructorAndInstanceMethods_vtable_data = global %ConstructorAndInstanceMethods_vtable_type {
+}
 
 define void @"ConstructorAndInstanceMethods_<init>"(%ConstructorAndInstanceMethods* %this) {
 label0:

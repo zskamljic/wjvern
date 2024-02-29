@@ -4,7 +4,12 @@ define void @"java/lang/Object_<init>"(ptr %this) {
   ret void
 }
 
-%IfStatements = type { i32, i1 }
+%IfStatements_vtable_type = type {  }
+
+%IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
+
+@IfStatements_vtable_data = global %IfStatements_vtable_type {
+}
 
 define void @"IfStatements_<init>"(%IfStatements* %this) {
 label0:

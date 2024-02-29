@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,21 +117,18 @@ public class ClassBuilder {
             .collect(Collectors.joining(", "));
 
         builder.append("%").append(entry.name()).append(" = type { ");
-        vtable.ifPresent(vt -> {
-            builder.append(vt);
-            if (!fields.isBlank()) builder.append(",");
-            builder.append(" ");
-        });
+        builder.append(vtable);
+        if (!fields.isBlank()) builder.append(",");
+        builder.append(" ");
         if (!fields.isBlank()) {
             builder.append(fields).append(" ");
         }
 
         builder.append("}").append("\n");
 
-        if (vtable.isPresent()) {
-            builder.append("\n");
-            generateVtableData(builder, virtualMethods, fieldNames, entry.name().stringValue());
-        }
+        builder.append("\n");
+        generateVtableData(builder, virtualMethods, fieldNames, entry.name().stringValue());
+
         output.println(builder);
 
         return fieldNames;
@@ -151,14 +147,14 @@ public class ClassBuilder {
         var functions = vtable.stream()
             .map(vt -> STR."  \{vt.signature()}* \{vt.functionName()}")
             .collect(Collectors.joining(",\n"));
-        builder.append(functions).append("\n");
+        if (!functions.isBlank()) {
+            builder.append(functions).append("\n");
+        }
 
         builder.append("}\n");
     }
 
-    private Optional<LlvmType> generateVtableIfNeeded(StringBuilder builder, List<MethodModel> virtualMethods, String name) {
-        if (virtualMethods.isEmpty()) return Optional.empty(); // No need for vtable
-
+    private LlvmType generateVtableIfNeeded(StringBuilder builder, List<MethodModel> virtualMethods, String name) {
         var vtableType = STR."\{name}_vtable_type";
         builder.append("%").append(vtableType).append(" = type { ");
 
@@ -182,7 +178,7 @@ public class ClassBuilder {
         builder.append(functions)
             .append(" }\n\n");
 
-        return Optional.of(new LlvmType.Pointer(new LlvmType.Declared(vtableType)));
+        return new LlvmType.Pointer(new LlvmType.Declared(vtableType));
     }
 
     private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
