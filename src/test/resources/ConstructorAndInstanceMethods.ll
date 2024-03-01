@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%ConstructorAndInstanceMethods_vtable_type = type {  }
+%ConstructorAndInstanceMethods_vtable_type = type { }
 
 %ConstructorAndInstanceMethods = type { %ConstructorAndInstanceMethods_vtable_type* }
 
@@ -15,36 +13,38 @@ define void @"ConstructorAndInstanceMethods_<init>"(%ConstructorAndInstanceMetho
 label0:
   ; Line 2
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %ConstructorAndInstanceMethods, %ConstructorAndInstanceMethods* %this, i64 0, i32 0
+  store %ConstructorAndInstanceMethods_vtable_type* @ConstructorAndInstanceMethods_vtable_data, %ConstructorAndInstanceMethods_vtable_type** %0
   ; Line 3
-  %0 = alloca [13 x i8]
-  %1 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 0
-  store i8 67, ptr %1
-  %2 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 1
-  store i8 111, ptr %2
-  %3 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 2
-  store i8 110, ptr %3
-  %4 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 3
-  store i8 115, ptr %4
-  %5 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 4
-  store i8 116, ptr %5
-  %6 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 5
-  store i8 114, ptr %6
-  %7 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 6
-  store i8 117, ptr %7
-  %8 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 7
-  store i8 99, ptr %8
-  %9 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 8
-  store i8 116, ptr %9
-  %10 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 9
-  store i8 111, ptr %10
-  %11 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 10
-  store i8 114, ptr %11
-  %12 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 11
-  store i8 10, ptr %12
-  %13 = getelementptr inbounds [13 x i8], ptr %0, i64 0, i32 12
-  store i8 0, ptr %13
-  %14 = alloca [0 x i32]
-  %15 = call i32 @printf(ptr %0)
+  %1 = alloca [13 x i8]
+  %2 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 0
+  store i8 67, ptr %2
+  %3 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 1
+  store i8 111, ptr %3
+  %4 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 2
+  store i8 110, ptr %4
+  %5 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 3
+  store i8 115, ptr %5
+  %6 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 4
+  store i8 116, ptr %6
+  %7 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 5
+  store i8 114, ptr %7
+  %8 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 6
+  store i8 117, ptr %8
+  %9 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 7
+  store i8 99, ptr %9
+  %10 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 8
+  store i8 116, ptr %10
+  %11 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 9
+  store i8 111, ptr %11
+  %12 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 10
+  store i8 114, ptr %12
+  %13 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 11
+  store i8 10, ptr %13
+  %14 = getelementptr inbounds [13 x i8], ptr %1, i64 0, i32 12
+  store i8 0, ptr %14
+  %15 = alloca [0 x i32]
+  %16 = call i32 @printf(ptr %1)
   ; Line 4
   ret void
 }

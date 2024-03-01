@@ -1,6 +1,6 @@
 package zskamljic.jcomp.llir.models;
 
-import zskamljic.jcomp.llir.IrCodeGenerator;
+import zskamljic.jcomp.llir.IrMethodGenerator;
 
 import java.util.List;
 import java.util.Map;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public interface CodeEntry {
     record BinaryOperation(
         String newVar,
-        IrCodeGenerator.Operator operator,
+        IrMethodGenerator.Operator operator,
         LlvmType.Primitive type,
         String operand1,
         String operand2
@@ -65,7 +65,7 @@ public interface CodeEntry {
         }
     }
 
-    record Compare(String varName, IrCodeGenerator.Condition condition, LlvmType type, String a, String b) implements CodeEntry {
+    record Compare(String varName, IrMethodGenerator.Condition condition, LlvmType type, String a, String b) implements CodeEntry {
         @Override
         public String toString() {
             var comparisonType = switch (type) {

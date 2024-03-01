@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%VariableAssignment_vtable_type = type {  }
+%VariableAssignment_vtable_type = type { }
 
 %VariableAssignment = type { %VariableAssignment_vtable_type* }
 
@@ -15,6 +13,8 @@ define void @"VariableAssignment_<init>"(%VariableAssignment* %this) {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %VariableAssignment, %VariableAssignment* %this, i64 0, i32 0
+  store %VariableAssignment_vtable_type* @VariableAssignment_vtable_data, %VariableAssignment_vtable_type** %0
   ret void
 }
 

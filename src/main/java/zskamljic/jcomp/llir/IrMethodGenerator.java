@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class IrCodeGenerator {
+public class IrMethodGenerator {
     private final LlvmType returnType;
     private final String methodName;
     private final List<Map.Entry<String, LlvmType>> parameters;
@@ -15,7 +15,7 @@ public class IrCodeGenerator {
 
     private final UnnamedGenerator unnamedGenerator = new UnnamedGenerator();
 
-    public IrCodeGenerator(LlvmType returnType, String methodName) {
+    public IrMethodGenerator(LlvmType returnType, String methodName) {
         this.returnType = returnType;
         if (methodName.contains("<")) {
             methodName = STR."\"\{methodName}\"";

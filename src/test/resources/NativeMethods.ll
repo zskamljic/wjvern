@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%NativeMethods_vtable_type = type {  }
+%NativeMethods_vtable_type = type { }
 
 %NativeMethods = type { %NativeMethods_vtable_type* }
 
@@ -15,6 +13,8 @@ define void @"NativeMethods_<init>"(%NativeMethods* %this) {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %NativeMethods, %NativeMethods* %this, i64 0, i32 0
+  store %NativeMethods_vtable_type* @NativeMethods_vtable_data, %NativeMethods_vtable_type** %0
   ret void
 }
 

@@ -27,6 +27,13 @@ public sealed interface LlvmType {
         }
     }
 
+    record Global(String name) {
+        @Override
+        public String toString() {
+            return STR."@\{name}";
+        }
+    }
+
     record Pointer(LlvmType type) implements LlvmType {
 
         @Override

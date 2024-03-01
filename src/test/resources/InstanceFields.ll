@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%InstanceFields_vtable_type = type {  }
+%InstanceFields_vtable_type = type { }
 
 %InstanceFields = type { %InstanceFields_vtable_type*, i32, float, double }
 
@@ -15,15 +13,17 @@ define void @"InstanceFields_<init>"(%InstanceFields* %this) {
 label0:
   ; Line 6
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
-  ; Line 7
   %0 = getelementptr inbounds %InstanceFields, %InstanceFields* %this, i64 0, i32 0
-  store i32 1, i32* %0
-  ; Line 8
+  store %InstanceFields_vtable_type* @InstanceFields_vtable_data, %InstanceFields_vtable_type** %0
+  ; Line 7
   %1 = getelementptr inbounds %InstanceFields, %InstanceFields* %this, i64 0, i32 1
-  store float 5.0, float* %1
-  ; Line 9
+  store i32 1, i32* %1
+  ; Line 8
   %2 = getelementptr inbounds %InstanceFields, %InstanceFields* %this, i64 0, i32 2
-  store double 7.0, double* %2
+  store float 5.0, float* %2
+  ; Line 9
+  %3 = getelementptr inbounds %InstanceFields, %InstanceFields* %this, i64 0, i32 3
+  store double 7.0, double* %3
   ; Line 10
   ret void
 }
@@ -46,7 +46,7 @@ label0:
   %6 = getelementptr inbounds [4 x i8], ptr %2, i64 0, i32 3
   store i8 0, ptr %6
   %7 = alloca [1 x i32]
-  %8 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 0
+  %8 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 1
   %9 = load i32, i32* %8
   %10 = getelementptr inbounds [1 x i32], ptr %7, i64 0, i32 0
   store i32 %9, ptr %10
@@ -64,7 +64,7 @@ label0:
   %18 = getelementptr inbounds [4 x i8], ptr %14, i64 0, i32 3
   store i8 0, ptr %18
   %19 = alloca [1 x float]
-  %20 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 1
+  %20 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 2
   %21 = load float, float* %20
   %22 = getelementptr inbounds [1 x float], ptr %19, i64 0, i32 0
   store float %21, ptr %22
@@ -83,7 +83,7 @@ label0:
   %31 = getelementptr inbounds [4 x i8], ptr %27, i64 0, i32 3
   store i8 0, ptr %31
   %32 = alloca [1 x double]
-  %33 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 2
+  %33 = getelementptr inbounds %InstanceFields, %InstanceFields* %instance, i64 0, i32 3
   %34 = load double, double* %33
   %35 = getelementptr inbounds [1 x double], ptr %32, i64 0, i32 0
   store double %34, ptr %35

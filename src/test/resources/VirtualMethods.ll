@@ -1,8 +1,6 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
 %VirtualMethods_vtable_type = type { void(%VirtualMethods*)* }
 

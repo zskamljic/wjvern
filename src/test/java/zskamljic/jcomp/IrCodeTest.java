@@ -6,8 +6,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import zskamljic.jcomp.llir.ClassBuilder;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -16,6 +14,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class IrCodeTest {
@@ -45,23 +44,27 @@ class IrCodeTest {
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance",
     })
-    void compilesSimple(String fileName) throws IOException {
+    void generatesValid(String fileName) throws IOException {
         var classGenerator = new ClassBuilder(Path.of(STR."target/test-classes/\{fileName}.class"), true);
 
         if (!Files.exists(BUILD_PATH)) {
             Files.createDirectory(BUILD_PATH);
         }
 
-        var stringWriter = new StringWriter();
-        try (var writer = new PrintWriter(stringWriter)) {
-            classGenerator.generate(writer, BUILD_PATH);
-        }
+        var generatedFiles = classGenerator.generate(BUILD_PATH);
+        assertFalse(generatedFiles.isEmpty());
 
-        try (var expectedInput = getClass().getResourceAsStream(STR."/\{fileName}.ll")) {
-            assertNotNull(expectedInput, STR."\{fileName}.ll was not found.");
+        for (var output : generatedFiles.entrySet()) {
+            var name = output.getKey();
+            if ("java/lang/Object".equals(name)) continue;
 
-            var expected = new String(expectedInput.readAllBytes(), StandardCharsets.UTF_8);
-            assertEquals(expected, stringWriter.toString());
+            var value = output.getValue();
+            try (var expectedInput = getClass().getResourceAsStream(STR."/\{name}.ll")) {
+                assertNotNull(expectedInput, STR."\{name}.ll was not found.");
+
+                var expected = new String(expectedInput.readAllBytes(), StandardCharsets.UTF_8);
+                assertEquals(expected, value.generate());
+            }
         }
     }
 }

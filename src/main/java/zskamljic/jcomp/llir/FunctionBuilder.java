@@ -59,7 +59,7 @@ public class FunctionBuilder {
 
         var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
 
-        var codeGenerator = new IrCodeGenerator(
+        var codeGenerator = new IrMethodGenerator(
             returnType,
             name
         );
@@ -72,7 +72,7 @@ public class FunctionBuilder {
         return codeGenerator.generate();
     }
 
-    private void generateCode(IrCodeGenerator generator) {
+    private void generateCode(IrMethodGenerator generator) {
         var optionalCode = method.code();
         if (optionalCode.isEmpty()) return;
 
@@ -119,9 +119,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void addInitVtable(IrCodeGenerator generator) {
-        if (vtable.isEmpty()) return; // No need, no virtual methods
-
+    private void addInitVtable(IrMethodGenerator generator) {
         var parentClass = new LlvmType.Declared(parent);
         var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%this", "0");
         var vtableType = new LlvmType.Pointer(new LlvmType.Declared(STR."\{parent}_vtable_type"));
@@ -130,7 +128,7 @@ public class FunctionBuilder {
     }
 
     private void handleArrayStore(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction
     ) {
         var value = stack.pop();
         var index = stack.pop();
@@ -144,7 +142,7 @@ public class FunctionBuilder {
         generator.store(type, value, LlvmType.Primitive.POINTER, varName);
     }
 
-    private static String loadPointerIfNeeded(IrCodeGenerator generator, Map<String, LlvmType> types, String value) {
+    private static String loadPointerIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String value) {
         if (types.get(value) instanceof LlvmType.Pointer p) {
             return generator.load(p.type(), p, value);
         }
@@ -152,7 +150,7 @@ public class FunctionBuilder {
     }
 
     private void handleBranch(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction
     ) {
         switch (instruction.opcode()) {
             case GOTO -> generator.branchLabel(labelGenerator.getLabel(instruction.target()));
@@ -160,7 +158,7 @@ public class FunctionBuilder {
                 var b = loadIfNeeded(generator, types, stack.pop());
                 var a = loadIfNeeded(generator, types, stack.pop());
 
-                var varName = generator.compare(IrCodeGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
+                var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = STR."not_\{ifTrue}";
                 generator.branchBool(varName, ifTrue, ifFalse);
@@ -170,7 +168,7 @@ public class FunctionBuilder {
                 var value = stack.pop();
                 value = loadPointerIfNeeded(generator, types, value);
 
-                var varName = generator.compare(IrCodeGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
+                var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = STR."not_\{ifTrue}";
                 generator.branchBool(varName, ifTrue, ifFalse);
@@ -188,7 +186,7 @@ public class FunctionBuilder {
         }
     }
 
-    private String loadIfNeeded(IrCodeGenerator generator, Map<String, LlvmType> types, String name) {
+    private String loadIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String name) {
         if (types.get(name) instanceof LlvmType.Pointer p) {
             return generator.load(p.type(), p, name);
         }
@@ -196,7 +194,7 @@ public class FunctionBuilder {
     }
 
     private void handleCreateNewObject(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewObjectInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewObjectInstruction instruction
     ) {
         var varName = generator.alloca(new LlvmType.Declared(instruction.className().name().stringValue()));
         types.put(varName, new LlvmType.Pointer(new LlvmType.Declared(instruction.className().name().stringValue())));
@@ -204,7 +202,7 @@ public class FunctionBuilder {
     }
 
     private void handleCreatePrimitiveArray(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction
     ) {
         var type = IrTypeMapper.mapType(instruction.typeKind())
             .orElseThrow(() -> new IllegalArgumentException(STR."Unsupported type \{instruction.typeKind()}"));
@@ -222,25 +220,25 @@ public class FunctionBuilder {
     }
 
     private void handleOperatorInstruction(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction
     ) {
         var operand2 = loadPointerIfNeeded(generator, types, stack.pop());
         var operand1 = loadPointerIfNeeded(generator, types, stack.pop());
 
         // TODO: parameterize by type
         var resultVar = switch (instruction.opcode()) {
-            case DADD -> generator.binaryOperator(IrCodeGenerator.Operator.ADD, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DDIV -> generator.binaryOperator(IrCodeGenerator.Operator.DIV, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DMUL -> generator.binaryOperator(IrCodeGenerator.Operator.MUL, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DSUB -> generator.binaryOperator(IrCodeGenerator.Operator.SUB, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case FADD -> generator.binaryOperator(IrCodeGenerator.Operator.ADD, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FDIV -> generator.binaryOperator(IrCodeGenerator.Operator.DIV, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FMUL -> generator.binaryOperator(IrCodeGenerator.Operator.MUL, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FSUB -> generator.binaryOperator(IrCodeGenerator.Operator.SUB, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case IADD -> generator.binaryOperator(IrCodeGenerator.Operator.ADD, LlvmType.Primitive.INT, operand1, operand2);
-            case IDIV -> generator.binaryOperator(IrCodeGenerator.Operator.DIV, LlvmType.Primitive.INT, operand1, operand2);
-            case IMUL -> generator.binaryOperator(IrCodeGenerator.Operator.MUL, LlvmType.Primitive.INT, operand1, operand2);
-            case ISUB -> generator.binaryOperator(IrCodeGenerator.Operator.SUB, LlvmType.Primitive.INT, operand1, operand2);
+            case DADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case DSUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.DOUBLE, operand1, operand2);
+            case FADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case FSUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.FLOAT, operand1, operand2);
+            case IADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.INT, operand1, operand2);
+            case IDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.INT, operand1, operand2);
+            case IMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.INT, operand1, operand2);
+            case ISUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.INT, operand1, operand2);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
         };
 
@@ -265,7 +263,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleFieldInstruction(IrCodeGenerator generator, Deque<String> stack, FieldInstruction instruction) {
+    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, FieldInstruction instruction) {
         if (instruction.opcode() == Opcode.GETFIELD) {
 
             var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
@@ -273,7 +271,7 @@ public class FunctionBuilder {
             var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
             var varName = generator.getElementPointer(
                 parentType, new LlvmType.Pointer(parentType), stack.pop(),
-                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + (vtable.isEmpty() ? 0 : 1))
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1)
             );
 
             var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
@@ -287,7 +285,7 @@ public class FunctionBuilder {
             var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
             var varName = generator.getElementPointer(
                 parentType, new LlvmType.Pointer(parentType), objectReference,
-                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + (vtable.isEmpty() ? 0 : 1))
+                String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1)
             );
             generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
         } else {
@@ -295,18 +293,18 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleIncrement(IrCodeGenerator generator, Local[] locals, IncrementInstruction instruction) {
+    private void handleIncrement(IrMethodGenerator generator, Local[] locals, IncrementInstruction instruction) {
         var source = switch (instruction.opcode()) {
             case IINC -> locals[instruction.slot()];
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
         var valueName = generator.load(source.type(), new LlvmType.Pointer(source.type()), source.varName());
-        var updatedName = generator.binaryOperator(IrCodeGenerator.Operator.ADD, (LlvmType.Primitive) source.type(), valueName, String.valueOf(instruction.constant()));
+        var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, (LlvmType.Primitive) source.type(), valueName, String.valueOf(instruction.constant()));
         generator.store(source.type(), updatedName, new LlvmType.Pointer(source.type()), source.varName());
     }
 
     private void handleInvoke(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation
     ) {
         var isVarArg = varargs.contains(invocation.method().name() + invocation.typeSymbol().descriptorString());
 
@@ -376,7 +374,7 @@ public class FunctionBuilder {
     }
 
     private String handleInvokeVirtual(
-        IrCodeGenerator generator, InvokeInstruction invocation, Map<String, LlvmType> types, List<Map.Entry<String, LlvmType>> parameters
+        IrMethodGenerator generator, InvokeInstruction invocation, Map<String, LlvmType> types, List<Map.Entry<String, LlvmType>> parameters
     ) {
         if (!vtable.containsKey(invocation.name().stringValue(), invocation.typeSymbol())) return directCall(invocation);
 
@@ -440,7 +438,7 @@ public class FunctionBuilder {
     }
 
     private void handleReturn(
-        IrCodeGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction
     ) {
         if (instruction.opcode() != Opcode.RETURN) {
             if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
@@ -465,7 +463,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleStoreInstruction(IrCodeGenerator generator, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
+    private void handleStoreInstruction(IrMethodGenerator generator, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
         var reference = stack.pop();
         var index = switch (instruction.opcode()) {
             case ASTORE_0, DSTORE_0, FSTORE_0, ISTORE_0 -> 0;

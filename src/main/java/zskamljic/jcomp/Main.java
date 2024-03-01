@@ -2,15 +2,16 @@ package zskamljic.jcomp;
 
 import picocli.CommandLine;
 import zskamljic.jcomp.llir.ClassBuilder;
+import zskamljic.jcomp.llir.IrClassGenerator;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class Main {
     public static void main(String[] args) {
@@ -24,18 +25,16 @@ public class Main {
         }
 
         try {
-            var buildDir = Path.of("build");
+            var buildDir = options.outputDirectory;
             if (!Files.exists(buildDir)) {
                 Files.createDirectory(buildDir);
             }
             var generator = new ClassBuilder(options.inputClass, options.debug);
 
-            try (var output = new PrintWriter(new FileOutputStream(buildDir.resolve("IR.ll").toFile()))) {
-                generator.generate(output, buildDir);
-            }
+            var generatedFiles = generator.generate(buildDir);
 
             var processes = ProcessBuilder.startPipeline(List.of(
-                linkFiles(buildDir, "IR.ll"),
+                linkFiles(buildDir, generatedFiles),
                 new ProcessBuilder("opt", "-S", "--O3"), // Optimize
                 new ProcessBuilder("llc"), // Generate assembly
                 new ProcessBuilder("clang", "-x", "assembler", "-") // Compile
@@ -58,9 +57,26 @@ public class Main {
         }
     }
 
-    private static ProcessBuilder linkFiles(Path buildDir, String file) throws IOException {
+    private static ProcessBuilder linkFiles(Path buildDir, Map<String, IrClassGenerator> files) throws IOException {
         var command = new ArrayList<>(List.of("llvm-link", "-S"));
-        command.add(buildDir.resolve(file).toString());
+        files.entrySet()
+            .stream()
+            .map(e -> {
+                var fileName = STR."\{e.getKey()}.ll";
+                try {
+                    var filePath = buildDir.resolve(fileName);
+                    if (!Files.exists(filePath.getParent())) {
+                        Files.createDirectories(filePath.getParent());
+                    }
+                    Files.writeString(filePath, e.getValue().generate());
+                } catch (IOException ex) {
+                    throw new IllegalStateException("Unable to write file", ex);
+                }
+                return fileName;
+            })
+            .map(buildDir::resolve)
+            .map(Objects::toString)
+            .forEach(command::add);
         return new ProcessBuilder(command.toArray(new String[0]));
     }
 }

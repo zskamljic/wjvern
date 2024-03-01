@@ -10,4 +10,7 @@ public class CompilerParams {
 
     @CommandLine.Parameters(paramLabel = "CLASS", description = "The class to compile")
     Path inputClass;
+
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output directory", defaultValue = "build")
+    Path outputDirectory;
 }

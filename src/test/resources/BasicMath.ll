@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%BasicMath_vtable_type = type {  }
+%BasicMath_vtable_type = type { }
 
 %BasicMath = type { %BasicMath_vtable_type* }
 
@@ -15,6 +13,8 @@ define void @"BasicMath_<init>"(%BasicMath* %this) {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %BasicMath, %BasicMath* %this, i64 0, i32 0
+  store %BasicMath_vtable_type* @BasicMath_vtable_data, %BasicMath_vtable_type** %0
   ret void
 }
 

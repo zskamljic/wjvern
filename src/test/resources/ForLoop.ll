@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%ForLoop_vtable_type = type {  }
+%ForLoop_vtable_type = type { }
 
 %ForLoop = type { %ForLoop_vtable_type* }
 
@@ -15,6 +13,8 @@ define void @"ForLoop_<init>"(%ForLoop* %this) {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %ForLoop, %ForLoop* %this, i64 0, i32 0
+  store %ForLoop_vtable_type* @ForLoop_vtable_data, %ForLoop_vtable_type** %0
   ret void
 }
 

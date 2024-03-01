@@ -1,10 +1,8 @@
-%"java/lang/Object" = type { }
+%"java/lang/Object" = type opaque
 
-define void @"java/lang/Object_<init>"(ptr %this) {
-  ret void
-}
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 
-%IfStatements_vtable_type = type {  }
+%IfStatements_vtable_type = type { }
 
 %IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
 
@@ -15,29 +13,31 @@ define void @"IfStatements_<init>"(%IfStatements* %this) {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 0
+  store %IfStatements_vtable_type* @IfStatements_vtable_data, %IfStatements_vtable_type** %0
   ; Line 3
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
-  store i1 0, i1* %0
+  %1 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
+  store i1 0, i1* %1
   ret void
 }
 
 define void @IfStatements_doSomething(%IfStatements* %this) {
 label0:
   ; Line 6
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
+  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
   %1 = load i1, i1* %0
   br i1 %1, label %label1, label %not_label1
 not_label1:
   ; Line 7
-  %2 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
+  %2 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
   store i1 1, i1* %2
   ; Line 8
-  %3 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 0
+  %3 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
   store i32 1, i32* %3
   br label %label2
 label1:
   ; Line 10
-  %4 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 0
+  %4 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
   store i32 2, i32* %4
   br label %label2
 label2:
@@ -69,7 +69,7 @@ label0:
   %8 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 5
   store i8 0, ptr %8
   %9 = alloca [1 x i32]
-  %10 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 0
+  %10 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
   %11 = load i32, i32* %10
   %12 = getelementptr inbounds [1 x i32], ptr %9, i64 0, i32 0
   store i32 %11, ptr %12
@@ -93,7 +93,7 @@ label0:
   %22 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 5
   store i8 0, ptr %22
   %23 = alloca [1 x i32]
-  %24 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 0
+  %24 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
   %25 = load i32, i32* %24
   %26 = getelementptr inbounds [1 x i32], ptr %23, i64 0, i32 0
   store i32 %25, ptr %26
