@@ -1,12 +1,19 @@
 %"java/lang/Object" = type opaque
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
 
-%IfStatements_vtable_type = type { }
+%IfStatements_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
 
 @IfStatements_vtable_data = global %IfStatements_vtable_type {
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
 }
 
 define void @"IfStatements_<init>"(%IfStatements* %this) {

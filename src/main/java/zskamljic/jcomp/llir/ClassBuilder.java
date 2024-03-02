@@ -1,5 +1,7 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.StdLibResolver;
+
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
@@ -13,21 +15,26 @@ public class ClassBuilder {
     private final ClassModel classModel;
     private final Path classPath;
     private final boolean debug;
+    private final StdLibResolver resolver;
 
-    public ClassBuilder(Path inputClass, boolean debug) throws IOException {
-        this.debug = debug;
-        var classFile = ClassFile.of();
-        classModel = classFile.parse(inputClass);
-        classPath = inputClass.getParent();
+    public ClassBuilder(StdLibResolver resolver, Path inputClass, boolean debug) throws IOException {
+        this(resolver, ClassFile.of().parse(inputClass), inputClass.getParent(), debug);
     }
 
-    public Map<String, IrClassGenerator> generate(Path path) throws IOException {
+    public ClassBuilder(StdLibResolver resolver, ClassModel classModel, Path classPath, boolean debug) {
+        this.resolver = resolver;
+        this.debug = debug;
+        this.classModel = classModel;
+        this.classPath = classPath;
+    }
+
+    public Map<String, IrClassGenerator> generate() throws IOException {
         var generatedClasses = new HashMap<String, IrClassGenerator>();
 
         var className = classModel.thisClass().name().stringValue();
         var classGenerator = new IrClassGenerator(className, debug);
         if (classModel.superclass().isPresent()) {
-            generateSuperClass(classModel.superclass().get(), path, classGenerator, generatedClasses);
+            generateSuperClass(classModel.superclass().get(), classGenerator, generatedClasses);
         }
 
         for (var field : classModel.fields()) {
@@ -37,15 +44,10 @@ public class ClassBuilder {
         }
 
         for (var method : classModel.methods()) {
-            classGenerator.addMethod(method);
-        }
-
-        for (var constPoolEntry : classModel.constantPool()) {
-            if (constPoolEntry instanceof ClassEntry c) {
-                if (c.equals(classModel.thisClass())) continue;
-
-                classGenerator.addTypeDependency(c.name().stringValue());
+            if (isUnsupportedFunction(method)) {
+                continue;
             }
+            classGenerator.addMethod(method);
         }
 
         generatedClasses.put(className, classGenerator);
@@ -53,23 +55,27 @@ public class ClassBuilder {
         return generatedClasses;
     }
 
+    private boolean isUnsupportedFunction(MethodModel method) {
+        return "wait".equals(method.methodName().stringValue()) ||
+            "toString".equals(method.methodName().stringValue()) ||
+            "getClass".equals(method.methodName().stringValue()) ||
+            "hashCode".equals(method.methodName().stringValue()) ||
+            "clone".equals(method.methodName().stringValue());
+    }
+
     private void generateSuperClass(
-        ClassEntry entry, Path path, IrClassGenerator classGenerator, Map<String, IrClassGenerator> generatedClasses
+        ClassEntry entry, IrClassGenerator classGenerator, Map<String, IrClassGenerator> generatedClasses
     ) throws IOException {
+        ClassBuilder classBuilder;
         if (entry.name().stringValue().startsWith("java/lang")) {
-            var objectBuilder = new IrClassGenerator("java/lang/Object", debug);
-            objectBuilder.injectMethod("""
-                define void @"java/lang/Object_<init>"(%"java/lang/Object"* %this) {
-                    ret void
-                }
-                """);
-            generatedClasses.put("java/lang/Object", objectBuilder);
-            classGenerator.inherit(objectBuilder);
-            return; // TODO: add stdlib and remove this
+            var superClass = resolver.resolve(entry.name().stringValue());
+
+            classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
+        } else {
+            classBuilder = new ClassBuilder(resolver, classPath.resolve(STR."\{entry.name()}.class"), debug);
         }
 
-        var classBuilder = new ClassBuilder(classPath.resolve(STR."\{entry.name()}.class"), debug);
-        generatedClasses.putAll(classBuilder.generate(path));
+        generatedClasses.putAll(classBuilder.generate());
         classGenerator.inherit(generatedClasses.get(entry.name().stringValue()));
     }
 }

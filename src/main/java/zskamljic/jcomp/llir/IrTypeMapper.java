@@ -31,7 +31,7 @@ public class IrTypeMapper {
             return LlvmType.Primitive.POINTER; // TODO: check if all arrays should use ptr
         }
 
-        return new LlvmType.Declared(classDesc.displayName());
+        return new LlvmType.Declared(classDesc.descriptorString().replaceAll("[L;]", ""));
     }
 
     public static Optional<LlvmType> mapType(TypeKind typeKind) {

@@ -1,12 +1,19 @@
 %"java/lang/Object" = type opaque
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
 
-%BasicMath_vtable_type = type { }
+%BasicMath_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %BasicMath = type { %BasicMath_vtable_type* }
 
 @BasicMath_vtable_data = global %BasicMath_vtable_type {
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
 }
 
 define void @"BasicMath_<init>"(%BasicMath* %this) {
@@ -21,7 +28,7 @@ label0:
 define i32 @main() {
   ; Line 3
   %f = alloca float
-  store float 1.0, ptr %f
+  store float 1.0, float* %f
   br label %label0
 label0:
   ; Line 4
@@ -60,7 +67,7 @@ label0:
   %20 = call i32 @printf(ptr %9, double %19)
   ; Line 10
   %d = alloca double
-  store double 1.0, ptr %d
+  store double 1.0, double* %d
   br label %label1
 label1:
   ; Line 11
@@ -98,7 +105,7 @@ label1:
   %39 = call i32 @printf(ptr %29, double %38)
   ; Line 17
   %i = alloca i32
-  store i32 1, ptr %i
+  store i32 1, i32* %i
   br label %label2
 label2:
   ; Line 18
@@ -118,7 +125,7 @@ label2:
   %47 = add i32 %46, -1
   store i32 %47, i32* %i
   ; Line 22
-  %48 = load i32, ptr %i
+  %48 = load i32, i32* %i
   ret i32 %48
 }
 

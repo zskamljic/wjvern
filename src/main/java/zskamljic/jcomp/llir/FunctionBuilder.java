@@ -3,6 +3,7 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Vtable;
 
+import java.lang.classfile.CompoundElement;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
@@ -66,6 +67,20 @@ public class FunctionBuilder {
         if (!method.flags().has(AccessFlag.STATIC)) {
             codeGenerator.addParameter("this", new LlvmType.Pointer(new LlvmType.Declared(parent)));
         }
+        method.code()
+            .stream()
+            .flatMap(CompoundElement::elementStream)
+            .filter(LocalVariable.class::isInstance)
+            .map(LocalVariable.class::cast)
+            .skip(method.flags().has(AccessFlag.STATIC) ? 0 : 1)
+            .limit(method.methodTypeSymbol().parameterCount())
+            .forEach(lv -> {
+                var paramType = IrTypeMapper.mapType(lv.typeSymbol());
+                if (paramType instanceof LlvmType.Declared) {
+                    paramType = new LlvmType.Pointer(paramType);
+                }
+                codeGenerator.addParameter(lv.name().stringValue(), paramType);
+            });
 
         generateCode(codeGenerator);
 
@@ -154,6 +169,16 @@ public class FunctionBuilder {
     ) {
         switch (instruction.opcode()) {
             case GOTO -> generator.branchLabel(labelGenerator.getLabel(instruction.target()));
+            case IF_ACMPNE -> {
+                var b = stack.pop();
+                var a = stack.pop();
+
+                var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
             case IF_ICMPGE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
                 var a = loadIfNeeded(generator, types, stack.pop());
@@ -258,6 +283,8 @@ public class FunctionBuilder {
             case DCONST_0, FCONST_0 -> stack.push("0.0");
             case DCONST_1, FCONST_1 -> stack.push("1.0");
             case FCONST_2 -> stack.push("2.0");
+            case LCONST_0 -> stack.push("0L");
+            case LCONST_1 -> stack.push("1L");
             case LDC, LDC2_W -> stack.push(((ConstantInstruction.LoadConstantInstruction) instruction).constantEntry().constantValue().toString());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} constant is not supported yet");
         }
@@ -298,9 +325,13 @@ public class FunctionBuilder {
             case IINC -> locals[instruction.slot()];
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
-        var valueName = generator.load(source.type(), new LlvmType.Pointer(source.type()), source.varName());
-        var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, (LlvmType.Primitive) source.type(), valueName, String.valueOf(instruction.constant()));
-        generator.store(source.type(), updatedName, new LlvmType.Pointer(source.type()), source.varName());
+        if (source.type() instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
+            var valueName = generator.load(p, source.type(), source.varName());
+            var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
+            generator.store(p, updatedName, source.type(), source.varName());
+        } else {
+            throw new IllegalStateException("Local variable attempted to increment non-primitive");
+        }
     }
 
     private void handleInvoke(
@@ -397,7 +428,7 @@ public class FunctionBuilder {
         // Load function
         var functionName = generator.load(functionPointer, new LlvmType.Pointer(functionPointer), methodPointer);
 
-        var actualType = types.get(parameters.getFirst().getKey());
+        var actualType = parameters.getFirst().getValue();
         var expectedType = function.parameters().getFirst();
         if (!actualType.equals(expectedType)) {
             var parameter = parameters.removeFirst();
@@ -418,10 +449,10 @@ public class FunctionBuilder {
 
     private void loadValue(Deque<String> stack, Local[] locals, LoadInstruction instruction) {
         var local = switch (instruction.opcode()) {
-            case ALOAD_0, DLOAD_0, FLOAD_0, ILOAD_0 -> locals[0];
-            case ALOAD_1, DLOAD_1, FLOAD_1, ILOAD_1 -> locals[1];
-            case ALOAD_2, DLOAD_2, FLOAD_2, ILOAD_2 -> locals[2];
-            case ALOAD_3, DLOAD_3, FLOAD_3, ILOAD_3 -> locals[3];
+            case ALOAD_0, DLOAD_0, FLOAD_0, ILOAD_0, LLOAD_0 -> locals[0];
+            case ALOAD_1, DLOAD_1, FLOAD_1, ILOAD_1, LLOAD_1 -> locals[1];
+            case ALOAD_2, DLOAD_2, FLOAD_2, ILOAD_2, LLOAD_2 -> locals[2];
+            case ALOAD_3, DLOAD_3, FLOAD_3, ILOAD_3, LLOAD_3 -> locals[3];
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
         };
         stack.push(local.varName());
@@ -434,7 +465,13 @@ public class FunctionBuilder {
         if (type == LlvmType.Primitive.POINTER) {
             throw new IllegalArgumentException(STR."Locals of type \{variable.typeSymbol()} not yet supported");
         }
-        types.put(STR."%\{variable.name().stringValue()}", new LlvmType.Pointer(type));
+        LlvmType varType;
+        if (type instanceof LlvmType.Primitive) {
+            varType = type;
+        } else {
+            varType = new LlvmType.Pointer(type);
+        }
+        types.put(STR."%\{variable.name().stringValue()}", varType);
     }
 
     private void handleReturn(
@@ -442,7 +479,7 @@ public class FunctionBuilder {
     ) {
         if (instruction.opcode() != Opcode.RETURN) {
             if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
-                var varName = generator.load(p.type(), LlvmType.Primitive.POINTER, stack.pop());
+                var varName = generator.load(p.type(), p, stack.pop());
                 stack.push(varName);
             }
         }
@@ -466,21 +503,22 @@ public class FunctionBuilder {
     private void handleStoreInstruction(IrMethodGenerator generator, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction) {
         var reference = stack.pop();
         var index = switch (instruction.opcode()) {
-            case ASTORE_0, DSTORE_0, FSTORE_0, ISTORE_0 -> 0;
-            case ASTORE_1, DSTORE_1, FSTORE_1, ISTORE_1 -> 1;
-            case ASTORE_2, DSTORE_2, FSTORE_2, ISTORE_2 -> 2;
-            case ASTORE_3, DSTORE_3, FSTORE_3, ISTORE_3 -> 3;
+            case ASTORE_0, DSTORE_0, FSTORE_0, ISTORE_0, LSTORE_0 -> 0;
+            case ASTORE_1, DSTORE_1, FSTORE_1, ISTORE_1, LSTORE_1 -> 1;
+            case ASTORE_2, DSTORE_2, FSTORE_2, ISTORE_2, LSTORE_2 -> 2;
+            case ASTORE_3, DSTORE_3, FSTORE_3, ISTORE_3, LSTORE_3 -> 3;
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
         };
         var local = locals[index];
-        // TODO: don't generate string
-        if (types.get(local.varName()) instanceof LlvmType.Pointer p && generator.generate().contains(STR."\{local.varName()} = alloca")) {
+        if (local.type() instanceof LlvmType.Pointer p) {
             generator.store(p.type(), reference, p, local.varName());
+        } else if (local.type() instanceof LlvmType.Primitive) {
+            generator.alloca(local.varName(), local.type());
+            locals[index] = new Local(local.varName(), new LlvmType.Pointer(local.type()));
+            generator.store(local.type(), reference, locals[index].type(), local.varName());
+            types.put(local.varName(), locals[index].type());
         } else if (reference.startsWith("%")) {
             generator.bitcast(local.varName(), new LlvmType.Pointer(local.type()), reference, new LlvmType.Pointer(local.type()));
-        } else {
-            generator.alloca(local.varName(), local.type());
-            generator.store(local.type(), reference, LlvmType.Primitive.POINTER, local.varName());
         }
     }
 }

@@ -21,20 +21,20 @@ class CompileExpectationsTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        Files.walkFileTree(BUILD_PATH, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-        Files.deleteIfExists(BUILD_PATH);
+//        Files.walkFileTree(BUILD_PATH, new SimpleFileVisitor<>() {
+//            @Override
+//            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+//                Files.delete(dir);
+//                return FileVisitResult.CONTINUE;
+//            }
+//
+//            @Override
+//            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+//                Files.delete(file);
+//                return FileVisitResult.CONTINUE;
+//            }
+//        });
+//        Files.deleteIfExists(BUILD_PATH);
         Files.deleteIfExists(Path.of("a.out"));
     }
 
@@ -42,7 +42,7 @@ class CompileExpectationsTest {
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
-        "Inheritance",
+        "Inheritance", "Parameters"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
 

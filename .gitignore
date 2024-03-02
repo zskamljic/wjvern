@@ -42,3 +42,5 @@ build/
 a.out
 testBuild/**
 build/**
+stdlib/**
+integrationBuild/**

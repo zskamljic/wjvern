@@ -1,8 +1,13 @@
 %"java/lang/Object" = type opaque
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
 
-%VirtualMethods_vtable_type = type { void(%VirtualMethods*)* }
+%VirtualMethods_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%VirtualMethods*)* }
 
 %VirtualMethods = type { %VirtualMethods_vtable_type*, i32 }
 
@@ -36,6 +41,8 @@ label0:
 }
 
 @VirtualMethods_vtable_data = global %VirtualMethods_vtable_type {
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
   void(%VirtualMethods*)* @VirtualMethods_doSomething
 }
 
@@ -58,7 +65,7 @@ label0:
   ; Line 10
   %2 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 0
   %3 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %2
-  %4 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %3, i64 0, i32 0
+  %4 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %3, i64 0, i32 2
   %5 = load void(%VirtualMethods*)*, void(%VirtualMethods*)** %4
   call void %5(%VirtualMethods* %instance)
   ; Line 11

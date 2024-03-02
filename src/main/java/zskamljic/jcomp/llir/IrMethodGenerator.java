@@ -6,13 +6,13 @@ import zskamljic.jcomp.llir.models.LlvmType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class IrMethodGenerator {
     private final LlvmType returnType;
     private final String methodName;
     private final List<Map.Entry<String, LlvmType>> parameters;
     private final List<CodeEntry> codeEntries = new ArrayList<>();
-
     private final UnnamedGenerator unnamedGenerator = new UnnamedGenerator();
 
     public IrMethodGenerator(LlvmType returnType, String methodName) {
@@ -156,26 +156,29 @@ public class IrMethodGenerator {
 
     private void writeMethodDefinition(StringBuilder builder) {
         builder.append("define ").append(returnType)
-            .append(" @").append(methodName)
+            .append(" @").append(Utils.escape(methodName))
             .append("(");
 
-        for (var parameter : parameters) {
-            var name = parameter.getKey();
-            var type = parameter.getValue();
-            switch (type) {
-                case LlvmType.Pointer(var typeName) -> builder.append(typeName).append("*");
-                case LlvmType.Array(var length, var typeName) -> builder.append(STR."[\{typeName} x \{length}]");
-                default -> builder.append(type);
-            }
-            builder.append(" %").append(name);
-        }
+        var paramString = parameters.stream()
+            .map(p -> {
+                var name = p.getKey();
+                var type = p.getValue();
+                if (type instanceof LlvmType.Array(var length, var typeName)) {
+                    return STR."[\{typeName} x \{length}] %\{name}";
+                } else {
+                    return STR."\{type} %\{name}";
+                }
+            })
+            .map(Object::toString)
+            .collect(Collectors.joining(", "));
 
-        builder.append(") {\n");
+        builder.append(paramString).append(") {\n");
     }
 
     public enum Condition {
         GREATER_EQUAL,
-        LESS_EQUAL
+        LESS_EQUAL,
+        NOT_EQUAL,
     }
 
     public enum Operator {

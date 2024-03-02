@@ -45,4 +45,17 @@ public class Vtable {
     public Stream<VtableInfo> stream() {
         return infoList.stream();
     }
+
+    public List<LlvmType.Declared> requiredTypes() {
+        return infoList.stream()
+            .map(VtableInfo::signature)
+            .<LlvmType>mapMulti((vi, c) -> {
+                c.accept(vi.returnType());
+                vi.parameters().forEach(c);
+            })
+            .distinct()
+            .filter(LlvmType.Declared.class::isInstance)
+            .map(LlvmType.Declared.class::cast)
+            .toList();
+    }
 }

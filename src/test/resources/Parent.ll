@@ -1,8 +1,13 @@
 %"java/lang/Object" = type opaque
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
 
-%Parent_vtable_type = type { void(%Parent*)*, void(%Parent*)* }
+%Parent_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Parent*)* }
 
 %Parent = type { %Parent_vtable_type*, i32, i32 }
 
@@ -25,6 +30,8 @@ label0:
 }
 
 @Parent_vtable_data = global %Parent_vtable_type {
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
   void(%Parent*)* @Parent_parentMethod,
   void(%Parent*)* @Parent_dynamic
 }

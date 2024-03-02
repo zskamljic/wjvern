@@ -1,5 +1,7 @@
 package zskamljic.jcomp.llir.models;
 
+import zskamljic.jcomp.llir.Utils;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -16,7 +18,7 @@ public sealed interface LlvmType {
     record Declared(String type) implements LlvmType {
         @Override
         public String toString() {
-            return STR."%\{type}";
+            return STR."%\{Utils.escape(type)}";
         }
     }
 

@@ -29,9 +29,10 @@ public class Main {
             if (!Files.exists(buildDir)) {
                 Files.createDirectory(buildDir);
             }
-            var generator = new ClassBuilder(options.inputClass, options.debug);
+            var resolver = new StdLibResolver(Path.of("stdlib"));
+            var generator = new ClassBuilder(resolver, options.inputClass, options.debug);
 
-            var generatedFiles = generator.generate(buildDir);
+            var generatedFiles = generator.generate();
 
             var processes = ProcessBuilder.startPipeline(List.of(
                 linkFiles(buildDir, generatedFiles),

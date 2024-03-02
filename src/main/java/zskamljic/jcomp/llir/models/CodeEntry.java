@@ -70,11 +70,13 @@ public interface CodeEntry {
         public String toString() {
             var comparisonType = switch (type) {
                 case LlvmType.Primitive p when p == LlvmType.Primitive.INT -> "icmp";
+                case LlvmType.Primitive p when p == LlvmType.Primitive.POINTER -> "icmp";
                 default -> throw new IllegalArgumentException(STR."Comparison between types of \{type} not yet supported");
             };
             var cond = switch (condition) {
                 case GREATER_EQUAL -> "sge";
                 case LESS_EQUAL -> "sle";
+                case NOT_EQUAL -> "ne";
             };
 
             return STR."\{varName} = \{comparisonType} \{cond} \{type} \{a}, \{b}";

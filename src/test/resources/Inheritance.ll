@@ -1,10 +1,17 @@
+%"java/lang/Object" = type opaque
 %Parent = type opaque
 
 declare void @"Parent_<init>"(%Parent* %this)
 declare void @Parent_parentMethod(%Parent* %this)
 declare void @Parent_dynamic(%Parent* %this)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
 
-%Inheritance_vtable_type = type { void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
+%Inheritance_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
 
 %Inheritance = type { %Inheritance_vtable_type*, i32, i32, i32 }
 
@@ -27,6 +34,8 @@ label0:
 }
 
 @Inheritance_vtable_data = global %Inheritance_vtable_type {
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
   void(%Parent*)* @Parent_parentMethod,
   void(%Inheritance*)* @Inheritance_dynamic,
   void(%Inheritance*)* @Inheritance_childMethod
@@ -51,20 +60,20 @@ label0:
   ; Line 28
   %2 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
   %3 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %2
-  %4 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %3, i64 0, i32 0
+  %4 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %3, i64 0, i32 2
   %5 = load void(%Parent*)*, void(%Parent*)** %4
   %6 = bitcast %Inheritance* %instance to %Parent*
   call void %5(%Parent* %6)
   ; Line 29
   %7 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
   %8 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %7
-  %9 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %8, i64 0, i32 2
+  %9 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %8, i64 0, i32 4
   %10 = load void(%Inheritance*)*, void(%Inheritance*)** %9
   call void %10(%Inheritance* %instance)
   ; Line 30
   %11 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
   %12 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %11
-  %13 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %12, i64 0, i32 1
+  %13 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %12, i64 0, i32 3
   %14 = load void(%Inheritance*)*, void(%Inheritance*)** %13
   call void %14(%Inheritance* %instance)
   ; Line 32

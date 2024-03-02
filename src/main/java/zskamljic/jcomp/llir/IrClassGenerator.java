@@ -4,9 +4,11 @@ import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Vtable;
 import zskamljic.jcomp.llir.models.VtableInfo;
 
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.constant.MethodTypeDesc;
@@ -20,11 +22,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IrClassGenerator {
     private final String className;
     private final boolean debug;
-    private final List<String> typeDependencies = new ArrayList<>();
     private final List<String> methodDependencies = new ArrayList<>();
     private final Vtable vtable = new Vtable();
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
@@ -38,14 +40,11 @@ public class IrClassGenerator {
         this.debug = debug;
     }
 
-    public void addTypeDependency(String name) {
-        typeDependencies.add(name);
-    }
-
     public void inherit(IrClassGenerator parent) {
         vtable.addAll(parent.vtable);
         fields.putAll(parent.fields);
         parentMethods.addAll(parent.methods);
+        parentMethods.addAll(parent.parentMethods);
         varargs.addAll(parent.varargs);
     }
 
@@ -67,7 +66,7 @@ public class IrClassGenerator {
             var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
             var parameterList = generateParameterList(className, method.methodTypeSymbol());
             var functionSignature = new LlvmType.Function(returnType, parameterList);
-            var functionName = STR."@\{className}_\{method.methodName()}";
+            var functionName = STR."@\{Utils.escape(STR."\{className}_\{method.methodName()}")}";
             vtable.put(
                 method.methodName().stringValue(),
                 method.methodTypeSymbol(),
@@ -95,11 +94,11 @@ public class IrClassGenerator {
                     .map(IrTypeMapper::mapType)
                     .map(Objects::toString)
                     .collect(Collectors.toCollection(ArrayList::new));
-                parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(escape(me.owner().name().stringValue()))).toString());
+                parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(me.owner().name().stringValue()))).toString());
 
                 var parameterString = String.join(", ", parameters);
 
-                var name = escape(STR."\{me.owner().name()}_\{me.name()}");
+                var name = Utils.escape(STR."\{me.owner().name()}_\{me.name()}");
                 var declaration = STR."declare \{type} @\{name}(\{parameterString})";
                 methodDependencies.add(declaration);
             });
@@ -134,10 +133,13 @@ public class IrClassGenerator {
     public String generate() {
         var builder = new StringBuilder();
 
-        for (var typeDependency : typeDependencies) {
-            builder.append("%").append(escape(typeDependency)).append(" = type opaque").append("\n");
+        var requiredTypes = new HashSet<>(vtable.requiredTypes());
+        requiredTypes.addAll(methodRequiredTypes());
+        for (var typeDependency : requiredTypes) {
+            if (typeDependency.type().equals(className)) continue;
+            builder.append(typeDependency).append(" = type opaque").append("\n");
         }
-        if (!typeDependencies.isEmpty()) {
+        if (!requiredTypes.isEmpty()) {
             builder.append("\n");
         }
 
@@ -186,8 +188,29 @@ public class IrClassGenerator {
         return builder.toString();
     }
 
+    private List<LlvmType.Declared> methodRequiredTypes() {
+        return Stream.concat(methods.stream(), parentMethods.stream())
+            .<LlvmType>mapMulti((mm, c) -> {
+                mm.parent()
+                    .map(ClassModel::thisClass)
+                    .map(ClassEntry::asSymbol)
+                    .map(IrTypeMapper::mapType)
+                    .ifPresent(c);
+                var ms = mm.methodTypeSymbol();
+                c.accept(IrTypeMapper.mapType(ms.returnType()));
+                ms.parameterList()
+                    .stream()
+                    .map(IrTypeMapper::mapType)
+                    .forEach(c);
+            })
+            .filter(LlvmType.Declared.class::isInstance)
+            .map(LlvmType.Declared.class::cast)
+            .distinct()
+            .toList();
+    }
+
     private LlvmType generateVtable(StringBuilder builder) {
-        var typeName = escape(STR."\{className}_vtable_type");
+        var typeName = Utils.escape(STR."\{className}_vtable_type");
         var vtableType = new LlvmType.Declared(typeName);
         builder.append(vtableType).append(" = type {");
 
@@ -204,13 +227,6 @@ public class IrClassGenerator {
         return vtableType;
     }
 
-    private String escape(String name) {
-        if (name.contains("/") || name.contains("<")) {
-            return STR."\"\{name}\"";
-        }
-        return name;
-    }
-
     private boolean isVirtual(MethodModel method) {
         return !method.flags().has(AccessFlag.FINAL) &&
             !method.flags().has(AccessFlag.STATIC) &&
@@ -218,7 +234,7 @@ public class IrClassGenerator {
     }
 
     private void generateType(StringBuilder builder, LlvmType vtableType) {
-        builder.append("%").append(escape(className)).append(" = type { ")
+        builder.append("%").append(Utils.escape(className)).append(" = type { ")
             .append(new LlvmType.Pointer(vtableType));
 
         fields.values().forEach(f -> builder.append(", ").append(f));
@@ -227,7 +243,7 @@ public class IrClassGenerator {
     }
 
     private void generateVtableData(StringBuilder builder, LlvmType vtableType) {
-        var vtableTypeData = new LlvmType.Global(escape(STR."\{className}_vtable_data"));
+        var vtableTypeData = new LlvmType.Global(Utils.escape(STR."\{className}_vtable_data"));
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
@@ -256,7 +272,7 @@ public class IrClassGenerator {
         var declaration = new StringBuilder();
         declaration.append("declare ");
 
-        var parent = method.parent().orElseThrow().thisClass().name();
+        var parent = method.parent().orElseThrow().thisClass().name().stringValue();
 
         var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
         declaration.append(type);
@@ -264,7 +280,7 @@ public class IrClassGenerator {
         if (method.flags().has(AccessFlag.STATIC)) {
             declaration.append(method.methodName());
         } else {
-            var functionName = escape(STR."\{parent}_\{method.methodName()}");
+            var functionName = Utils.escape(STR."\{parent}_\{method.methodName()}");
             declaration.append(functionName);
         }
         declaration.append("(");
@@ -272,7 +288,7 @@ public class IrClassGenerator {
         var isVarArg = method.flags().has(AccessFlag.VARARGS);
         var symbol = method.methodTypeSymbol();
         if (!method.flags().has(AccessFlag.STATIC)) {
-            parameters.add(STR."%\{parent}* %this");
+            parameters.add(STR."%\{Utils.escape(parent)}* %this");
         }
         for (int i = 0; i < symbol.parameterCount(); i++) {
             var parameter = symbol.parameterType(i);

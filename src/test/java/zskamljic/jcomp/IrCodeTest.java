@@ -1,6 +1,7 @@
 package zskamljic.jcomp;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import zskamljic.jcomp.llir.ClassBuilder;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class IrCodeTest {
     private static final Path BUILD_PATH = Path.of("testBuild");
+    private static final StdLibResolver resolver = new StdLibResolver(Path.of("stdlib"));
 
     @AfterAll
     static void tearDown() throws IOException {
@@ -42,21 +44,24 @@ class IrCodeTest {
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
-        "Inheritance",
+        "Inheritance", "Parameters"
     })
     void generatesValid(String fileName) throws IOException {
-        var classGenerator = new ClassBuilder(Path.of(STR."target/test-classes/\{fileName}.class"), true);
+        var classGenerator = new ClassBuilder(resolver, Path.of(STR."target/test-classes/\{fileName}.class"), true);
 
         if (!Files.exists(BUILD_PATH)) {
             Files.createDirectory(BUILD_PATH);
         }
 
-        var generatedFiles = classGenerator.generate(BUILD_PATH);
+        var generatedFiles = classGenerator.generate();
         assertFalse(generatedFiles.isEmpty());
 
         for (var output : generatedFiles.entrySet()) {
             var name = output.getKey();
-            if ("java/lang/Object".equals(name)) continue;
+            if ("java/lang/Object".equals(name)) {
+                output.getValue().generate();
+                continue;
+            }
 
             var value = output.getValue();
             try (var expectedInput = getClass().getResourceAsStream(STR."/\{name}.ll")) {
