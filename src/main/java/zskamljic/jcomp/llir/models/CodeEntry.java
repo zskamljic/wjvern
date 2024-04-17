@@ -58,6 +58,25 @@ public interface CodeEntry {
         }
     }
 
+    record Call(
+        String returnVar,
+        LlvmType returnType,
+        String functionName,
+        List<Map.Entry<String, LlvmType>> parameters
+    ) implements CodeEntry {
+        @Override
+        public String toString() {
+            String invocation = "";
+            if (returnType != LlvmType.Primitive.VOID) {
+                invocation += STR."\{returnVar} = ";
+            }
+            var global = !functionName.startsWith("%");
+            return STR."\{invocation}call \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
+                .map(p -> STR."\{p.getValue()} \{p.getKey()}")
+                .collect(Collectors.joining(", "))})";
+        }
+    }
+
     record Comment(String comment) implements CodeEntry {
         @Override
         public String toString() {
@@ -74,12 +93,20 @@ public interface CodeEntry {
                 default -> throw new IllegalArgumentException(STR."Comparison between types of \{type} not yet supported");
             };
             var cond = switch (condition) {
+                case EQUAL -> "eq";
                 case GREATER_EQUAL -> "sge";
                 case LESS_EQUAL -> "sle";
                 case NOT_EQUAL -> "ne";
             };
 
             return STR."\{varName} = \{comparisonType} \{cond} \{type} \{a}, \{b}";
+        }
+    }
+
+    record ExtractValue(String varName, String landingPad, int index) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{varName} = extractvalue { ptr, i32 } \{landingPad}, \{index}";
         }
     }
 
@@ -101,7 +128,9 @@ public interface CodeEntry {
         String returnVar,
         LlvmType returnType,
         String functionName,
-        List<Map.Entry<String, LlvmType>> parameters
+        List<Map.Entry<String, LlvmType>> parameters,
+        String next,
+        String unwind
     ) implements CodeEntry {
         @Override
         public String toString() {
@@ -110,9 +139,9 @@ public interface CodeEntry {
                 invocation += STR."\{returnVar} = ";
             }
             var global = !functionName.startsWith("%");
-            return STR."\{invocation}call \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
+            return STR."\{invocation}invoke \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
                 .map(p -> STR."\{p.getValue()} \{p.getKey()}")
-                .collect(Collectors.joining(", "))})";
+                .collect(Collectors.joining(", "))}) to label %\{next} unwind label %\{unwind}";
         }
     }
 
@@ -120,6 +149,20 @@ public interface CodeEntry {
         @Override
         public String toString() {
             return STR."\{label}:";
+        }
+    }
+
+    record LandingPad(String returnVar, List<LlvmType.Global> types) implements CodeEntry {
+        @Override
+        public String toString() {
+            if (types == null) {
+                return STR."\{returnVar} = landingpad { ptr, i32 } cleanup";
+            }
+            var catcher = STR."\{returnVar} = landingpad { ptr, i32 }";
+            catcher += types.stream()
+                .map(t -> STR." catch ptr \{t}")
+                .collect(Collectors.joining());
+            return catcher;
         }
     }
 
@@ -151,6 +194,13 @@ public interface CodeEntry {
         @Override
         public String toString() {
             return STR."store \{type} \{value}, \{targetType} \{varName}";
+        }
+    }
+
+    record Unreachable() implements CodeEntry {
+        @Override
+        public String toString() {
+            return "unreachable";
         }
     }
 }

@@ -1,7 +1,6 @@
 package zskamljic.jcomp;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import zskamljic.jcomp.llir.ClassBuilder;
@@ -44,7 +43,7 @@ class IrCodeTest {
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
-        "Inheritance", "Parameters"
+        "Inheritance", "Parameters", "Exceptions"
     })
     void generatesValid(String fileName) throws IOException {
         var classGenerator = new ClassBuilder(resolver, Path.of(STR."target/test-classes/\{fileName}.class"), true);
@@ -58,7 +57,7 @@ class IrCodeTest {
 
         for (var output : generatedFiles.entrySet()) {
             var name = output.getKey();
-            if ("java/lang/Object".equals(name)) {
+            if (name.startsWith("java/lang")) {
                 output.getValue().generate();
                 continue;
             }

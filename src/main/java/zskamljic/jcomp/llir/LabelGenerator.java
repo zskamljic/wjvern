@@ -13,7 +13,7 @@ public class LabelGenerator {
         return labels.computeIfAbsent(label, ignored -> nextLabel());
     }
 
-    private String nextLabel() {
+    public String nextLabel() {
         return STR."label\{index++}";
     }
 }

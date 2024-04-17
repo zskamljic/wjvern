@@ -1,21 +1,21 @@
-%"java/lang/Object" = type opaque
-%Parent = type opaque
+%"java/lang/Object" = type { ptr }
+%Parent = type { ptr, i32, i32 }
 
-declare void @"Parent_<init>"(%Parent* %this)
-declare void @Parent_parentMethod(%Parent* %this)
-declare void @Parent_dynamic(%Parent* %this)
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
+declare void @"Parent_<init>"(%Parent*)
+
+declare void @Parent_parentMethod(%Parent*)
+declare void @Parent_dynamic(%Parent*)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 
 %Inheritance_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
 
 %Inheritance = type { %Inheritance_vtable_type*, i32, i32, i32 }
 
-define void @Inheritance_childMethod(%Inheritance* %this) {
+define void @Inheritance_childMethod(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 18
   %0 = getelementptr inbounds %Inheritance, %Inheritance* %this, i64 0, i32 3
@@ -24,7 +24,7 @@ label0:
   ret void
 }
 
-define void @Inheritance_dynamic(%Inheritance* %this) {
+define void @Inheritance_dynamic(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 23
   %0 = getelementptr inbounds %Inheritance, %Inheritance* %this, i64 0, i32 2
@@ -32,6 +32,8 @@ label0:
   ; Line 24
   ret void
 }
+
+declare i32 @__gxx_personality_v0(...)
 
 @Inheritance_vtable_data = global %Inheritance_vtable_type {
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
@@ -41,7 +43,7 @@ label0:
   void(%Inheritance*)* @Inheritance_childMethod
 }
 
-define void @"Inheritance_<init>"(%Inheritance* %this) {
+define void @"Inheritance_<init>"(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 14
   call void @"Parent_<init>"(%Parent* %this)
@@ -50,40 +52,42 @@ label0:
   ret void
 }
 
-define i32 @main() {
+define i32 @main() personality ptr @__gxx_personality_v0 {
+  %instance = alloca %Inheritance
   ; Line 27
   %1 = alloca %Inheritance
   call void @"Inheritance_<init>"(%Inheritance* %1)
-  %instance = bitcast %Inheritance* %1 to %Inheritance*
+  %2 = load %Inheritance, %Inheritance* %1
+  store %Inheritance %2, %Inheritance* %instance
   br label %label0
 label0:
   ; Line 28
-  %2 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
-  %3 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %2
-  %4 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %3, i64 0, i32 2
-  %5 = load void(%Parent*)*, void(%Parent*)** %4
-  %6 = bitcast %Inheritance* %instance to %Parent*
-  call void %5(%Parent* %6)
+  %3 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
+  %4 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %3
+  %5 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %4, i64 0, i32 2
+  %6 = load void(%Parent*)*, void(%Parent*)** %5
+  %7 = bitcast %Inheritance* %instance to %Parent*
+  call void %6(%Parent* %7)
   ; Line 29
-  %7 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
-  %8 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %7
-  %9 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %8, i64 0, i32 4
-  %10 = load void(%Inheritance*)*, void(%Inheritance*)** %9
-  call void %10(%Inheritance* %instance)
+  %8 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
+  %9 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %8
+  %10 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %9, i64 0, i32 4
+  %11 = load void(%Inheritance*)*, void(%Inheritance*)** %10
+  call void %11(%Inheritance* %instance)
   ; Line 30
-  %11 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
-  %12 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %11
-  %13 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %12, i64 0, i32 3
-  %14 = load void(%Inheritance*)*, void(%Inheritance*)** %13
-  call void %14(%Inheritance* %instance)
+  %12 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
+  %13 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %12
+  %14 = getelementptr inbounds %Inheritance_vtable_type, %Inheritance_vtable_type* %13, i64 0, i32 3
+  %15 = load void(%Inheritance*)*, void(%Inheritance*)** %14
+  call void %15(%Inheritance* %instance)
   ; Line 32
-  %15 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 1
-  %16 = load i32, i32* %15
-  %17 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 3
-  %18 = load i32, i32* %17
-  %19 = add i32 %16, %18
-  %20 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 2
-  %21 = load i32, i32* %20
-  %22 = add i32 %19, %21
-  ret i32 %22
+  %16 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 1
+  %17 = load i32, i32* %16
+  %18 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 3
+  %19 = load i32, i32* %18
+  %20 = add i32 %17, %19
+  %21 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 2
+  %22 = load i32, i32* %21
+  %23 = add i32 %20, %22
+  ret i32 %23
 }

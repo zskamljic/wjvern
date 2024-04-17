@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,7 +28,9 @@ import java.util.stream.Stream;
 public class IrClassGenerator {
     private final String className;
     private final boolean debug;
-    private final List<String> methodDependencies = new ArrayList<>();
+    private final Function<LlvmType.Declared, String> definitionMapper;
+    private final List<LlvmType.Declared> classDependencies = new ArrayList<>();
+    private final Set<String> methodDependencies = new HashSet<>();
     private final Vtable vtable = new Vtable();
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
     private final List<MethodModel> parentMethods = new ArrayList<>();
@@ -35,9 +38,10 @@ public class IrClassGenerator {
     private final List<String> injectedMethods = new ArrayList<>();
     private final Set<String> varargs = new HashSet<>();
 
-    public IrClassGenerator(String className, boolean debug) {
+    public IrClassGenerator(String className, boolean debug, Function<LlvmType.Declared, String> definitionMapper) {
         this.className = className;
         this.debug = debug;
+        this.definitionMapper = definitionMapper;
     }
 
     public void inherit(IrClassGenerator parent) {
@@ -46,6 +50,10 @@ public class IrClassGenerator {
         parentMethods.addAll(parent.methods);
         parentMethods.addAll(parent.parentMethods);
         varargs.addAll(parent.varargs);
+    }
+
+    public void addRequiredType(LlvmType.Declared className) {
+        classDependencies.add(className);
     }
 
     public void addField(String name, LlvmType type) {
@@ -86,22 +94,7 @@ public class IrClassGenerator {
             .filter(me -> !me.owner().name().stringValue().equals(className))
             .filter(me -> parentMethods.stream().noneMatch(p -> p.methodName().equals(me.name()) && p.methodTypeSymbol().equals(me.typeSymbol())))
             .distinct()
-            .forEach(me -> {
-                var type = IrTypeMapper.mapType(me.typeSymbol().returnType());
-                List<String> parameters = me.typeSymbol()
-                    .parameterList()
-                    .stream()
-                    .map(IrTypeMapper::mapType)
-                    .map(Objects::toString)
-                    .collect(Collectors.toCollection(ArrayList::new));
-                parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(me.owner().name().stringValue()))).toString());
-
-                var parameterString = String.join(", ", parameters);
-
-                var name = Utils.escape(STR."\{me.owner().name()}_\{me.name()}");
-                var declaration = STR."declare \{type} @\{name}(\{parameterString})";
-                methodDependencies.add(declaration);
-            });
+            .forEach(this::addMethodDependency);
 
         if (!alreadyPresent) {
             methods.add(method);
@@ -109,6 +102,25 @@ public class IrClassGenerator {
         if (isNativeVarArg) {
             varargs.add(method.methodName() + method.methodTypeSymbol().descriptorString());
         }
+    }
+
+    public void addMethodDependency(MethodRefEntry method) {
+        if (method.owner().name().stringValue().equals(className)) return;
+
+        var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
+        List<String> parameters = method.typeSymbol()
+            .parameterList()
+            .stream()
+            .map(IrTypeMapper::mapType)
+            .map(Objects::toString)
+            .collect(Collectors.toCollection(ArrayList::new));
+        parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
+
+        var parameterString = String.join(", ", parameters);
+
+        var name = Utils.escape(STR."\{method.owner().name()}_\{method.name()}");
+        var declaration = STR."declare \{type} @\{name}(\{parameterString})";
+        methodDependencies.add(declaration);
     }
 
     private boolean hasMatchingLeadParams(MethodModel left, MethodModel right) {
@@ -133,11 +145,13 @@ public class IrClassGenerator {
     public String generate() {
         var builder = new StringBuilder();
 
-        var requiredTypes = new HashSet<>(vtable.requiredTypes());
+        var requiredTypes = new HashSet<>(classDependencies);
+        requiredTypes.addAll(vtable.requiredTypes());
         requiredTypes.addAll(methodRequiredTypes());
         for (var typeDependency : requiredTypes) {
             if (typeDependency.type().equals(className)) continue;
-            builder.append(typeDependency).append(" = type opaque").append("\n");
+
+            builder.append(definitionMapper.apply(typeDependency)).append("\n");
         }
         if (!requiredTypes.isEmpty()) {
             builder.append("\n");
@@ -151,7 +165,10 @@ public class IrClassGenerator {
         }
 
         for (var parentMethod : parentMethods) {
-            builder.append(declareMethod(parentMethod)).append("\n");
+            var methodDeclaration = declareMethod(parentMethod);
+            if (!methodDependencies.contains(methodDeclaration)) {
+                builder.append(methodDeclaration).append("\n");
+            }
         }
         if (!parentMethods.isEmpty()) {
             builder.append("\n");
@@ -288,7 +305,7 @@ public class IrClassGenerator {
         var isVarArg = method.flags().has(AccessFlag.VARARGS);
         var symbol = method.methodTypeSymbol();
         if (!method.flags().has(AccessFlag.STATIC)) {
-            parameters.add(STR."%\{Utils.escape(parent)}* %this");
+            parameters.add(STR."%\{Utils.escape(parent)}*");
         }
         for (int i = 0; i < symbol.parameterCount(); i++) {
             var parameter = symbol.parameterType(i);
@@ -308,5 +325,16 @@ public class IrClassGenerator {
 
     public void injectMethod(String source) {
         injectedMethods.add(source);
+    }
+
+    public String getSimpleType() {
+        var builder = new StringBuilder();
+        builder.append("%").append(Utils.escape(className)).append(" = type { ")
+            .append(LlvmType.Primitive.POINTER);
+
+        fields.values().forEach(f -> builder.append(", ").append(f));
+
+        builder.append(" }");
+        return builder.toString();
     }
 }

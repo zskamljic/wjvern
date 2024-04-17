@@ -1,22 +1,24 @@
-%"java/lang/Object" = type opaque
+%"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 
 %BasicMath_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %BasicMath = type { %BasicMath_vtable_type* }
+
+declare i32 @__gxx_personality_v0(...)
 
 @BasicMath_vtable_data = global %BasicMath_vtable_type {
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
 }
 
-define void @"BasicMath_<init>"(%BasicMath* %this) {
+define void @"BasicMath_<init>"(%BasicMath* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
@@ -25,9 +27,11 @@ label0:
   ret void
 }
 
-define i32 @main() {
-  ; Line 3
+define i32 @main() personality ptr @__gxx_personality_v0 {
   %f = alloca float
+  %d = alloca double
+  %i = alloca i32
+  ; Line 3
   store float 1.0, float* %f
   br label %label0
 label0:
@@ -66,7 +70,6 @@ label0:
   %19 = fpext float %18 to double
   %20 = call i32 @printf(ptr %9, double %19)
   ; Line 10
-  %d = alloca double
   store double 1.0, double* %d
   br label %label1
 label1:
@@ -104,7 +107,6 @@ label1:
   %38 = load double, double* %37
   %39 = call i32 @printf(ptr %29, double %38)
   ; Line 17
-  %i = alloca i32
   store i32 1, i32* %i
   br label %label2
 label2:

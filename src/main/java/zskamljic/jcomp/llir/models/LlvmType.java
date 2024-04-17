@@ -29,7 +29,7 @@ public sealed interface LlvmType {
         }
     }
 
-    record Global(String name) {
+    record Global(String name) implements LlvmType {
         @Override
         public String toString() {
             return STR."@\{name}";

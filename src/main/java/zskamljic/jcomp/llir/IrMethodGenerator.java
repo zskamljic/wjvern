@@ -28,6 +28,10 @@ public class IrMethodGenerator {
         parameters.add(Map.entry(name, type));
     }
 
+    boolean hasParameter(String name) {
+        return parameters.stream().anyMatch(e->e.getKey().equals(name));
+    }
+
     public String alloca(LlvmType type) {
         var varName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Alloca(varName, type));
@@ -84,13 +88,29 @@ public class IrMethodGenerator {
         return variableName;
     }
 
-    public String invoke(LlvmType returnType, String functionName, List<Map.Entry<String, LlvmType>> parameters) {
+    public String call(LlvmType returnType, String functionName, List<Map.Entry<String, LlvmType>> parameters) {
         String returnVar = null;
         if (returnType != LlvmType.Primitive.VOID) {
             returnVar = unnamedGenerator.generateNext();
         }
 
-        codeEntries.add(new CodeEntry.Invoke(returnVar, returnType, functionName, parameters));
+        codeEntries.add(new CodeEntry.Call(returnVar, returnType, functionName, parameters));
+        return returnVar;
+    }
+
+    public String extractValue(String landingPad, int index) {
+        var returnVar = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.ExtractValue(returnVar, landingPad, index));
+        return returnVar;
+    }
+
+    public String invoke(LlvmType returnType, String name, List<Map.Entry<String, LlvmType>> parameters, String next, String unwind) {
+        String returnVar = null;
+        if (returnType != LlvmType.Primitive.VOID) {
+            returnVar = unnamedGenerator.generateNext();
+        }
+
+        codeEntries.add(new CodeEntry.Invoke(returnVar, returnType, name, parameters, next, unwind));
         return returnVar;
     }
 
@@ -98,10 +118,23 @@ public class IrMethodGenerator {
         if (codeEntries.isEmpty()) {
             unnamedGenerator.skipAnonymousBlock();
         }
-        if (!codeEntries.isEmpty() && !(codeEntries.getLast() instanceof CodeEntry.Branch)) {
+        if (!codeEntries.isEmpty() &&
+            !(codeEntries.getLast() instanceof CodeEntry.Branch) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Return) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Unreachable) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Invoke)
+        ) {
             branchLabel(label);
         }
         codeEntries.add(new CodeEntry.Label(label));
+    }
+
+    public String landingPad(List<LlvmType.Global> type) {
+        var returnVar = unnamedGenerator.generateNext();
+
+        codeEntries.add(new CodeEntry.LandingPad(returnVar, type));
+
+        return returnVar;
     }
 
     public String load(LlvmType targetType, LlvmType sourceType, String variable) {
@@ -126,6 +159,10 @@ public class IrMethodGenerator {
 
     public void store(LlvmType type, String value, LlvmType targetType, String varName) {
         codeEntries.add(new CodeEntry.Store(type, value, targetType, varName));
+    }
+
+    public void unreachable() {
+        codeEntries.add(new CodeEntry.Unreachable());
     }
 
     public String generate() {
@@ -172,10 +209,11 @@ public class IrMethodGenerator {
             .map(Object::toString)
             .collect(Collectors.joining(", "));
 
-        builder.append(paramString).append(") {\n");
+        builder.append(paramString).append(") personality ptr @__gxx_personality_v0 {\n");
     }
 
     public enum Condition {
+        EQUAL,
         GREATER_EQUAL,
         LESS_EQUAL,
         NOT_EQUAL,

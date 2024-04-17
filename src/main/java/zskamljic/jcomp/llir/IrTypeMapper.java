@@ -4,7 +4,6 @@ import zskamljic.jcomp.llir.models.LlvmType;
 
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.util.Optional;
 
 public class IrTypeMapper {
     private IrTypeMapper() {
@@ -31,19 +30,18 @@ public class IrTypeMapper {
             return LlvmType.Primitive.POINTER; // TODO: check if all arrays should use ptr
         }
 
-        return new LlvmType.Declared(classDesc.descriptorString().replaceAll("[L;]", ""));
+        return new LlvmType.Declared(classDesc.descriptorString()
+            .replaceAll("^L", "")
+            .replaceAll(";$", ""));
     }
 
-    public static Optional<LlvmType> mapType(TypeKind typeKind) {
-        return Optional.ofNullable(switch (typeKind) {
+    public static LlvmType mapType(TypeKind typeKind) {
+        return switch (typeKind) {
             case ByteType -> LlvmType.Primitive.BYTE;
             case DoubleType -> LlvmType.Primitive.DOUBLE;
             case FloatType -> LlvmType.Primitive.FLOAT;
             case IntType -> LlvmType.Primitive.INT;
-            default -> {
-                System.err.println(STR."Unsupported type: \{typeKind.typeName()}");
-                yield null;
-            }
-        });
+            default -> LlvmType.Primitive.POINTER;
+        };
     }
 }

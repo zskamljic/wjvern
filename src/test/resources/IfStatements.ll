@@ -1,22 +1,24 @@
-%"java/lang/Object" = type opaque
+%"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 
 %IfStatements_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
+
+declare i32 @__gxx_personality_v0(...)
 
 @IfStatements_vtable_data = global %IfStatements_vtable_type {
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
 }
 
-define void @"IfStatements_<init>"(%IfStatements* %this) {
+define void @"IfStatements_<init>"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
@@ -28,7 +30,7 @@ label0:
   ret void
 }
 
-define void @IfStatements_doSomething(%IfStatements* %this) {
+define void @IfStatements_doSomething(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 6
   %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
@@ -52,61 +54,63 @@ label2:
   ret void
 }
 
-define i32 @main() {
+define i32 @main() personality ptr @__gxx_personality_v0 {
+  %instance = alloca %IfStatements
   ; Line 15
   %1 = alloca %IfStatements
   call void @"IfStatements_<init>"(%IfStatements* %1)
-  %instance = bitcast %IfStatements* %1 to %IfStatements*
+  %2 = load %IfStatements, %IfStatements* %1
+  store %IfStatements %2, %IfStatements* %instance
   br label %label0
 label0:
   ; Line 16
   call void @"IfStatements_doSomething"(%IfStatements* %instance)
   ; Line 17
-  %2 = alloca [6 x i8]
-  %3 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 0
-  store i8 106, ptr %3
-  %4 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 1
-  store i8 58, ptr %4
-  %5 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 2
-  store i8 37, ptr %5
-  %6 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 3
-  store i8 100, ptr %6
-  %7 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 4
-  store i8 10, ptr %7
-  %8 = getelementptr inbounds [6 x i8], ptr %2, i64 0, i32 5
-  store i8 0, ptr %8
-  %9 = alloca [1 x i32]
-  %10 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
-  %11 = load i32, i32* %10
-  %12 = getelementptr inbounds [1 x i32], ptr %9, i64 0, i32 0
-  store i32 %11, ptr %12
-  %13 = getelementptr inbounds [1 x i32], ptr %9, i64 0, i32 0
-  %14 = load i32, i32* %13
-  %15 = call i32 @printf(ptr %2, i32 %14)
+  %3 = alloca [6 x i8]
+  %4 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 0
+  store i8 106, ptr %4
+  %5 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 1
+  store i8 58, ptr %5
+  %6 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 2
+  store i8 37, ptr %6
+  %7 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 3
+  store i8 100, ptr %7
+  %8 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 4
+  store i8 10, ptr %8
+  %9 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 5
+  store i8 0, ptr %9
+  %10 = alloca [1 x i32]
+  %11 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
+  %12 = load i32, i32* %11
+  %13 = getelementptr inbounds [1 x i32], ptr %10, i64 0, i32 0
+  store i32 %12, ptr %13
+  %14 = getelementptr inbounds [1 x i32], ptr %10, i64 0, i32 0
+  %15 = load i32, i32* %14
+  %16 = call i32 @printf(ptr %3, i32 %15)
   ; Line 18
   call void @"IfStatements_doSomething"(%IfStatements* %instance)
   ; Line 19
-  %16 = alloca [6 x i8]
-  %17 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 0
-  store i8 106, ptr %17
-  %18 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 1
-  store i8 58, ptr %18
-  %19 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 2
-  store i8 37, ptr %19
-  %20 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 3
-  store i8 100, ptr %20
-  %21 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 4
-  store i8 10, ptr %21
-  %22 = getelementptr inbounds [6 x i8], ptr %16, i64 0, i32 5
-  store i8 0, ptr %22
-  %23 = alloca [1 x i32]
-  %24 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
-  %25 = load i32, i32* %24
-  %26 = getelementptr inbounds [1 x i32], ptr %23, i64 0, i32 0
-  store i32 %25, ptr %26
-  %27 = getelementptr inbounds [1 x i32], ptr %23, i64 0, i32 0
-  %28 = load i32, i32* %27
-  %29 = call i32 @printf(ptr %16, i32 %28)
+  %17 = alloca [6 x i8]
+  %18 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 0
+  store i8 106, ptr %18
+  %19 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 1
+  store i8 58, ptr %19
+  %20 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 2
+  store i8 37, ptr %20
+  %21 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 3
+  store i8 100, ptr %21
+  %22 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 4
+  store i8 10, ptr %22
+  %23 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 5
+  store i8 0, ptr %23
+  %24 = alloca [1 x i32]
+  %25 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i64 0, i32 1
+  %26 = load i32, i32* %25
+  %27 = getelementptr inbounds [1 x i32], ptr %24, i64 0, i32 0
+  store i32 %26, ptr %27
+  %28 = getelementptr inbounds [1 x i32], ptr %24, i64 0, i32 0
+  %29 = load i32, i32* %28
+  %30 = call i32 @printf(ptr %17, i32 %29)
   ; Line 20
   ret i32 0
 }

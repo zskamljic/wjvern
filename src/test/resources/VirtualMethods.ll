@@ -1,17 +1,17 @@
-%"java/lang/Object" = type opaque
+%"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"* %this, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"* %this) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"* %this, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"* %this)
+declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+
+declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 
 %VirtualMethods_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%VirtualMethods*)* }
 
 %VirtualMethods = type { %VirtualMethods_vtable_type*, i32 }
 
-define void @VirtualMethods_doSomething(%VirtualMethods* %this) {
+define void @VirtualMethods_doSomething(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 4
   %0 = alloca [8 x i8]
@@ -40,13 +40,15 @@ label0:
   ret void
 }
 
+declare i32 @__gxx_personality_v0(...)
+
 @VirtualMethods_vtable_data = global %VirtualMethods_vtable_type {
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
   void(%VirtualMethods*)* @VirtualMethods_doSomething
 }
 
-define void @"VirtualMethods_<init>"(%VirtualMethods* %this) {
+define void @"VirtualMethods_<init>"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
@@ -55,23 +57,25 @@ label0:
   ret void
 }
 
-define i32 @main() {
+define i32 @main() personality ptr @__gxx_personality_v0 {
+  %instance = alloca %VirtualMethods
   ; Line 9
   %1 = alloca %VirtualMethods
   call void @"VirtualMethods_<init>"(%VirtualMethods* %1)
-  %instance = bitcast %VirtualMethods* %1 to %VirtualMethods*
+  %2 = load %VirtualMethods, %VirtualMethods* %1
+  store %VirtualMethods %2, %VirtualMethods* %instance
   br label %label0
 label0:
   ; Line 10
-  %2 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 0
-  %3 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %2
-  %4 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %3, i64 0, i32 2
-  %5 = load void(%VirtualMethods*)*, void(%VirtualMethods*)** %4
-  call void %5(%VirtualMethods* %instance)
+  %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 0
+  %4 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %3
+  %5 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %4, i64 0, i32 2
+  %6 = load void(%VirtualMethods*)*, void(%VirtualMethods*)** %5
+  call void %6(%VirtualMethods* %instance)
   ; Line 11
-  %6 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 1
-  %7 = load i32, i32* %6
-  ret i32 %7
+  %7 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 1
+  %8 = load i32, i32* %7
+  ret i32 %8
 }
 
 declare i32 @printf(ptr, ...) nounwind

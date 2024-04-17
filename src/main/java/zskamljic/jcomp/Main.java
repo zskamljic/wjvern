@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,7 +39,7 @@ public class Main {
                 linkFiles(buildDir, generatedFiles),
                 new ProcessBuilder("opt", "-S", "--O3"), // Optimize
                 new ProcessBuilder("llc"), // Generate assembly
-                new ProcessBuilder("clang", "-x", "assembler", "-") // Compile
+                compileAssembly(options.libraries)
             ));
             for (var process : processes) {
                 process.waitFor();
@@ -51,11 +52,34 @@ public class Main {
                 }
             }
             if (!options.debug) {
-                Files.deleteIfExists(buildDir.resolve("IR.ll"));
+                for (var generatedFile : generatedFiles.keySet()) {
+                    Files.deleteIfExists(buildDir.resolve(STR."\{generatedFile}.ll"));
+                }
             }
         } catch (IOException | InterruptedException e) {
             System.err.println(STR."Unable to parse class file \{options.inputClass}: \{e.getMessage()}");
         }
+    }
+
+    private static ProcessBuilder compileAssembly(List<Path> libraries) {
+        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "assembler", "-"));
+        libraries.removeIf(p -> p.getFileName().toString().isBlank());
+        if (!libraries.isEmpty()) {
+            var paths = new HashSet<Path>();
+            var libs = new HashSet<String>();
+
+            for (var library : libraries) {
+                paths.add(library.toAbsolutePath().getParent());
+                libs.add(library.getFileName()
+                    .toString()
+                    .replaceAll("^lib", "")
+                    .replaceAll("\\.so$", ""));
+            }
+            libs.forEach(l -> items.add(4, STR."-l\{l}"));
+            paths.forEach(p -> items.add(4, STR."-L\{p}"));
+        }
+
+        return new ProcessBuilder(items.toArray(new String[0]));
     }
 
     private static ProcessBuilder linkFiles(Path buildDir, Map<String, IrClassGenerator> files) throws IOException {
