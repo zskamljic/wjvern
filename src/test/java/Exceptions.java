@@ -1,9 +1,9 @@
 public class Exceptions {
     static int main() {
         try {
-            throw new Exception();
-        } catch (Exception e) {
-            return 1;
+            throw new CustomException(5);
+        } catch (CustomException e) {
+            return e.getCode();
         } finally {
             print();
         }
@@ -14,4 +14,16 @@ public class Exceptions {
     }
 
     static native int puts(byte[] str);
+}
+
+class CustomException extends Exception {
+    private int code;
+
+    public CustomException(int code) {
+        this.code = code;
+    }
+
+    public int getCode() {
+        return code;
+    }
 }

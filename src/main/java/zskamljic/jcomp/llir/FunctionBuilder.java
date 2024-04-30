@@ -97,53 +97,61 @@ public class FunctionBuilder {
         if (optionalCode.isEmpty()) return;
 
         var code = optionalCode.get();
-        var exceptions = new ArrayList<ExceptionInfo>();
-        var activeExceptions = new ArrayList<ExceptionInfo>();
-        var locals = new Local[code.maxLocals()];
         var stack = new ArrayDeque<String>();
         var types = new HashMap<String, LlvmType>();
+        var exceptionState = new ExceptionState();
         var labelGenerator = new LabelGenerator();
+        var locals = new Locals(generator, types, labelGenerator, generator::hasParameter);
+        String currentLabel = null;
         for (var element : code) {
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, as);
                 case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, b);
                 case ConstantInstruction c -> handleConstant(stack, c);
-                case ExceptionCatch e -> handleExceptionCatch(labelGenerator, exceptions, e);
+                case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
                 case FieldInstruction f -> handleFieldInstruction(generator, stack, f);
                 case IncrementInstruction i -> handleIncrement(generator, locals, i);
                 case InvokeInstruction i -> {
-                    handleInvoke(generator, stack, types, i);
+                    handleInvoke(generator, stack, types, labelGenerator, exceptionState, i);
                     if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
                         addInitVtable(generator);
                     }
                 }
                 case Label label -> {
-                    var currentLabel = labelGenerator.getLabel(label);
-                    exceptions.stream()
-                        .filter(e -> e.getTryStart().equals(currentLabel))
-                        .forEach(activeExceptions::add);
-                    activeExceptions.removeIf(e -> e.getTryEnd().equals(currentLabel));
+                    var nextLabel = labelGenerator.getLabel(label);
+                    exceptionState.enteredLabel(nextLabel);
+                    if (exceptionState.shouldGenerate()) {
+                        if (generator.isNotDone()) generator.branchLabel(nextLabel);
+                        generateLandingPad(generator, labelGenerator, exceptionState);
+                    }
 
-                    generator.label(currentLabel);
-
-                    exceptions.stream()
-                        .filter(e -> e.getCatchStart().equals(currentLabel))
-                        .findFirst()
-                        .map(ExceptionInfo::getVariable)
-                        .ifPresent(stack::push);
+                    if (exceptionState.isCatching(currentLabel)) {
+                        generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
+                    }
+                    generator.label(nextLabel);
+                    locals.enteredLabel(nextLabel);
+                    var exceptionVariable = exceptionState.getExceptionVariable();
+                    if (exceptionState.isCatching(nextLabel)) {
+                        var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exceptionVariable);
+                        var instance = generator.call(LlvmType.Primitive.POINTER, "__cxa_begin_catch", List.of(Map.entry(loaded, LlvmType.Primitive.POINTER)));
+                        stack.push(instance);
+                    }
+                    currentLabel = nextLabel;
                 }
                 case LineNumber l -> generator.comment(STR."Line \{l.line()}");
-                case LoadInstruction l -> loadValue(stack, locals, l);
-                case LocalVariable v ->
-                    declareLocal(generator, locals, types, v.slot(), v.name().stringValue(), IrTypeMapper.mapType(v.typeSymbol()));
+                case LoadInstruction l -> loadValue(generator, stack, locals, types, l);
+                case LocalVariable v -> {
+                    types.put(STR."%\{v.name().stringValue()}", IrTypeMapper.mapType(v.typeSymbol()));
+                    locals.register(v);
+                }
                 case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n);
                 case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(generator, stack, types, a);
                 case OperatorInstruction o -> handleOperatorInstruction(generator, stack, types, o);
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
-                case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, activeExceptions, stack);
+                case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> line += ": not handled";
             }
             if (debug) {
@@ -155,6 +163,37 @@ public class FunctionBuilder {
             while (!stack.isEmpty()) {
                 System.out.println(stack.pop());
             }
+        }
+    }
+
+    private void generateLandingPad(IrMethodGenerator generator, LabelGenerator labelGenerator, ExceptionState exceptions) {
+        var dispatcherLabel = labelGenerator.nextLabel();
+        generator.label(dispatcherLabel);
+        var landingPad = generator.landingPad(exceptions.getActiveTypes());
+        var exceptionVar = generator.extractValue(landingPad, 0);
+        generator.store(LlvmType.Primitive.POINTER, exceptionVar, LlvmType.Primitive.POINTER, exceptions.getExceptionVariable());
+        var typeVar = generator.extractValue(landingPad, 1);
+        var nullHandler = exceptions.getDefaultHandler();
+        var defaultCatchLabel = nullHandler.map(ExceptionInfo::catchStart)
+            .orElseGet(labelGenerator::nextLabel);
+        exceptions.saveDispatcher(dispatcherLabel);
+
+        for (var handler : exceptions.getActive()) {
+            var typeId = generator.call(LlvmType.Primitive.INT, "llvm.eh.typeid.for",
+                List.of(Map.entry(handler.typeInfo().toString(), LlvmType.Primitive.POINTER)));
+            var result = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, typeVar, typeId);
+            generator.branchBool(result, handler.catchStart(), defaultCatchLabel);
+        }
+
+        if (nullHandler.isEmpty()) {
+            var defaultDispatcher = exceptions.getDefaultDispatcher(labelGenerator::nextLabel);
+            generator.label(defaultDispatcher);
+            var cleanupPad = generator.landingPad(null);
+            var exception = generator.extractValue(cleanupPad, 0);
+            generator.store(LlvmType.Primitive.POINTER, exception, LlvmType.Primitive.POINTER, exceptions.getExceptionVariable());
+            generator.label(defaultCatchLabel);
+            generator.call(LlvmType.Primitive.VOID, "__cxa_throw", List.of(Map.entry(exceptions.getExceptionVariable(), LlvmType.Primitive.POINTER))); // TODO: parameters from throw
+            generator.unreachable();
         }
     }
 
@@ -312,13 +351,17 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleExceptionCatch(LabelGenerator labelGenerator, List<ExceptionInfo> exceptions, ExceptionCatch e) {
-        exceptions.add(new ExceptionInfo(
+    private void handleExceptionCatch(IrMethodGenerator generator, LabelGenerator labelGenerator, ExceptionState exceptions, ExceptionCatch e) {
+        exceptions.add(ExceptionInfo.create(
             labelGenerator.getLabel(e.tryStart()),
             labelGenerator.getLabel(e.tryEnd()),
             labelGenerator.getLabel(e.handler()),
             e.catchType().map(ClassEntry::asSymbol).map(IrTypeMapper::mapType).orElse(null)
         ));
+        if (exceptions.shouldGenerateVariables()) {
+            var exception = generator.alloca(LlvmType.Primitive.POINTER);
+            exceptions.setExceptionVariable(exception);
+        }
     }
 
     private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, FieldInstruction instruction) {
@@ -351,9 +394,9 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleIncrement(IrMethodGenerator generator, Local[] locals, IncrementInstruction instruction) {
+    private void handleIncrement(IrMethodGenerator generator, Locals locals, IncrementInstruction instruction) {
         var source = switch (instruction.opcode()) {
-            case IINC -> locals[instruction.slot()];
+            case IINC -> locals.get(instruction.slot());
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
         if (source.type() instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
@@ -366,7 +409,12 @@ public class FunctionBuilder {
     }
 
     private void handleInvoke(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, InvokeInstruction invocation
+        IrMethodGenerator generator,
+        Deque<String> stack,
+        Map<String, LlvmType> types,
+        LabelGenerator labelGenerator,
+        ExceptionState exceptions,
+        InvokeInstruction invocation
     ) {
         var isVarArg = varargs.contains(invocation.method().name() + invocation.typeSymbol().descriptorString());
 
@@ -420,25 +468,35 @@ public class FunctionBuilder {
 
         var functionName = switch (invocation.opcode()) {
             case INVOKESPECIAL -> directCall(invocation);
-            case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, types, parameters);
+            case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, parameters);
             case INVOKESTATIC -> invocation.method().name().stringValue();
             default -> throw new IllegalArgumentException(STR."\{invocation.opcode()} invocation not yet supported");
         };
-        var returnVar = generator.call(returnType, functionName, parameters);
+        String returnVar;
+        if (exceptions.anyActive()) {
+            var nextLabel = labelGenerator.nextLabel();
+            returnVar = generator.invoke(returnType, functionName, parameters, nextLabel, exceptions.getActiveHandler());
+            generator.label(nextLabel);
+        } else {
+            returnVar = generator.call(returnType, functionName, parameters);
+        }
 
         if (returnVar != null) {
+            types.put(returnVar, returnType);
             stack.push(returnVar);
         }
     }
 
     private static String directCall(InvokeInstruction invocation) {
-        return STR."\"\{invocation.method().owner().name()}_\{invocation.method().name()}\"";
+        return Utils.escape(STR."\{invocation.method().owner().name()}_\{invocation.method().name()}");
     }
 
     private String handleInvokeVirtual(
-        IrMethodGenerator generator, InvokeInstruction invocation, Map<String, LlvmType> types, List<Map.Entry<String, LlvmType>> parameters
+        IrMethodGenerator generator, InvokeInstruction invocation, List<Map.Entry<String, LlvmType>> parameters
     ) {
-        if (!vtable.containsKey(invocation.name().stringValue(), invocation.typeSymbol())) return directCall(invocation);
+        if (!vtable.containsKey(invocation.name().stringValue(), invocation.typeSymbol())) {
+            return directCall(invocation); // TODO: invoke correct vtable
+        }
 
         // Load vtable pointer
         var parentType = new LlvmType.Declared(parent);
@@ -478,33 +536,20 @@ public class FunctionBuilder {
         };
     }
 
-    private void loadValue(Deque<String> stack, Local[] locals, LoadInstruction instruction) {
+    private void loadValue(IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, LoadInstruction instruction) {
         var local = switch (instruction.opcode()) {
-            case ALOAD_0, DLOAD_0, FLOAD_0, ILOAD_0, LLOAD_0 -> locals[0];
-            case ALOAD_1, DLOAD_1, FLOAD_1, ILOAD_1, LLOAD_1 -> locals[1];
-            case ALOAD_2, DLOAD_2, FLOAD_2, ILOAD_2, LLOAD_2 -> locals[2];
-            case ALOAD_3, DLOAD_3, FLOAD_3, ILOAD_3, LLOAD_3 -> locals[3];
+            case ALOAD_0, DLOAD_0, FLOAD_0, ILOAD_0, LLOAD_0 -> locals.get(0);
+            case ALOAD_1, DLOAD_1, FLOAD_1, ILOAD_1, LLOAD_1 -> locals.get(1);
+            case ALOAD_2, DLOAD_2, FLOAD_2, ILOAD_2, LLOAD_2 -> locals.get(2);
+            case ALOAD_3, DLOAD_3, FLOAD_3, ILOAD_3, LLOAD_3 -> locals.get(3);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
         };
-        stack.push(local.varName());
-    }
-
-    private void declareLocal(IrMethodGenerator generator, Local[] locals, Map<String, LlvmType> types, int slot, String name, LlvmType type) {
-        var localName = STR."%\{name}";
-
-        if (type == LlvmType.Primitive.POINTER) {
-            throw new IllegalArgumentException(STR."Locals of type \{type} not yet supported");
-        }
-        LlvmType varType;
-        if (type instanceof LlvmType.Pointer || generator.hasParameter(name)) {
-            varType = type;
+        var type = types.get(local.varName());
+        if (type == null) {
+            var loaded = generator.load(IrTypeMapper.mapType(instruction.typeKind()), LlvmType.Primitive.POINTER, local.varName());
+            stack.push(loaded);
         } else {
-            varType = new LlvmType.Pointer(type);
-        }
-        locals[slot] = new Local(localName, varType);
-        types.put(localName, varType);
-        if (!generator.hasParameter(name)) {
-            generator.alloca(localName, type);
+            stack.push(local.varName());
         }
     }
 
@@ -514,6 +559,9 @@ public class FunctionBuilder {
         if (instruction.opcode() != Opcode.RETURN) {
             if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
                 var varName = generator.load(p.type(), p, stack.pop());
+                stack.push(varName);
+            } else if (types.get(stack.peekFirst()) == LlvmType.Primitive.POINTER) {
+                var varName = generator.load(IrTypeMapper.mapType(instruction.typeKind()), LlvmType.Primitive.POINTER, stack.pop());
                 stack.push(varName);
             }
         }
@@ -535,7 +583,7 @@ public class FunctionBuilder {
     }
 
     private void handleStoreInstruction(
-        IrMethodGenerator generator, Deque<String> stack, Local[] locals, Map<String, LlvmType> types, StoreInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, StoreInstruction instruction
     ) {
         var reference = stack.pop();
         var index = switch (instruction.opcode()) {
@@ -545,19 +593,10 @@ public class FunctionBuilder {
             case ASTORE_3, DSTORE_3, FSTORE_3, ISTORE_3, LSTORE_3 -> 3;
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
         };
-        var local = locals[index];
-        if (local == null) {
-            var type = IrTypeMapper.mapType(instruction.typeKind());
-            var localName = generator.alloca(type);
-            if (!(type instanceof LlvmType.Pointer) && type != LlvmType.Primitive.POINTER) {
-                type = new LlvmType.Pointer(type);
-            }
-            types.put(localName, type);
-            local = new Local(localName, type);
-            locals[index] = local;
-        }
+        var local = locals.get(index);
 
-        var sourceType = types.get(reference);
+        var instructionType = IrTypeMapper.mapType(instruction.typeKind());
+        var sourceType = types.getOrDefault(reference, instructionType);
         if (sourceType == null) {
             if (local.type() instanceof LlvmType.Pointer p) {
                 if (p.type() instanceof LlvmType.Declared) {
@@ -570,7 +609,7 @@ public class FunctionBuilder {
             } else {
                 throw new IllegalStateException("Invalid type for store");
             }
-        } else if (sourceType instanceof LlvmType.Pointer p) {
+        } else if (sourceType instanceof LlvmType.Pointer p && local.type() != LlvmType.Primitive.POINTER) {
             sourceType = p.type();
             reference = generator.load(p.type(), p, reference);
         }
@@ -578,14 +617,15 @@ public class FunctionBuilder {
     }
 
     private void handleThrowInstruction(
-        IrMethodGenerator generator, LabelGenerator labelGenerator, HashMap<String, LlvmType> types, List<ExceptionInfo> active, Deque<String> stack
+        IrMethodGenerator generator, LabelGenerator labelGenerator, HashMap<String, LlvmType> types, ExceptionState exceptions, Deque<String> stack
     ) {
         var exception = stack.pop();
 
         var exceptionType = types.get(exception);
         if (!(exceptionType instanceof LlvmType.Pointer(LlvmType.Declared(var typeName)))) {
+            var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exception);
             generator.call(LlvmType.Primitive.VOID, "__cxa_throw", List.of(
-                Map.entry(exception, LlvmType.Primitive.POINTER),
+                Map.entry(loaded, LlvmType.Primitive.POINTER),
                 Map.entry("null", LlvmType.Primitive.POINTER),
                 Map.entry("null", LlvmType.Primitive.POINTER)
             ));
@@ -601,29 +641,14 @@ public class FunctionBuilder {
             Map.entry(descriptorType.toString(), LlvmType.Primitive.POINTER),
             Map.entry("null", LlvmType.Primitive.POINTER)
         );
-        if (active.isEmpty()) {
-            generator.call(LlvmType.Primitive.VOID, "__cxa_throw", throwParameters);
-            generator.unreachable();
-        } else {
+        if (exceptions.anyActive()) {
             var next = labelGenerator.nextLabel();
-            var selector = labelGenerator.nextLabel();
-            generator.invoke(LlvmType.Primitive.VOID, "__cxa_throw", throwParameters, next, selector);
+            generator.invoke(LlvmType.Primitive.VOID, "__cxa_throw", throwParameters, next, exceptions.getActiveHandler());
             generator.label(next);
             generator.unreachable();
-            generator.label(selector);
-
-            var landingPad = generator.landingPad(active.stream().map(ExceptionInfo::getExceptionTypeInfo).filter(Objects::nonNull).toList());
-            var exceptionVar = generator.extractValue(landingPad, 0);
-            var typeVar = generator.extractValue(landingPad, 1);
-            for (var handler : active) {
-                handler.setVariable(exceptionVar);
-                if (handler.getExceptionTypeInfo() == null) continue;
-
-                var typeId = generator.call(LlvmType.Primitive.INT, "llvm.eh.typeid.for",
-                    List.of(Map.entry(handler.getExceptionTypeInfo().toString(), LlvmType.Primitive.POINTER)));
-                var result = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, typeVar, typeId);
-                generator.branchBool(result, handler.getCatchStart(), "label3"); // FIXME: false should not be hardcoded
-            }
+        } else {
+            generator.call(LlvmType.Primitive.VOID, "__cxa_throw", throwParameters);
+            generator.unreachable();
         }
     }
 }

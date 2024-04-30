@@ -35,36 +35,37 @@ label0:
   ; Line 6
   %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
   %1 = load i1, i1* %0
-  br i1 %1, label %label1, label %not_label1
-not_label1:
+  br i1 %1, label %label2, label %not_label2
+not_label2:
   ; Line 7
   %2 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
   store i1 1, i1* %2
   ; Line 8
   %3 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
   store i32 1, i32* %3
-  br label %label2
-label1:
+  br label %label3
+label2:
   ; Line 10
   %4 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 1
   store i32 2, i32* %4
-  br label %label2
-label2:
+  br label %label3
+label3:
   ; Line 12
   ret void
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %IfStatements
   ; Line 15
   %1 = alloca %IfStatements
   call void @"IfStatements_<init>"(%IfStatements* %1)
-  %2 = load %IfStatements, %IfStatements* %1
-  store %IfStatements %2, %IfStatements* %instance
+  %local.0 = alloca ptr
+  store %IfStatements* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %IfStatements*, ptr %local.0
+  %instance = bitcast ptr %2 to %IfStatements*
   ; Line 16
-  call void @"IfStatements_doSomething"(%IfStatements* %instance)
+  call void @IfStatements_doSomething(%IfStatements* %instance)
   ; Line 17
   %3 = alloca [6 x i8]
   %4 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 0
@@ -88,7 +89,7 @@ label0:
   %15 = load i32, i32* %14
   %16 = call i32 @printf(ptr %3, i32 %15)
   ; Line 18
-  call void @"IfStatements_doSomething"(%IfStatements* %instance)
+  call void @IfStatements_doSomething(%IfStatements* %instance)
   ; Line 19
   %17 = alloca [6 x i8]
   %18 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 0

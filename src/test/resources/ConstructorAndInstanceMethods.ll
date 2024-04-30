@@ -88,7 +88,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 11
   %1 = alloca %ConstructorAndInstanceMethods
   call void @"ConstructorAndInstanceMethods_<init>"(%ConstructorAndInstanceMethods* %1)
-  call void @"ConstructorAndInstanceMethods_method"(%ConstructorAndInstanceMethods* %1)
+  call void @ConstructorAndInstanceMethods_method(%ConstructorAndInstanceMethods* %1)
   ; Line 13
   ret i32 0
 }

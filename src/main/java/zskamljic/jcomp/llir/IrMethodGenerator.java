@@ -29,7 +29,7 @@ public class IrMethodGenerator {
     }
 
     boolean hasParameter(String name) {
-        return parameters.stream().anyMatch(e->e.getKey().equals(name));
+        return parameters.stream().anyMatch(e -> e.getKey().equals(name));
     }
 
     public String alloca(LlvmType type) {
@@ -118,15 +118,19 @@ public class IrMethodGenerator {
         if (codeEntries.isEmpty()) {
             unnamedGenerator.skipAnonymousBlock();
         }
-        if (!codeEntries.isEmpty() &&
-            !(codeEntries.getLast() instanceof CodeEntry.Branch) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Return) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Unreachable) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Invoke)
-        ) {
+        if (isNotDone()) {
             branchLabel(label);
         }
         codeEntries.add(new CodeEntry.Label(label));
+    }
+
+
+    public boolean isNotDone() {
+        return !codeEntries.isEmpty() &&
+            !(codeEntries.getLast() instanceof CodeEntry.Branch) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Return) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Unreachable) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Invoke);
     }
 
     public String landingPad(List<LlvmType.Global> type) {

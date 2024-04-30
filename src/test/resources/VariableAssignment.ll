@@ -34,21 +34,23 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %VariableAssignment
-  %i = alloca i32
   ; Line 7
   %1 = alloca %VariableAssignment
   call void @"VariableAssignment_<init>"(%VariableAssignment* %1)
-  %2 = load %VariableAssignment, %VariableAssignment* %1
-  store %VariableAssignment %2, %VariableAssignment* %instance
+  %local.0 = alloca ptr
+  store %VariableAssignment* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %VariableAssignment*, ptr %local.0
+  %instance = bitcast ptr %2 to %VariableAssignment*
   ; Line 8
-  call void @"VariableAssignment_method"(%VariableAssignment* %instance)
+  call void @VariableAssignment_method(%VariableAssignment* %instance)
   ; Line 10
-  store i32 1, i32* %i
-  br label %label1
-label1:
+  %local.1 = alloca ptr
+  store i32 1, ptr %local.1
+  br label %label2
+label2:
+  %i = bitcast ptr %local.1 to i32*
   ; Line 11
   %3 = load i32, i32* %i
   ret i32 %3

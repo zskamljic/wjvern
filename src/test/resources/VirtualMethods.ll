@@ -58,14 +58,15 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %VirtualMethods
   ; Line 9
   %1 = alloca %VirtualMethods
   call void @"VirtualMethods_<init>"(%VirtualMethods* %1)
-  %2 = load %VirtualMethods, %VirtualMethods* %1
-  store %VirtualMethods %2, %VirtualMethods* %instance
+  %local.0 = alloca ptr
+  store %VirtualMethods* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %VirtualMethods*, ptr %local.0
+  %instance = bitcast ptr %2 to %VirtualMethods*
   ; Line 10
   %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 0
   %4 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %3

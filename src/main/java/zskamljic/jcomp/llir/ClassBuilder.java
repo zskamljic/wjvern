@@ -13,8 +13,10 @@ import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ClassBuilder {
     private final ClassModel classModel;
@@ -42,14 +44,22 @@ public class ClassBuilder {
         var className = classModel.thisClass().name().stringValue();
         var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses));
 
+        var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
         if (classModel.superclass().isPresent()) {
-            generateSuperClass(classModel.superclass().get(), classGenerator, generatedClasses);
+            var superclass = classModel.superclass().get();
+            generateSuperClass(superclass, classGenerator, generatedClasses);
+            Optional.ofNullable(generatedClasses.get(superclass))
+                .flatMap(IrClassGenerator::getExceptionDefinition)
+                .ifPresent(thrownExceptions::add);
         }
         for (var entry : classModel.constantPool()) {
             if (entry instanceof ClassEntry classEntry) {
                 generateClass(classEntry, generatedClasses);
                 classGenerator.addRequiredType(new LlvmType.Declared(classEntry.name().stringValue()));
+                Optional.ofNullable(generatedClasses.get(classEntry.name().stringValue()))
+                    .flatMap(IrClassGenerator::getExceptionDefinition)
+                    .ifPresent(thrownExceptions::add);
             } else if (entry instanceof MethodRefEntry method) {
                 if (IrTypeMapper.mapType(method.typeSymbol().returnType()) instanceof LlvmType.Declared d && d.type().startsWith("java/lang/")) {
                     continue;
@@ -83,19 +93,19 @@ public class ClassBuilder {
             classGenerator.addMethod(method);
         }
 
-        classGenerator.injectMethod("declare i32 @__gxx_personality_v0(...)");
+        classGenerator.injectCode("declare i32 @__gxx_personality_v0(...)");
         if (hasThrow) {
-            classGenerator.injectMethod("declare i32 @llvm.eh.typeid.for(ptr)");
-            classGenerator.injectMethod("declare ptr @__cxa_allocate_exception(i64)");
-            classGenerator.injectMethod("declare void @__cxa_throw(ptr, ptr, ptr)");
+            classGenerator.injectCode("declare i32 @llvm.eh.typeid.for(ptr)");
+            classGenerator.injectCode("declare ptr @__cxa_allocate_exception(i64)");
+            classGenerator.injectCode("declare void @__cxa_throw(ptr, ptr, ptr)");
+            classGenerator.injectCode("declare ptr @__cxa_begin_catch(ptr)");
+            classGenerator.injectCode("declare void @__cxa_end_catch()");
 
-            classGenerator.injectMethod("""
+            classGenerator.injectCode("""
                 @_ZTVN10__cxxabiv117__class_type_infoE = external global ptr
-                @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr
-                @"java/lang/Exception_type_string" = constant [22 x i8] c"19java/lang/Exception\\00"
-                @"Pjava/lang/Exception_type_string" = constant [23 x i8] c"P19java/lang/Exception\\00"
-                @"java/lang/Exception_type_info" = constant { ptr, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv117__class_type_infoE, i64 2), ptr @"java/lang/Exception_type_string" }
-                @"Pjava/lang/Exception_type_info" = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @"Pjava/lang/Exception_type_string", i32 0, ptr @"Pjava/lang/Exception_type_info" }""");
+                @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr""");
+
+            thrownExceptions.forEach(classGenerator::injectCode);
         }
 
         return generatedClasses;
@@ -138,10 +148,11 @@ public class ClassBuilder {
                 }
                 case "java/lang/Exception" -> {
                     var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses));
-                    generator.injectMethod("""
+                    generator.injectCode("""
                         define void @"java/lang/Exception_<init>"(%"java/lang/Exception"*) {
                           ret void
                         }""");
+                    generator.setException();
                     generatedClasses.put("java/lang/Exception", generator);
                     return;
                 }

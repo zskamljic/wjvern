@@ -28,16 +28,17 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %i = alloca i32
   ; Line 3
-  store i32 10, i32* %i
+  %local.0 = alloca ptr
+  store i32 10, ptr %local.0
   br label %label0
 label0:
+  %i = bitcast ptr %local.0 to i32*
   ; Line 4
   %1 = load i32, i32* %i
   %2 = icmp sle i32 %1, 0
-  br i1 %2, label %label1, label %not_label1
-not_label1:
+  br i1 %2, label %label2, label %not_label2
+not_label2:
   ; Line 5
   %3 = alloca [4 x i8]
   %4 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 0
@@ -60,7 +61,7 @@ not_label1:
   %15 = add i32 %14, -1
   store i32 %15, i32* %i
   br label %label0
-label1:
+label2:
   ; Line 8
   ret i32 0
 }

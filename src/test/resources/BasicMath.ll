@@ -28,13 +28,12 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %f = alloca float
-  %d = alloca double
-  %i = alloca i32
   ; Line 3
-  store float 1.0, float* %f
+  %local.0 = alloca ptr
+  store float 1.0, ptr %local.0
   br label %label0
 label0:
+  %f = bitcast ptr %local.0 to float*
   ; Line 4
   %1 = load float, float* %f
   %2 = fadd float %1, 2.0
@@ -70,9 +69,11 @@ label0:
   %19 = fpext float %18 to double
   %20 = call i32 @printf(ptr %9, double %19)
   ; Line 10
-  store double 1.0, double* %d
-  br label %label1
-label1:
+  %local.1 = alloca ptr
+  store double 1.0, ptr %local.1
+  br label %label2
+label2:
+  %d = bitcast ptr %local.1 to double*
   ; Line 11
   %21 = load double, double* %d
   %22 = fadd double %21, 2.0
@@ -107,9 +108,11 @@ label1:
   %38 = load double, double* %37
   %39 = call i32 @printf(ptr %29, double %38)
   ; Line 17
-  store i32 1, i32* %i
-  br label %label2
-label2:
+  %local.3 = alloca ptr
+  store i32 1, ptr %local.3
+  br label %label3
+label3:
+  %i = bitcast ptr %local.3 to i32*
   ; Line 18
   %40 = load i32, i32* %i
   %41 = add i32 %40, 2

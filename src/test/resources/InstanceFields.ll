@@ -38,14 +38,15 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %InstanceFields
   ; Line 13
   %1 = alloca %InstanceFields
   call void @"InstanceFields_<init>"(%InstanceFields* %1)
-  %2 = load %InstanceFields, %InstanceFields* %1
-  store %InstanceFields %2, %InstanceFields* %instance
+  %local.0 = alloca ptr
+  store %InstanceFields* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %InstanceFields*, ptr %local.0
+  %instance = bitcast ptr %2 to %InstanceFields*
   ; Line 14
   %3 = alloca [4 x i8]
   %4 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 0

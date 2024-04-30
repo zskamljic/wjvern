@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -37,8 +38,10 @@ public class IrClassGenerator {
     private final List<MethodModel> methods = new ArrayList<>();
     private final List<String> injectedMethods = new ArrayList<>();
     private final Set<String> varargs = new HashSet<>();
+    private boolean isException;
 
     public IrClassGenerator(String className, boolean debug, Function<LlvmType.Declared, String> definitionMapper) {
+        isException = "java/lang/Throwable".equals(className);
         this.className = className;
         this.debug = debug;
         this.definitionMapper = definitionMapper;
@@ -50,6 +53,13 @@ public class IrClassGenerator {
         parentMethods.addAll(parent.methods);
         parentMethods.addAll(parent.parentMethods);
         varargs.addAll(parent.varargs);
+        if (!isException) {
+            isException = parent.isException;
+        }
+    }
+
+    public void setException() {
+        isException = true;
     }
 
     public void addRequiredType(LlvmType.Declared className) {
@@ -323,7 +333,7 @@ public class IrClassGenerator {
         return declaration.toString();
     }
 
-    public void injectMethod(String source) {
+    public void injectCode(String source) {
         injectedMethods.add(source);
     }
 
@@ -336,5 +346,29 @@ public class IrClassGenerator {
 
         builder.append(" }");
         return builder.toString();
+    }
+
+    public Optional<String> getExceptionDefinition() {
+        if (!isException) return Optional.empty();
+
+        var typeInfoString = STR."\{className}_type_string";
+        var typeString = STR."\{className.length()}\{className}\\00";
+        var pTypeInfoString = STR."P\{typeInfoString}";
+        var pTypeString = STR."P\{className.length()}\{className}\\00";
+        var typeInfo = STR."\{className}_type_info";
+        var pTypeInfo = STR."P\{className}_type_info";
+
+        var type = """
+            @%s = constant [%d x i8] c"%s"
+            @%s = constant [%d x i8] c"%s"
+            @%s = constant { ptr, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv117__class_type_infoE, i64 2), ptr @%s }
+            @%s = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @%s, i32 0, ptr @%s }"""
+            .formatted(
+                Utils.escape(typeInfoString), typeString.length() - 2, typeString, // size with null terminator is 2 characters
+                Utils.escape(pTypeInfoString), pTypeString.length() - 2, pTypeString,
+                Utils.escape(typeInfo), Utils.escape(typeInfoString),
+                Utils.escape(pTypeInfo), Utils.escape(pTypeInfoString), Utils.escape(typeInfo)
+            );
+        return Optional.of(type);
     }
 }

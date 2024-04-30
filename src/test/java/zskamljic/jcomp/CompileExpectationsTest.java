@@ -42,7 +42,7 @@ class CompileExpectationsTest {
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
-        "Inheritance", "Parameters", "Exceptions"
+        "Inheritance", "Parameters", "Exceptions", "ExceptionsData"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString()});

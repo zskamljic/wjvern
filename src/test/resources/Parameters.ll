@@ -34,15 +34,16 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %Parameters
   ; Line 7
   %1 = alloca %Parameters
   call void @"Parameters_<init>"(%Parameters* %1)
-  %2 = load %Parameters, %Parameters* %1
-  store %Parameters %2, %Parameters* %instance
+  %local.0 = alloca ptr
+  store %Parameters* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %Parameters*, ptr %local.0
+  %instance = bitcast ptr %2 to %Parameters*
   ; Line 8
-  %3 = call i32 @"Parameters_something"(%Parameters* %instance, i32 5)
+  %3 = call i32 @Parameters_something(%Parameters* %instance, i32 5)
   ret i32 %3
 }

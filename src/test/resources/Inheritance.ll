@@ -53,14 +53,15 @@ label0:
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
-  %instance = alloca %Inheritance
   ; Line 27
   %1 = alloca %Inheritance
   call void @"Inheritance_<init>"(%Inheritance* %1)
-  %2 = load %Inheritance, %Inheritance* %1
-  store %Inheritance %2, %Inheritance* %instance
+  %local.0 = alloca ptr
+  store %Inheritance* %1, ptr %local.0
   br label %label0
 label0:
+  %2 = load %Inheritance*, ptr %local.0
+  %instance = bitcast ptr %2 to %Inheritance*
   ; Line 28
   %3 = getelementptr inbounds %Inheritance, %Inheritance* %instance, i64 0, i32 0
   %4 = load %Inheritance_vtable_type*, %Inheritance_vtable_type** %3
