@@ -9,6 +9,8 @@ public final class Comparisons {
             printOk(1);
         }
         compare(1);
+        compareZero(0);
+        compareZero(1);
         return 0;
     }
 
@@ -27,8 +29,26 @@ public final class Comparisons {
         }
     }
 
+    private static void compareZero(int value) {
+        if (value == 0) {
+            printOk(6);
+        }
+        if (value != 0) {
+            printOk(7);
+        }
+        if (value < 0) {
+            printOk(8);
+        }
+        if (value >= 0) {
+            printOk(9);
+        }
+        if (value <= 0) {
+            printOk(10);
+        }
+    }
+
     private static void printOk(int count) {
-        var c = (byte) ('1' + count);
+        var c = (byte) ('0' + count);
         puts(new byte[]{'O', 'K', '#', c, '\0'});
     }
 

@@ -112,7 +112,7 @@ public class FunctionBuilder {
                 case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, switchStates, currentLabel, b);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
-                case FieldInstruction f -> handleFieldInstruction(generator, stack, f);
+                case FieldInstruction f -> handleFieldInstruction(generator, stack, types, f);
                 case IncrementInstruction i -> handleIncrement(generator, locals, i);
                 case InvokeInstruction i -> {
                     handleInvoke(generator, stack, types, labelGenerator, exceptionState, i);
@@ -307,11 +307,64 @@ public class FunctionBuilder {
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
             }
-            case IFNE -> {
+            case IFLT -> {
                 var value = stack.pop();
+                value = loadIfNeeded(generator, types, value);
+
+                var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = STR."not_\{ifTrue}";
-                generator.branchBool(value, ifTrue, ifFalse);
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IFGE -> {
+                var value = stack.pop();
+                value = loadIfNeeded(generator, types, value);
+
+                var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, value, "0");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IFGT -> {
+                var value = stack.pop();
+                value = loadIfNeeded(generator, types, value);
+
+                var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, value, "0");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IFEQ -> {
+                var value = stack.pop();
+                value = loadIfNeeded(generator, types, value);
+
+                String varName;
+                if (types.get(value) != LlvmType.Primitive.BOOLEAN) {
+                    varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, value, "0");
+                } else {
+                    varName = value;
+                }
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IFNE -> {
+                var value = stack.pop();
+                value = loadIfNeeded(generator, types, value);
+
+                String varName;
+                if (types.get(value) != LlvmType.Primitive.BOOLEAN) {
+                    varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.INT, value, "0");
+                } else {
+                    varName = value;
+                }
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
             }
 
@@ -412,7 +465,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, FieldInstruction instruction) {
+    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, FieldInstruction instruction) {
         if (instruction.opcode() == Opcode.GETFIELD) {
 
             var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
@@ -424,6 +477,7 @@ public class FunctionBuilder {
             );
 
             var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
+            types.put(valueVar, fieldType);
             stack.push(valueVar);
         } else if (instruction.opcode() == Opcode.PUTFIELD) {
             var value = stack.pop();
