@@ -43,7 +43,7 @@ class IrCodeTest {
     @ValueSource(strings = {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
-        "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch"
+        "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons"
     })
     void generatesValid(String fileName) throws IOException {
         var classGenerator = new ClassBuilder(resolver, Path.of(STR."target/test-classes/\{fileName}.class"), true);

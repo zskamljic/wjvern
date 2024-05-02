@@ -94,7 +94,9 @@ public interface CodeEntry {
             };
             var cond = switch (condition) {
                 case EQUAL -> "eq";
+                case GREATER -> "sgt";
                 case GREATER_EQUAL -> "sge";
+                case LESS -> "slt";
                 case LESS_EQUAL -> "sle";
                 case NOT_EQUAL -> "ne";
             };

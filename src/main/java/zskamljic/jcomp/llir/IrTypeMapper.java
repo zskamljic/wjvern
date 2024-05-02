@@ -16,6 +16,7 @@ public class IrTypeMapper {
         }
         return switch (classDesc.displayName()) {
             case "boolean" -> LlvmType.Primitive.BOOLEAN;
+            case "byte" -> LlvmType.Primitive.BYTE;
             case "double" -> LlvmType.Primitive.DOUBLE;
             case "float" -> LlvmType.Primitive.FLOAT;
             case "int" -> LlvmType.Primitive.INT;

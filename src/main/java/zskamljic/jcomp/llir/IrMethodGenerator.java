@@ -246,7 +246,9 @@ public class IrMethodGenerator {
 
     public enum Condition {
         EQUAL,
+        GREATER,
         GREATER_EQUAL,
+        LESS,
         LESS_EQUAL,
         NOT_EQUAL,
     }

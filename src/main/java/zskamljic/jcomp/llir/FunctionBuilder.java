@@ -217,6 +217,16 @@ public class FunctionBuilder {
                 switchStates.changedLabel(currentLabel, stack);
                 generator.branchLabel(labelGenerator.getLabel(instruction.target()));
             }
+            case IF_ACMPEQ -> {
+                var b = stack.pop();
+                var a = stack.pop();
+
+                var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
             case IF_ACMPNE -> {
                 var b = stack.pop();
                 var a = stack.pop();
@@ -227,11 +237,61 @@ public class FunctionBuilder {
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
             }
+            case IF_ICMPEQ -> {
+                var b = loadIfNeeded(generator, types, stack.pop());
+                var a = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IF_ICMPNE -> {
+                var b = loadIfNeeded(generator, types, stack.pop());
+                var a = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IF_ICMPLE -> {
+                var b = loadIfNeeded(generator, types, stack.pop());
+                var a = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IF_ICMPLT -> {
+                var b = loadIfNeeded(generator, types, stack.pop());
+                var a = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
             case IF_ICMPGE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
                 var a = loadIfNeeded(generator, types, stack.pop());
 
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IF_ICMPGT -> {
+                var b = loadIfNeeded(generator, types, stack.pop());
+                var a = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = STR."not_\{ifTrue}";
                 generator.branchBool(varName, ifTrue, ifFalse);
