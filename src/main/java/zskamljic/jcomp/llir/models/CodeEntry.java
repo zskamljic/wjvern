@@ -117,6 +117,20 @@ public interface CodeEntry {
         }
     }
 
+    record FloatingPointToSignedInt(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{newName} = fptosi \{source} \{varName} to \{target}";
+        }
+    }
+
+    record FloatingPointTruncate(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{newName} = fptrunc \{source} \{varName} to \{target}";
+        }
+    }
+
     record GetElementByPointer(String variableName, LlvmType targetType, LlvmType sourceType, String source, String index) implements CodeEntry {
         @Override
         public String toString() {
@@ -183,10 +197,24 @@ public interface CodeEntry {
         }
     }
 
-    record SignedExtend(String newName, LlvmType originalType, String targetType, String source) implements CodeEntry {
+    record SignedExtend(String newName, LlvmType originalType, String source, LlvmType targetType) implements CodeEntry {
         @Override
         public String toString() {
             return STR."\{newName} = sext \{originalType} \{source} to \{targetType}";
+        }
+    }
+
+    record SignedToFloatingPoint(String newName, LlvmType source, String varName, LlvmType target) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{newName} = sitofp \{source} \{varName} to \{target}";
+        }
+    }
+
+    record SignedTruncate(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{newName} = trunc \{source} \{varName} to \{target}";
         }
     }
 
@@ -194,6 +222,15 @@ public interface CodeEntry {
         @Override
         public String toString() {
             return STR."store \{type} \{value}, \{targetType} \{varName}";
+        }
+    }
+
+    record Switch(String variable, String defaultCase, List<Map.Entry<Integer, String>> cases) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."switch i32 \{variable}, label %\{defaultCase} [" + cases.stream()
+                .map(c -> STR."i32 \{c.getKey()}, label %\{c.getValue()}")
+                .collect(Collectors.joining(" ")) + "]";
         }
     }
 

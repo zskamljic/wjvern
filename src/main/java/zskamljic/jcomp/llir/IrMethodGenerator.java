@@ -82,6 +82,18 @@ public class IrMethodGenerator {
         return newName;
     }
 
+    public String floatingPointToSignedInteger(LlvmType.Primitive source, String value, LlvmType.Primitive target) {
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.FloatingPointToSignedInt(newName, source, value, target));
+        return newName;
+    }
+
+    public String floatingPointTruncate(LlvmType.Primitive original, String value, LlvmType.Primitive target) {
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.FloatingPointTruncate(newName, original, value, target));
+        return newName;
+    }
+
     public String getElementPointer(LlvmType targetType, LlvmType sourceType, String source, String index) {
         var variableName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.GetElementByPointer(variableName, targetType, sourceType, source, index));
@@ -124,15 +136,6 @@ public class IrMethodGenerator {
         codeEntries.add(new CodeEntry.Label(label));
     }
 
-
-    public boolean isNotDone() {
-        return !codeEntries.isEmpty() &&
-            !(codeEntries.getLast() instanceof CodeEntry.Branch) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Return) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Unreachable) &&
-            !(codeEntries.getLast() instanceof CodeEntry.Invoke);
-    }
-
     public String landingPad(List<LlvmType.Global> type) {
         var returnVar = unnamedGenerator.generateNext();
 
@@ -155,14 +158,30 @@ public class IrMethodGenerator {
         codeEntries.add(new CodeEntry.Return(returnType, null));
     }
 
-    public String signedExtend(LlvmType originalType, String targetType, String source) {
+    public String signedExtend(LlvmType originalType, String source, LlvmType targetType) {
         var newName = unnamedGenerator.generateNext();
-        codeEntries.add(new CodeEntry.SignedExtend(newName, originalType, targetType, source));
+        codeEntries.add(new CodeEntry.SignedExtend(newName, originalType, source, targetType));
+        return newName;
+    }
+
+    public String signedToFloatingPoint(LlvmType.Primitive source, String value, LlvmType.Primitive target) {
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.SignedToFloatingPoint(newName, source, value, target));
+        return newName;
+    }
+
+    public String signedTruncate(LlvmType.Primitive original, String value, LlvmType.Primitive target) {
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.SignedTruncate(newName, original, value, target));
         return newName;
     }
 
     public void store(LlvmType type, String value, LlvmType targetType, String varName) {
         codeEntries.add(new CodeEntry.Store(type, value, targetType, varName));
+    }
+
+    public void switchBranch(String variable, String defaultCase, List<Map.Entry<Integer, String>> cases) {
+        codeEntries.add(new CodeEntry.Switch(variable, defaultCase, cases));
     }
 
     public void unreachable() {
@@ -193,6 +212,15 @@ public class IrMethodGenerator {
         builder.append("}");
 
         return builder.toString();
+    }
+
+    public boolean isNotDone() {
+        return !codeEntries.isEmpty() &&
+            !(codeEntries.getLast() instanceof CodeEntry.Branch) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Return) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Unreachable) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Invoke) &&
+            !(codeEntries.getLast() instanceof CodeEntry.Switch);
     }
 
     private void writeMethodDefinition(StringBuilder builder) {

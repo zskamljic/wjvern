@@ -35,7 +35,7 @@ public class IrTypeMapper {
             .replaceAll(";$", ""));
     }
 
-    public static LlvmType mapType(TypeKind typeKind) {
+    public static LlvmType.Primitive mapType(TypeKind typeKind) {
         return switch (typeKind) {
             case ByteType -> LlvmType.Primitive.BYTE;
             case DoubleType -> LlvmType.Primitive.DOUBLE;

@@ -25,6 +25,7 @@ import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
+import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
@@ -102,12 +103,13 @@ public class FunctionBuilder {
         var exceptionState = new ExceptionState();
         var labelGenerator = new LabelGenerator();
         var locals = new Locals(generator, types, labelGenerator, generator::hasParameter);
+        var switchStates = new SwitchStates(generator, types);
         String currentLabel = null;
         for (var element : code) {
             var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, as);
-                case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, b);
+                case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, switchStates, currentLabel, b);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
                 case FieldInstruction f -> handleFieldInstruction(generator, stack, f);
@@ -118,27 +120,8 @@ public class FunctionBuilder {
                         addInitVtable(generator);
                     }
                 }
-                case Label label -> {
-                    var nextLabel = labelGenerator.getLabel(label);
-                    exceptionState.enteredLabel(nextLabel);
-                    if (exceptionState.shouldGenerate()) {
-                        if (generator.isNotDone()) generator.branchLabel(nextLabel);
-                        generateLandingPad(generator, labelGenerator, exceptionState);
-                    }
-
-                    if (exceptionState.isCatching(currentLabel)) {
-                        generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
-                    }
-                    generator.label(nextLabel);
-                    locals.enteredLabel(nextLabel);
-                    var exceptionVariable = exceptionState.getExceptionVariable();
-                    if (exceptionState.isCatching(nextLabel)) {
-                        var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exceptionVariable);
-                        var instance = generator.call(LlvmType.Primitive.POINTER, "__cxa_begin_catch", List.of(Map.entry(loaded, LlvmType.Primitive.POINTER)));
-                        stack.push(instance);
-                    }
-                    currentLabel = nextLabel;
-                }
+                case Label label ->
+                    currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, switchStates, label);
                 case LineNumber l -> generator.comment(STR."Line \{l.line()}");
                 case LoadInstruction l -> loadValue(generator, stack, locals, types, l);
                 case LocalVariable v -> {
@@ -151,6 +134,7 @@ public class FunctionBuilder {
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
+                case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, switchStates, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> line += ": not handled";
             }
@@ -215,22 +199,24 @@ public class FunctionBuilder {
         var varName = generator.getElementPointer(types.get(arrayReference), LlvmType.Primitive.POINTER, arrayReference, index);
 
         var type = IrTypeMapper.mapType(instruction.typeKind());
-        value = loadPointerIfNeeded(generator, types, value);
+        value = loadIfNeeded(generator, types, value);
         generator.store(type, value, LlvmType.Primitive.POINTER, varName);
     }
 
-    private static String loadPointerIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String value) {
-        if (types.get(value) instanceof LlvmType.Pointer p) {
-            return generator.load(p.type(), p, value);
-        }
-        return value;
-    }
-
     private void handleBranch(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, BranchInstruction instruction
+        IrMethodGenerator generator,
+        Deque<String> stack,
+        Map<String, LlvmType> types,
+        LabelGenerator labelGenerator,
+        SwitchStates switchStates,
+        String currentLabel,
+        BranchInstruction instruction
     ) {
         switch (instruction.opcode()) {
-            case GOTO -> generator.branchLabel(labelGenerator.getLabel(instruction.target()));
+            case GOTO -> {
+                switchStates.changedLabel(currentLabel, stack);
+                generator.branchLabel(labelGenerator.getLabel(instruction.target()));
+            }
             case IF_ACMPNE -> {
                 var b = stack.pop();
                 var a = stack.pop();
@@ -253,7 +239,7 @@ public class FunctionBuilder {
             }
             case IFLE -> {
                 var value = stack.pop();
-                value = loadPointerIfNeeded(generator, types, value);
+                value = loadIfNeeded(generator, types, value);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
@@ -273,11 +259,13 @@ public class FunctionBuilder {
         }
     }
 
-    private String loadIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String name) {
-        if (types.get(name) instanceof LlvmType.Pointer p) {
-            return generator.load(p.type(), p, name);
+    private String loadIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String value) {
+        if (types.get(value) instanceof LlvmType.Pointer p) {
+            var name = generator.load(p.type(), p, value);
+            types.put(name, p.type());
+            return name;
         }
-        return name;
+        return value;
     }
 
     private void handleCreateNewObject(
@@ -308,8 +296,8 @@ public class FunctionBuilder {
     private void handleOperatorInstruction(
         IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction
     ) {
-        var operand2 = loadPointerIfNeeded(generator, types, stack.pop());
-        var operand1 = loadPointerIfNeeded(generator, types, stack.pop());
+        var operand2 = loadIfNeeded(generator, types, stack.pop());
+        var operand1 = loadIfNeeded(generator, types, stack.pop());
 
         // TODO: parameterize by types
         var resultVar = switch (instruction.opcode()) {
@@ -432,7 +420,7 @@ public class FunctionBuilder {
                             stack.push(extendedName);
                         }
                         case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> {
-                            var extendedName = generator.signedExtend(array.type(), "i32", varName);
+                            var extendedName = generator.signedExtend(array.type(), varName, LlvmType.Primitive.INT);
                             stack.push(extendedName);
                         }
                         default -> stack.push(varName);
@@ -553,12 +541,46 @@ public class FunctionBuilder {
         }
     }
 
+    private String handleLabel(
+        IrMethodGenerator generator,
+        LabelGenerator labelGenerator,
+        ExceptionState exceptions,
+        String currentLabel,
+        Locals locals,
+        Deque<String> stack,
+        SwitchStates switchStates,
+        Label label
+    ) {
+        var nextLabel = labelGenerator.getLabel(label);
+        exceptions.enteredLabel(nextLabel);
+        if (exceptions.shouldGenerate()) {
+            if (generator.isNotDone()) generator.branchLabel(nextLabel);
+            generateLandingPad(generator, labelGenerator, exceptions);
+        }
+
+        if (exceptions.isCatching(currentLabel)) {
+            generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
+        }
+        switchStates.changedLabel(currentLabel, stack);
+        generator.label(nextLabel);
+        locals.enteredLabel(nextLabel);
+        var exceptionVariable = exceptions.getExceptionVariable();
+        if (exceptions.isCatching(nextLabel)) {
+            var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exceptionVariable);
+            var instance = generator.call(LlvmType.Primitive.POINTER, "__cxa_begin_catch", List.of(Map.entry(loaded, LlvmType.Primitive.POINTER)));
+            stack.push(instance);
+        }
+        currentLabel = nextLabel;
+        return currentLabel;
+    }
+
     private void handleReturn(
         IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction
     ) {
         if (instruction.opcode() != Opcode.RETURN) {
             if (types.get(stack.peekFirst()) instanceof LlvmType.Pointer p) {
                 var varName = generator.load(p.type(), p, stack.pop());
+                types.put(varName, p.type());
                 stack.push(varName);
             } else if (types.get(stack.peekFirst()) == LlvmType.Primitive.POINTER) {
                 var varName = generator.load(IrTypeMapper.mapType(instruction.typeKind()), LlvmType.Primitive.POINTER, stack.pop());
@@ -568,9 +590,39 @@ public class FunctionBuilder {
 
         // Plain return does not have a value
         if (instruction.opcode() != Opcode.RETURN) {
+            var originalType = types.get(stack.peekFirst());
+            var requiredType = IrTypeMapper.mapType(instruction.typeKind());
+            castIfNeeded(generator, stack, originalType, requiredType);
             generator.returnValue(stack.pop());
         } else {
             generator.returnVoid();
+        }
+    }
+
+    private void castIfNeeded(IrMethodGenerator generator, Deque<String> stack, LlvmType originalType, LlvmType.Primitive requiredType) {
+        if (originalType == null || originalType == requiredType) return;
+
+        var value = stack.pop();
+        switch (originalType) {
+            case LlvmType.Primitive original when original.isFloatingPoint() && requiredType.isFloatingPoint() -> {
+                if (original.compareTo(requiredType) > 0) {
+                    stack.push(generator.floatingPointTruncate(original, value, requiredType));
+                } else {
+                    stack.push(generator.floatingPointExtend(value));
+                }
+            }
+            case LlvmType.Primitive original when original.isFloatingPoint() ->
+                stack.push(generator.floatingPointToSignedInteger(original, value, requiredType));
+            case LlvmType.Primitive original when requiredType.isFloatingPoint() ->
+                stack.push(generator.signedToFloatingPoint(original, value, requiredType));
+            case LlvmType.Primitive original -> {
+                if (original.compareTo(requiredType) > 0) {
+                    stack.push(generator.signedTruncate(original, value, requiredType));
+                } else {
+                    stack.push(generator.signedExtend(original, value, requiredType));
+                }
+            }
+            default -> throw new IllegalStateException(STR."Unexpected value: \{originalType}");
         }
     }
 
@@ -614,6 +666,23 @@ public class FunctionBuilder {
             reference = generator.load(p.type(), p, reference);
         }
         generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, local.type(), local.varName());
+    }
+
+    private void handleSwitch(
+        IrMethodGenerator generator, Deque<String> stack, LabelGenerator labelGenerator, SwitchStates switchStates, TableSwitchInstruction instruction
+    ) {
+        var switchVar = generator.alloca(LlvmType.Primitive.POINTER);
+        var cases = instruction.cases()
+            .stream()
+            .map(c -> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
+            .toList();
+        var defaultCase = labelGenerator.getLabel(instruction.defaultTarget());
+        generator.switchBranch(
+            stack.pop(),
+            defaultCase,
+            cases
+        );
+        switchStates.add(switchVar, defaultCase, cases.stream().map(Map.Entry::getValue).toList());
     }
 
     private void handleThrowInstruction(

@@ -58,6 +58,18 @@ public sealed interface LlvmType {
         FLOAT,
         DOUBLE;
 
+        public static LlvmType select(String value) {
+            if (value.contains(".")) return DOUBLE;
+            return LONG;
+        }
+
+        public boolean isFloatingPoint() {
+            return switch (this) {
+                case FLOAT, DOUBLE -> true;
+                default -> false;
+            };
+        }
+
         @Override
         public String toString() {
             return switch (this) {
