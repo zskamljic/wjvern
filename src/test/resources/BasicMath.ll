@@ -5,6 +5,7 @@ declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
 declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 
 %BasicMath_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }

@@ -412,20 +412,12 @@ public class FunctionBuilder {
         var operand2 = loadIfNeeded(generator, types, stack.pop());
         var operand1 = loadIfNeeded(generator, types, stack.pop());
 
-        // TODO: parameterize by types
+        var type = IrTypeMapper.mapType(instruction.opcode().primaryTypeKind());
         var resultVar = switch (instruction.opcode()) {
-            case DADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case DSUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.DOUBLE, operand1, operand2);
-            case FADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case FSUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.FLOAT, operand1, operand2);
-            case IADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, LlvmType.Primitive.INT, operand1, operand2);
-            case IDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.INT, operand1, operand2);
-            case IMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.INT, operand1, operand2);
-            case ISUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.INT, operand1, operand2);
+            case DADD, FADD, IADD, LADD -> generator.binaryOperator(IrMethodGenerator.Operator.ADD, type, operand1, operand2);
+            case DDIV, FDIV, IDIV, LDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, type, operand1, operand2);
+            case DMUL, FMUL, IMUL, LMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, type, operand1, operand2);
+            case DSUB, FSUB, ISUB, LSUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, type, operand1, operand2);
             case LCMP -> signCompare(generator, labelGenerator, types, operand1, operand2);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
         };

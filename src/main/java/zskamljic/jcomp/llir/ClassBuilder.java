@@ -121,7 +121,6 @@ public class ClassBuilder {
 
     private boolean isUnsupportedFunction(MethodModel method) {
         return "wait".equals(method.methodName().stringValue()) ||
-            "wait0".equals(method.methodName().stringValue()) ||
             "toString".equals(method.methodName().stringValue()) ||
             "getClass".equals(method.methodName().stringValue()) ||
             "hashCode".equals(method.methodName().stringValue()) ||
