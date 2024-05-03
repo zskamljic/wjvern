@@ -130,7 +130,7 @@ public class FunctionBuilder {
                 }
                 case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n);
                 case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(generator, stack, types, a);
-                case OperatorInstruction o -> handleOperatorInstruction(generator, stack, types, o);
+                case OperatorInstruction o -> handleOperatorInstruction(generator, stack, labelGenerator, types, o);
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
@@ -407,7 +407,7 @@ public class FunctionBuilder {
     }
 
     private void handleOperatorInstruction(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, OperatorInstruction instruction
+        IrMethodGenerator generator, Deque<String> stack, LabelGenerator labelGenerator, Map<String, LlvmType> types, OperatorInstruction instruction
     ) {
         var operand2 = loadIfNeeded(generator, types, stack.pop());
         var operand1 = loadIfNeeded(generator, types, stack.pop());
@@ -426,18 +426,57 @@ public class FunctionBuilder {
             case IDIV -> generator.binaryOperator(IrMethodGenerator.Operator.DIV, LlvmType.Primitive.INT, operand1, operand2);
             case IMUL -> generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.INT, operand1, operand2);
             case ISUB -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, LlvmType.Primitive.INT, operand1, operand2);
+            case LCMP -> signCompare(generator, labelGenerator, types, operand1, operand2);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
         };
 
         stack.push(resultVar);
     }
 
+    private static String signCompare(
+        IrMethodGenerator generator, LabelGenerator labelGenerator, Map<String, LlvmType> types, String operand1, String operand2
+    ) {
+        // TODO: replace by scmp when available
+        var result = generator.alloca(LlvmType.Primitive.INT);
+        types.put(result, new LlvmType.Pointer(LlvmType.Primitive.INT));
+
+        var end = labelGenerator.nextLabel();
+        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.LESS, operand1, operand2, result, "-1", end);
+        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.GREATER, operand1, operand2, result, "1", end);
+
+        generator.store(LlvmType.Primitive.INT, "0", new LlvmType.Pointer(LlvmType.Primitive.INT), result);
+        generator.branchLabel(end);
+        generator.label(end);
+
+        return result;
+    }
+
+    private static void sideComparison(
+        IrMethodGenerator generator,
+        LabelGenerator labelGenerator,
+        IrMethodGenerator.Condition condition,
+        String operand1,
+        String operand2,
+        String varName,
+        String value,
+        String endLabel
+    ) {
+        var result = generator.compare(condition, LlvmType.Primitive.LONG, operand1, operand2);
+        var resultTrue = labelGenerator.nextLabel();
+        var resultFalse = labelGenerator.nextLabel();
+        generator.branchBool(result, resultTrue, resultFalse);
+        generator.label(resultTrue);
+        generator.store(LlvmType.Primitive.INT, value, new LlvmType.Pointer(LlvmType.Primitive.INT), varName);
+        generator.branchLabel(endLabel);
+        generator.label(resultFalse);
+    }
+
     private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
         switch (instruction.opcode()) {
             case BIPUSH -> stack.push(instruction.constantValue().toString());
             case ICONST_M1 -> stack.push("-1");
-            case ICONST_0 -> stack.push("0");
-            case ICONST_1 -> stack.push("1");
+            case ICONST_0, LCONST_0 -> stack.push("0");
+            case ICONST_1, LCONST_1 -> stack.push("1");
             case ICONST_2 -> stack.push("2");
             case ICONST_3 -> stack.push("3");
             case ICONST_4 -> stack.push("4");
@@ -445,8 +484,6 @@ public class FunctionBuilder {
             case DCONST_0, FCONST_0 -> stack.push("0.0");
             case DCONST_1, FCONST_1 -> stack.push("1.0");
             case FCONST_2 -> stack.push("2.0");
-            case LCONST_0 -> stack.push("0L");
-            case LCONST_1 -> stack.push("1L");
             case LDC, LDC2_W -> stack.push(((ConstantInstruction.LoadConstantInstruction) instruction).constantEntry().constantValue().toString());
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} constant is not supported yet");
         }
@@ -639,13 +676,7 @@ public class FunctionBuilder {
     }
 
     private void loadValue(IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, LoadInstruction instruction) {
-        var local = switch (instruction.opcode()) {
-            case ALOAD_0, DLOAD_0, FLOAD_0, ILOAD_0, LLOAD_0 -> locals.get(0);
-            case ALOAD_1, DLOAD_1, FLOAD_1, ILOAD_1, LLOAD_1 -> locals.get(1);
-            case ALOAD_2, DLOAD_2, FLOAD_2, ILOAD_2, LLOAD_2 -> locals.get(2);
-            case ALOAD_3, DLOAD_3, FLOAD_3, ILOAD_3, LLOAD_3 -> locals.get(3);
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} load is not supported yet");
-        };
+        var local = locals.get(instruction.slot());
         var type = types.get(local.varName());
         if (type == null) {
             var loaded = generator.load(IrTypeMapper.mapType(instruction.typeKind()), LlvmType.Primitive.POINTER, local.varName());
@@ -752,13 +783,7 @@ public class FunctionBuilder {
         IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, StoreInstruction instruction
     ) {
         var reference = stack.pop();
-        var index = switch (instruction.opcode()) {
-            case ASTORE_0, DSTORE_0, FSTORE_0, ISTORE_0, LSTORE_0 -> 0;
-            case ASTORE_1, DSTORE_1, FSTORE_1, ISTORE_1, LSTORE_1 -> 1;
-            case ASTORE_2, DSTORE_2, FSTORE_2, ISTORE_2, LSTORE_2 -> 2;
-            case ASTORE_3, DSTORE_3, FSTORE_3, ISTORE_3, LSTORE_3 -> 3;
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} store currently not supported");
-        };
+        var index = instruction.slot();
         var local = locals.get(index);
 
         var instructionType = IrTypeMapper.mapType(instruction.typeKind());

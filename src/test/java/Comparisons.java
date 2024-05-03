@@ -11,6 +11,9 @@ public final class Comparisons {
         compare(1);
         compareZero(0);
         compareZero(1);
+        compareLong(0);
+        compareLong(1);
+        compareLong(-1);
         return 0;
     }
 
@@ -44,6 +47,18 @@ public final class Comparisons {
         }
         if (value <= 0) {
             printOk(10);
+        }
+    }
+
+    private static void compareLong(long l) {
+        if (l == 0) {
+            printOk(11);
+        }
+        if (l > 0) {
+            printOk(12);
+        }
+        if (l < 0) {
+            printOk(13);
         }
     }
 
