@@ -1,12 +1,12 @@
 %"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %InstanceFields_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
@@ -15,14 +15,14 @@ declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 declare i32 @__gxx_personality_v0(...)
 
 @InstanceFields_vtable_data = global %InstanceFields_vtable_type {
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
-  void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"InstanceFields_<init>"(%InstanceFields* %this) personality ptr @__gxx_personality_v0 {
+define void @"InstanceFields_<init>()V"(%InstanceFields* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 6
-  call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
   %0 = getelementptr inbounds %InstanceFields, %InstanceFields* %this, i64 0, i32 0
   store %InstanceFields_vtable_type* @InstanceFields_vtable_data, %InstanceFields_vtable_type** %0
   ; Line 7
@@ -41,7 +41,7 @@ label0:
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 13
   %1 = alloca %InstanceFields
-  call void @"InstanceFields_<init>"(%InstanceFields* %1)
+  call void @"InstanceFields_<init>()V"(%InstanceFields* %1)
   %local.0 = alloca ptr
   store %InstanceFields* %1, ptr %local.0
   br label %label0

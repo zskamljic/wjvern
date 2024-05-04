@@ -17,9 +17,6 @@ public class IrMethodGenerator {
 
     public IrMethodGenerator(LlvmType returnType, String methodName) {
         this.returnType = returnType;
-        if (methodName.contains("<")) {
-            methodName = STR."\"\{methodName}\"";
-        }
         this.methodName = methodName;
         parameters = new ArrayList<>();
     }

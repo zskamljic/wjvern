@@ -1,22 +1,22 @@
 %"java/lang/Object" = type { ptr }
 %Parent = type { ptr, i32, i32 }
 
-declare void @"Parent_<init>"(%Parent*)
+declare void @"Parent_<init>()V"(%Parent*)
 
-declare void @Parent_parentMethod(%Parent*)
-declare void @Parent_dynamic(%Parent*)
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
+declare void @"Parent_parentMethod()V"(%Parent*)
+declare void @"Parent_dynamic()V"(%Parent*)
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %Inheritance_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
 
 %Inheritance = type { %Inheritance_vtable_type*, i32, i32, i32 }
 
-define void @Inheritance_childMethod(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_childMethod()V"(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 18
   %0 = getelementptr inbounds %Inheritance, %Inheritance* %this, i64 0, i32 3
@@ -25,7 +25,7 @@ label0:
   ret void
 }
 
-define void @Inheritance_dynamic(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_dynamic()V"(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 23
   %0 = getelementptr inbounds %Inheritance, %Inheritance* %this, i64 0, i32 2
@@ -37,17 +37,17 @@ label0:
 declare i32 @__gxx_personality_v0(...)
 
 @Inheritance_vtable_data = global %Inheritance_vtable_type {
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
-  void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
-  void(%Parent*)* @Parent_parentMethod,
-  void(%Inheritance*)* @Inheritance_dynamic,
-  void(%Inheritance*)* @Inheritance_childMethod
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V",
+  void(%Parent*)* @"Parent_parentMethod()V",
+  void(%Inheritance*)* @"Inheritance_dynamic()V",
+  void(%Inheritance*)* @"Inheritance_childMethod()V"
 }
 
-define void @"Inheritance_<init>"(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_<init>()V"(%Inheritance* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 14
-  call void @"Parent_<init>"(%Parent* %this)
+  call void @"Parent_<init>()V"(%Parent* %this)
   %0 = getelementptr inbounds %Inheritance, %Inheritance* %this, i64 0, i32 0
   store %Inheritance_vtable_type* @Inheritance_vtable_data, %Inheritance_vtable_type** %0
   ret void
@@ -56,7 +56,7 @@ label0:
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 27
   %1 = alloca %Inheritance
-  call void @"Inheritance_<init>"(%Inheritance* %1)
+  call void @"Inheritance_<init>()V"(%Inheritance* %1)
   %local.0 = alloca ptr
   store %Inheritance* %1, ptr %local.0
   br label %label0

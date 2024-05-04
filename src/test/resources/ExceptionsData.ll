@@ -1,15 +1,15 @@
 %"java/lang/Object" = type { ptr }
 %CustomException = type { ptr, i32 }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
-declare i32 @CustomException_getCode(%CustomException*)
-declare void @"CustomException_<init>"(%CustomException*, i32)
+declare void @"CustomException_<init>(I)V"(%CustomException*, i32)
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
+declare i32 @"CustomException_getCode()I"(%CustomException*)
 
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %ExceptionsData_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
@@ -36,14 +36,14 @@ declare void @__cxa_end_catch()
 @PCustomException_type_info = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @PCustomException_type_string, i32 0, ptr @CustomException_type_info }
 
 @ExceptionsData_vtable_data = global %ExceptionsData_vtable_type {
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
-  void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ExceptionsData_<init>"(%ExceptionsData* %this) personality ptr @__gxx_personality_v0 {
+define void @"ExceptionsData_<init>()V"(%ExceptionsData* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
-  call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
   %0 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %this, i64 0, i32 0
   store %ExceptionsData_vtable_type* @ExceptionsData_vtable_data, %ExceptionsData_vtable_type** %0
   ret void
@@ -121,7 +121,7 @@ label3:
   %24 = getelementptr inbounds [12 x i8], ptr %12, i64 0, i32 11
   store i8 0, ptr %24
   %25 = alloca [1 x i32]
-  %26 = call i32 @CustomException_getCode(%CustomException* %e)
+  %26 = call i32 @"CustomException_getCode()I"(%CustomException* %e)
   %27 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
   store i32 %26, ptr %27
   %28 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
@@ -136,7 +136,7 @@ label4:
 define void @throwing() personality ptr @__gxx_personality_v0 {
   ; Line 16
   %1 = alloca %CustomException
-  call void @"CustomException_<init>"(%CustomException* %1, i32 5)
+  call void @"CustomException_<init>(I)V"(%CustomException* %1, i32 5)
   %2 = call ptr @__cxa_allocate_exception(i64 8)
   store %CustomException* %1, ptr %2
   call void @__cxa_throw(%CustomException* %2, ptr @PCustomException_type_info, ptr null)

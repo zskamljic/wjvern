@@ -84,7 +84,7 @@ public class IrClassGenerator {
             var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
             var parameterList = generateParameterList(className, method.methodTypeSymbol());
             var functionSignature = new LlvmType.Function(returnType, parameterList);
-            var functionName = STR."@\{Utils.escape(STR."\{className}_\{method.methodName()}")}";
+            var functionName = STR."@\{Utils.methodName(className, method)}";
             vtable.put(
                 method.methodName().stringValue(),
                 method.methodTypeSymbol(),
@@ -128,7 +128,7 @@ public class IrClassGenerator {
 
         var parameterString = String.join(", ", parameters);
 
-        var name = Utils.escape(STR."\{method.owner().name()}_\{method.name()}");
+        var name = Utils.methodName(method);
         var declaration = STR."declare \{type} @\{name}(\{parameterString})";
         methodDependencies.add(declaration);
     }
@@ -307,7 +307,7 @@ public class IrClassGenerator {
         if (method.flags().has(AccessFlag.STATIC)) {
             declaration.append(method.methodName());
         } else {
-            var functionName = Utils.escape(STR."\{parent}_\{method.methodName()}");
+            var functionName = Utils.methodName(parent, method);
             declaration.append(functionName);
         }
         declaration.append("(");

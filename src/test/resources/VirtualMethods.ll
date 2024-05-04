@@ -1,18 +1,18 @@
 %"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %VirtualMethods_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%VirtualMethods*)* }
 
 %VirtualMethods = type { %VirtualMethods_vtable_type*, i32 }
 
-define void @VirtualMethods_doSomething(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"VirtualMethods_doSomething()V"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 4
   %0 = alloca [8 x i8]
@@ -44,15 +44,15 @@ label0:
 declare i32 @__gxx_personality_v0(...)
 
 @VirtualMethods_vtable_data = global %VirtualMethods_vtable_type {
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
-  void(%"java/lang/Object"*)* @"java/lang/Object_finalize",
-  void(%VirtualMethods*)* @VirtualMethods_doSomething
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V",
+  void(%VirtualMethods*)* @"VirtualMethods_doSomething()V"
 }
 
-define void @"VirtualMethods_<init>"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"VirtualMethods_<init>()V"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
-  call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
   %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i64 0, i32 0
   store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %0
   ret void
@@ -61,7 +61,7 @@ label0:
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 9
   %1 = alloca %VirtualMethods
-  call void @"VirtualMethods_<init>"(%VirtualMethods* %1)
+  call void @"VirtualMethods_<init>()V"(%VirtualMethods* %1)
   %local.0 = alloca ptr
   store %VirtualMethods* %1, ptr %local.0
   br label %label0

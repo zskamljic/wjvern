@@ -148,7 +148,7 @@ public class ClassBuilder {
                 case "java/lang/Exception" -> {
                     var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses));
                     generator.injectCode("""
-                        define void @"java/lang/Exception_<init>"(%"java/lang/Exception"*) {
+                        define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
                           ret void
                         }""");
                     generator.setException();

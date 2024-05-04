@@ -1,12 +1,12 @@
 %"java/lang/Object" = type { ptr }
 
-declare void @"java/lang/Object_<init>"(%"java/lang/Object"*)
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
-declare i1 @"java/lang/Object_equals"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %IfStatements_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
@@ -15,14 +15,14 @@ declare void @"java/lang/Object_finalize"(%"java/lang/Object"*)
 declare i32 @__gxx_personality_v0(...)
 
 @IfStatements_vtable_data = global %IfStatements_vtable_type {
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals",
-  void(%"java/lang/Object"*)* @"java/lang/Object_finalize"
+  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"IfStatements_<init>"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_<init>()V"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 1
-  call void @"java/lang/Object_<init>"(%"java/lang/Object"* %this)
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
   %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 0
   store %IfStatements_vtable_type* @IfStatements_vtable_data, %IfStatements_vtable_type** %0
   ; Line 3
@@ -31,7 +31,7 @@ label0:
   ret void
 }
 
-define void @IfStatements_doSomething(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_doSomething()V"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 6
   %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i64 0, i32 2
@@ -58,7 +58,7 @@ label3:
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 15
   %1 = alloca %IfStatements
-  call void @"IfStatements_<init>"(%IfStatements* %1)
+  call void @"IfStatements_<init>()V"(%IfStatements* %1)
   %local.0 = alloca ptr
   store %IfStatements* %1, ptr %local.0
   br label %label0
@@ -66,7 +66,7 @@ label0:
   %2 = load %IfStatements*, ptr %local.0
   %instance = bitcast ptr %2 to %IfStatements*
   ; Line 16
-  call void @IfStatements_doSomething(%IfStatements* %instance)
+  call void @"IfStatements_doSomething()V"(%IfStatements* %instance)
   ; Line 17
   %3 = alloca [6 x i8]
   %4 = getelementptr inbounds [6 x i8], ptr %3, i64 0, i32 0
@@ -90,7 +90,7 @@ label0:
   %15 = load i32, i32* %14
   %16 = call i32 @printf(ptr %3, i32 %15)
   ; Line 18
-  call void @IfStatements_doSomething(%IfStatements* %instance)
+  call void @"IfStatements_doSomething()V"(%IfStatements* %instance)
   ; Line 19
   %17 = alloca [6 x i8]
   %18 = getelementptr inbounds [6 x i8], ptr %17, i64 0, i32 0

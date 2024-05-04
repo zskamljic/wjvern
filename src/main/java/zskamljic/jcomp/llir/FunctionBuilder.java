@@ -61,7 +61,7 @@ public class FunctionBuilder {
     public String generate() {
         var name = method.methodName().stringValue();
         if (!method.flags().has(AccessFlag.STATIC)) {
-            name = STR."\{parent}_\{name}";
+            name = Utils.methodName(parent, method);
         }
 
         var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
@@ -619,7 +619,7 @@ public class FunctionBuilder {
     }
 
     private static String directCall(InvokeInstruction invocation) {
-        return Utils.escape(STR."\{invocation.method().owner().name()}_\{invocation.method().name()}");
+        return Utils.methodName(invocation.method());
     }
 
     private String handleInvokeVirtual(
