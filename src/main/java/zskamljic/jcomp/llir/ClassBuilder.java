@@ -49,7 +49,7 @@ public class ClassBuilder {
         if (classModel.superclass().isPresent()) {
             var superclass = classModel.superclass().get();
             generateSuperClass(superclass, classGenerator, generatedClasses);
-            Optional.ofNullable(generatedClasses.get(superclass))
+            Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
                 .flatMap(IrClassGenerator::getExceptionDefinition)
                 .ifPresent(thrownExceptions::add);
         }
@@ -138,7 +138,7 @@ public class ClassBuilder {
         if (generatedClasses.containsKey(entry.name().stringValue())) return;
 
         ClassBuilder classBuilder;
-        if (entry.name().stringValue().startsWith("java/lang")) {
+        if (entry.name().stringValue().startsWith("java/lang") || entry.name().stringValue().startsWith("jdk/internal")) {
             switch (entry.name().stringValue()) {
                 case "java/lang/Object" -> {
                     var superClass = resolver.resolve(entry.name().stringValue());
