@@ -30,6 +30,7 @@ import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -70,23 +71,32 @@ public class FunctionBuilder {
             returnType,
             name
         );
-        if (!method.flags().has(AccessFlag.STATIC)) {
-            codeGenerator.addParameter("this", new LlvmType.Pointer(new LlvmType.Declared(parent)));
-        }
-        method.code()
+        var labels = method.code()
+            .stream()
+            .flatMap(CompoundElement::elementStream)
+            .filter(Label.class::isInstance)
+            .map(Label.class::cast)
+            .toList();
+        var parameterCandidates = method.code()
             .stream()
             .flatMap(CompoundElement::elementStream)
             .filter(LocalVariable.class::isInstance)
             .map(LocalVariable.class::cast)
-            .skip(method.flags().has(AccessFlag.STATIC) ? 0 : 1)
-            .limit(method.methodTypeSymbol().parameterCount())
-            .forEach(lv -> {
-                var paramType = IrTypeMapper.mapType(lv.typeSymbol());
-                if (paramType instanceof LlvmType.Declared) {
-                    paramType = new LlvmType.Pointer(paramType);
-                }
-                codeGenerator.addParameter(lv.name().stringValue(), paramType);
-            });
+            .filter(v -> labels.getFirst().equals(v.startScope()) && labels.getLast().equals(v.endScope()))
+            .sorted(Comparator.comparing(LocalVariable::slot))
+            .toList();
+
+        var parameterCount = method.methodTypeSymbol().parameterCount();
+        if (!method.flags().has(AccessFlag.STATIC)) parameterCount++;
+
+        for (int i = 0; i < parameterCount; i++) {
+            var parameter = parameterCandidates.get(i);
+            var paramType = IrTypeMapper.mapType(parameter.typeSymbol());
+            if (paramType instanceof LlvmType.Declared) {
+                paramType = new LlvmType.Pointer(paramType);
+            }
+            codeGenerator.addParameter(parameter.name().stringValue(), paramType);
+        }
 
         generateCode(codeGenerator);
 
@@ -584,7 +594,12 @@ public class FunctionBuilder {
                 irType = extendType(irType);
             }
 
-            parameters.addFirst(Map.entry(stack.pop(), irType));
+            var variable = stack.pop();
+            if (types.get(variable) instanceof LlvmType.Pointer p && p.type() == irType) {
+                variable = generator.load(irType, p, variable);
+            }
+
+            parameters.addFirst(Map.entry(variable, irType));
         }
         // Add implicit this
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
