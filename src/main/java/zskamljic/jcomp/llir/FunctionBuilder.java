@@ -348,8 +348,7 @@ public class FunctionBuilder {
                 generator.label(ifFalse);
             }
             case IFEQ -> {
-                var value = stack.pop();
-                value = loadIfNeeded(generator, types, value);
+                var value = loadIfNeeded(generator, types, stack.pop());
 
                 String varName;
                 if (types.get(value) != LlvmType.Primitive.BOOLEAN) {
@@ -363,8 +362,7 @@ public class FunctionBuilder {
                 generator.label(ifFalse);
             }
             case IFNE -> {
-                var value = stack.pop();
-                value = loadIfNeeded(generator, types, value);
+                var value = loadIfNeeded(generator, types, stack.pop());
 
                 String varName;
                 if (types.get(value) != LlvmType.Primitive.BOOLEAN) {
@@ -377,7 +375,24 @@ public class FunctionBuilder {
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
             }
+            case IFNONNULL -> {
+                var value = loadIfNeeded(generator, types, stack.pop());
 
+                var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, value, "null");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
+            case IFNULL -> {
+                var value = loadIfNeeded(generator, types, stack.pop());
+
+                var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, value, "null");
+                var ifTrue = labelGenerator.getLabel(instruction.target());
+                var ifFalse = STR."not_\{ifTrue}";
+                generator.branchBool(varName, ifTrue, ifFalse);
+                generator.label(ifFalse);
+            }
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} jump not supported yet");
         }
     }
@@ -475,6 +490,7 @@ public class FunctionBuilder {
 
     private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
         switch (instruction.opcode()) {
+            case ACONST_NULL -> stack.push("null");
             case BIPUSH -> stack.push(instruction.constantValue().toString());
             case ICONST_M1 -> stack.push("-1");
             case ICONST_0, LCONST_0 -> stack.push("0");
@@ -597,6 +613,9 @@ public class FunctionBuilder {
             var variable = stack.pop();
             if (types.get(variable) instanceof LlvmType.Pointer p && p.type() == irType) {
                 variable = generator.load(irType, p, variable);
+            }
+            if (irType instanceof LlvmType.Declared) {
+                irType = new LlvmType.Pointer(irType);
             }
 
             parameters.addFirst(Map.entry(variable, irType));
