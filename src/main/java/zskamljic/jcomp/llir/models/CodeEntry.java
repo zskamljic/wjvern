@@ -62,7 +62,7 @@ public interface CodeEntry {
         String returnVar,
         LlvmType returnType,
         String functionName,
-        List<Map.Entry<String, LlvmType>> parameters
+        List<Parameter> parameters
     ) implements CodeEntry {
         @Override
         public String toString() {
@@ -72,7 +72,12 @@ public interface CodeEntry {
             }
             var global = !functionName.startsWith("%");
             return STR."\{invocation}call \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
-                .map(p -> STR."\{p.getValue()} \{p.getKey()}")
+                .map(p -> {
+                    if (p.isReturn()) {
+                        return STR."ptr sret(\{p.type()}) \{p.name()}";
+                    }
+                    return STR."\{p.type()} \{p.name()}";
+                })
                 .collect(Collectors.joining(", "))})";
         }
     }
@@ -144,7 +149,7 @@ public interface CodeEntry {
         String returnVar,
         LlvmType returnType,
         String functionName,
-        List<Map.Entry<String, LlvmType>> parameters,
+        List<Parameter> parameters,
         String next,
         String unwind
     ) implements CodeEntry {
@@ -156,7 +161,12 @@ public interface CodeEntry {
             }
             var global = !functionName.startsWith("%");
             return STR."\{invocation}invoke \{returnType} \{global ? '@' : ""}\{functionName}(\{parameters.stream()
-                .map(p -> STR."\{p.getValue()} \{p.getKey()}")
+                .map(p -> {
+                    if (p.isReturn()) {
+                        return STR."ptr sret(\{p.type()}) \{p.name()}";
+                    }
+                    return STR."\{p.type()} \{p.name()}";
+                })
                 .collect(Collectors.joining(", "))}) to label %\{next} unwind label %\{unwind}";
         }
     }

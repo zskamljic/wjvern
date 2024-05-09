@@ -2,6 +2,7 @@ package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.CodeEntry;
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.Parameter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.stream.Collectors;
 public class IrMethodGenerator {
     private final LlvmType returnType;
     private final String methodName;
-    private final List<Map.Entry<String, LlvmType>> parameters;
+    private final List<Parameter> parameters;
     private final List<CodeEntry> codeEntries = new ArrayList<>();
     private final UnnamedGenerator unnamedGenerator = new UnnamedGenerator();
 
@@ -21,83 +22,95 @@ public class IrMethodGenerator {
         parameters = new ArrayList<>();
     }
 
+    void addReturnParameter(LlvmType returnType) {
+        parameters.add(new Parameter(unnamedGenerator.generateNext(), returnType, true));
+    }
+
     void addParameter(String name, LlvmType type) {
-        parameters.add(Map.entry(name, type));
+        parameters.add(new Parameter(name, type));
     }
 
     boolean hasParameter(String name) {
-        return parameters.stream().anyMatch(e -> e.getKey().equals(name));
+        return parameters.stream().anyMatch(e -> e.name().equals(name));
     }
 
     public String alloca(LlvmType type) {
+        incrementIfNeeded(null);
         var varName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Alloca(varName, type));
         return varName;
     }
 
     public void alloca(String varName, LlvmType type) {
-        codeEntries.add(new CodeEntry.Alloca(varName, type));
+        add(new CodeEntry.Alloca(varName, type));
     }
 
     public void bitcast(String newVar, LlvmType oldType, String source, LlvmType newType) {
-        codeEntries.add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
+        add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
     }
 
     public String bitcast(LlvmType oldType, String source, LlvmType newType) {
+        incrementIfNeeded(null);
         var newVar = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
         return newVar;
     }
 
     public String binaryOperator(Operator operator, LlvmType.Primitive type, String operand1, String operand2) {
+        incrementIfNeeded(null);
         var newVar = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.BinaryOperation(newVar, operator, type, operand1, operand2));
         return newVar;
     }
 
     public void branchBool(String value, String ifTrue, String ifFalse) {
-        codeEntries.add(new CodeEntry.Branch.Bool(value, ifTrue, ifFalse));
+        add(new CodeEntry.Branch.Bool(value, ifTrue, ifFalse));
     }
 
     public void branchLabel(String label) {
-        codeEntries.add(new CodeEntry.Branch.Label(label));
+        add(new CodeEntry.Branch.Label(label));
     }
 
     public void comment(String comment) {
-        codeEntries.add(new CodeEntry.Comment(comment));
+        add(new CodeEntry.Comment(comment));
     }
 
     public String compare(Condition condition, LlvmType type, String a, String b) {
+        incrementIfNeeded(null);
         var varName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Compare(varName, condition, type, a, b));
         return varName;
     }
 
     public String floatingPointExtend(String varName) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.FloatingPointExtend(newName, varName));
         return newName;
     }
 
     public String floatingPointToSignedInteger(LlvmType.Primitive source, String value, LlvmType.Primitive target) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.FloatingPointToSignedInt(newName, source, value, target));
         return newName;
     }
 
     public String floatingPointTruncate(LlvmType.Primitive original, String value, LlvmType.Primitive target) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.FloatingPointTruncate(newName, original, value, target));
         return newName;
     }
 
     public String getElementPointer(LlvmType targetType, LlvmType sourceType, String source, String index) {
+        incrementIfNeeded(null);
         var variableName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.GetElementByPointer(variableName, targetType, sourceType, source, index));
         return variableName;
     }
 
-    public String call(LlvmType returnType, String functionName, List<Map.Entry<String, LlvmType>> parameters) {
+    public String call(LlvmType returnType, String functionName, List<Parameter> parameters) {
         String returnVar = null;
         if (returnType != LlvmType.Primitive.VOID) {
             returnVar = unnamedGenerator.generateNext();
@@ -108,14 +121,16 @@ public class IrMethodGenerator {
     }
 
     public String extractValue(String landingPad, int index) {
+        incrementIfNeeded(null);
         var returnVar = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.ExtractValue(returnVar, landingPad, index));
         return returnVar;
     }
 
-    public String invoke(LlvmType returnType, String name, List<Map.Entry<String, LlvmType>> parameters, String next, String unwind) {
+    public String invoke(LlvmType returnType, String name, List<Parameter> parameters, String next, String unwind) {
         String returnVar = null;
         if (returnType != LlvmType.Primitive.VOID) {
+            incrementIfNeeded(null);
             returnVar = unnamedGenerator.generateNext();
         }
 
@@ -124,9 +139,6 @@ public class IrMethodGenerator {
     }
 
     public void label(String label) {
-        if (codeEntries.isEmpty()) {
-            unnamedGenerator.skipAnonymousBlock();
-        }
         if (isNotDone()) {
             branchLabel(label);
         }
@@ -134,6 +146,7 @@ public class IrMethodGenerator {
     }
 
     public String landingPad(List<LlvmType.Global> type) {
+        incrementIfNeeded(null);
         var returnVar = unnamedGenerator.generateNext();
 
         codeEntries.add(new CodeEntry.LandingPad(returnVar, type));
@@ -142,47 +155,51 @@ public class IrMethodGenerator {
     }
 
     public String load(LlvmType targetType, LlvmType sourceType, String variable) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Load(newName, targetType, sourceType, variable));
         return newName;
     }
 
     public void returnValue(String variable) {
-        codeEntries.add(new CodeEntry.Return(returnType, variable));
+        add(new CodeEntry.Return(returnType, variable));
     }
 
     public void returnVoid() {
-        codeEntries.add(new CodeEntry.Return(returnType, null));
+        add(new CodeEntry.Return(returnType, null));
     }
 
     public String signedExtend(LlvmType originalType, String source, LlvmType targetType) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.SignedExtend(newName, originalType, source, targetType));
         return newName;
     }
 
     public String signedToFloatingPoint(LlvmType.Primitive source, String value, LlvmType.Primitive target) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.SignedToFloatingPoint(newName, source, value, target));
         return newName;
     }
 
     public String signedTruncate(LlvmType.Primitive original, String value, LlvmType.Primitive target) {
+        incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.SignedTruncate(newName, original, value, target));
         return newName;
     }
 
     public void store(LlvmType type, String value, LlvmType targetType, String varName) {
-        codeEntries.add(new CodeEntry.Store(type, value, targetType, varName));
+        add(new CodeEntry.Store(type, value, targetType, varName));
     }
 
     public void switchBranch(String variable, String defaultCase, List<Map.Entry<Integer, String>> cases) {
-        codeEntries.add(new CodeEntry.Switch(variable, defaultCase, cases));
+        add(new CodeEntry.Switch(variable, defaultCase, cases));
     }
 
     public void unreachable() {
-        codeEntries.add(new CodeEntry.Unreachable());
+        add(new CodeEntry.Unreachable());
     }
 
     public String generate() {
@@ -220,6 +237,17 @@ public class IrMethodGenerator {
             !(codeEntries.getLast() instanceof CodeEntry.Switch);
     }
 
+    void add(CodeEntry codeEntry) {
+        incrementIfNeeded(codeEntry);
+        codeEntries.add(codeEntry);
+    }
+
+    private void incrementIfNeeded(CodeEntry codeEntry) {
+        if (codeEntries.isEmpty() && !(codeEntry instanceof CodeEntry.Label)) {
+            unnamedGenerator.generateNext();
+        }
+    }
+
     private void writeMethodDefinition(StringBuilder builder) {
         builder.append("define ").append(returnType)
             .append(" @").append(Utils.escape(methodName))
@@ -227,10 +255,12 @@ public class IrMethodGenerator {
 
         var paramString = parameters.stream()
             .map(p -> {
-                var name = p.getKey();
-                var type = p.getValue();
+                var name = p.name();
+                var type = p.type();
                 if (type instanceof LlvmType.Array(var length, var typeName)) {
                     return STR."[\{typeName} x \{length}] %\{name}";
+                } else if (p.isReturn()) {
+                    return STR."ptr sret(\{type}) \{name}";
                 } else {
                     return STR."\{type} %\{name}";
                 }

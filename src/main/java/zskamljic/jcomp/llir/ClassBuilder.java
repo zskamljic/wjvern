@@ -77,6 +77,9 @@ public class ClassBuilder {
 
         for (var field : classModel.fields()) {
             var type = IrTypeMapper.mapType(field.fieldTypeSymbol());
+            if (type instanceof LlvmType.Declared) {
+                type = new LlvmType.Pointer(type);
+            }
 
             classGenerator.addField(field.fieldName().stringValue(), type);
         }
