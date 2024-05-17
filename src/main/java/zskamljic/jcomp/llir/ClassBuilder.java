@@ -13,6 +13,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,7 +57,7 @@ public class ClassBuilder {
 
         var vtable = new Vtable();
         if (current.superclass().isPresent()) {
-            var parentClass = loadClass(current.superclass().get().name().stringValue());
+            var parentClass = loadClass(current.superclass().get());
             if (parentClass.isPresent()) {
                 var parent = generateVtable(parentClass.get(), vtables);
                 vtable.addAll(parent);
@@ -80,12 +81,24 @@ public class ClassBuilder {
         }
         vtables.put(className, vtable);
 
-        for (var entry : classModel.constantPool()) {
-            if (!(entry instanceof ClassEntry classEntry)) continue;
+        for (var entry : current.constantPool()) {
+            if (entry instanceof ClassEntry classEntry) {
+                var referencedClass = loadClass(classEntry);
+                if (referencedClass.isPresent()) {
+                    generateVtable(referencedClass.get(), vtables);
+                } else {
+                    vtables.put(classEntry.name().stringValue(), new Vtable());
+                }
+            } else if (entry instanceof MethodRefEntry method) {
+                var owner = method.owner();
+                if (vtables.containsKey(owner.name().stringValue())) continue;
 
-            var referencedClass = loadClass(classEntry.name().stringValue());
-            if (referencedClass.isPresent()) {
-                generateVtable(referencedClass.get(), vtables);
+                var referencedClass = loadClass(owner);
+                if (referencedClass.isPresent()) {
+                    generateVtable(referencedClass.get(), vtables);
+                } else {
+                    vtables.put(owner.name().stringValue(), new Vtable());
+                }
             }
         }
         return vtable;
@@ -190,9 +203,9 @@ public class ClassBuilder {
     private boolean isUnsupportedFunction(MethodModel method) {
         return "wait".equals(method.methodName().stringValue()) ||
             "toString".equals(method.methodName().stringValue()) ||
-            "getClass".equals(method.methodName().stringValue()) ||
-            "hashCode".equals(method.methodName().stringValue()) ||
-            "clone".equals(method.methodName().stringValue());
+                "getClass".equals(method.methodName().stringValue()) ||
+                "hashCode".equals(method.methodName().stringValue()) ||
+                "clone".equals(method.methodName().stringValue());
     }
 
     private void generateSuperClass(
@@ -210,14 +223,17 @@ public class ClassBuilder {
         Map<String, IrClassGenerator> generatedClasses,
         Map<String, Vtable> vtables
     ) throws IOException {
-        if (generatedClasses.containsKey(entry.name().stringValue())) return;
+        var type = unwrapType(entry);
+        if (type.isPrimitive()) return;
+
+        var name = typeName(type);
+        if (generatedClasses.containsKey(name)) return;
 
         ClassBuilder classBuilder;
-        if (entry.name().stringValue().startsWith("java/lang") || entry.name().stringValue().startsWith("jdk/internal")) {
-            switch (entry.name().stringValue()) {
+        if (resolver.contains(name)) {
+            switch (name) {
                 case "java/lang/Object" -> {
                     var superClass = resolver.resolve(entry.name().stringValue());
-
                     classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
                 }
                 case "java/lang/Exception" -> {
@@ -236,16 +252,39 @@ public class ClassBuilder {
                 }
             }
         } else {
-            var targetClass = loadClass(entry.name().stringValue()).orElseThrow();
+            var targetClass = loadClass(name)
+                .orElseThrow(() -> new IllegalArgumentException(STR."Class \{name} not found."));
             classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 
         generatedClasses.putAll(classBuilder.generate(generatedClasses, vtables));
     }
 
-    // TODO: join with above method
+    private ClassDesc unwrapType(ClassEntry entry) {
+        var type = entry.asSymbol();
+        while (type.isArray()) {
+            type = type.componentType();
+        }
+        return type;
+    }
+
+    private String typeName(ClassDesc type) {
+        var className = type.packageName().replace('.', '/');
+        if (!className.isEmpty()) {
+            className += "/";
+        }
+        return className + type.displayName();
+    }
+
+    // TODO: join with generateClass
+    private Optional<ClassModel> loadClass(ClassEntry classEntry) throws IOException {
+        var type = unwrapType(classEntry);
+        if (type.isPrimitive()) return Optional.empty();
+        return loadClass(typeName(type));
+    }
+
     private Optional<ClassModel> loadClass(String className) throws IOException {
-        if (className.startsWith("java/lang") || className.startsWith("jdk/internal")) {
+        if (resolver.contains(className)) {
             if (className.equals("java/lang/Object")) {
                 return Optional.of(resolver.resolve(className));
             } else {

@@ -54,6 +54,9 @@ public sealed interface LlvmType {
         INT,
         LONG,
 
+        // Unsigned integers
+        USHORT,
+
         // Floating points
         FLOAT,
         DOUBLE;
@@ -78,6 +81,7 @@ public sealed interface LlvmType {
                 case POINTER -> "ptr";
                 case BYTE -> "i8";
                 case SHORT -> "i16";
+                case USHORT -> "u16";
                 case INT -> "i32";
                 case LONG -> "i64";
                 case FLOAT -> "float";

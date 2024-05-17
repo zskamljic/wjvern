@@ -50,4 +50,8 @@ public class StdLibResolver {
             throw new IllegalStateException(e.getMessage());
         }
     }
+
+    public boolean contains(String className) {
+        return Files.exists(output.resolve("classes").resolve(STR."\{className}.class"));
+    }
 }
