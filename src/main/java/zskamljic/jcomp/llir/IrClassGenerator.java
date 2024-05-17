@@ -11,7 +11,6 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
-import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,7 +31,7 @@ public class IrClassGenerator {
     private final Function<LlvmType.Declared, String> definitionMapper;
     private final List<LlvmType.Declared> classDependencies = new ArrayList<>();
     private final Set<String> methodDependencies = new HashSet<>();
-    private final Vtable vtable = new Vtable();
+    private final Map<String,Vtable> vtables;
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
     private final List<MethodModel> parentMethods = new ArrayList<>();
     private final List<MethodModel> methods = new ArrayList<>();
@@ -40,15 +39,20 @@ public class IrClassGenerator {
     private final Set<String> varargs = new HashSet<>();
     private boolean isException;
 
-    public IrClassGenerator(String className, boolean debug, Function<LlvmType.Declared, String> definitionMapper) {
+    public IrClassGenerator(
+        String className,
+        boolean debug,
+        Function<LlvmType.Declared, String> definitionMapper,
+        Map<String,Vtable> vtables
+    ) {
         isException = "java/lang/Throwable".equals(className);
         this.className = className;
         this.debug = debug;
         this.definitionMapper = definitionMapper;
+        this.vtables = vtables;
     }
 
     public void inherit(IrClassGenerator parent) {
-        vtable.addAll(parent.vtable);
         fields.putAll(parent.fields);
         parentMethods.addAll(parent.methods);
         parentMethods.addAll(parent.parentMethods);
@@ -79,18 +83,6 @@ public class IrClassGenerator {
                 .filter(m -> m.flags().has(AccessFlag.NATIVE))
                 .filter(m -> m.methodName().equals(method.methodName()))
                 .anyMatch(m -> hasMatchingLeadParams(m, method));
-
-        if (isVirtual(method)) {
-            var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
-            var parameterList = generateParameterList(className, method.methodTypeSymbol());
-            var functionSignature = new LlvmType.Function(returnType, parameterList);
-            var functionName = STR."@\{Utils.methodName(className, method)}";
-            vtable.put(
-                method.methodName().stringValue(),
-                method.methodTypeSymbol(),
-                new VtableInfo(functionSignature, functionName)
-            );
-        }
 
         method.code()
             .stream()
@@ -141,22 +133,11 @@ public class IrClassGenerator {
         return leftParameters.equals(rightParameters);
     }
 
-    private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
-        var parameterList = new ArrayList<LlvmType>();
-        parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
-        for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
-            var parameter = methodTypeSymbol.parameterType(i);
-            var type = IrTypeMapper.mapType(parameter);
-            parameterList.add(type);
-        }
-        return parameterList;
-    }
-
     public String generate() {
         var builder = new StringBuilder();
 
         var requiredTypes = new HashSet<>(classDependencies);
-        requiredTypes.addAll(vtable.requiredTypes());
+        requiredTypes.addAll(vtables.get(className).requiredTypes());
         requiredTypes.addAll(methodRequiredTypes());
         for (var typeDependency : requiredTypes) {
             if (typeDependency.type().equals(className)) continue;
@@ -189,9 +170,9 @@ public class IrClassGenerator {
         generateType(builder, vtableType);
         builder.append("\n\n");
 
-        if (methods.stream().anyMatch(this::isVirtual)) {
+        if (methods.stream().anyMatch(Utils::isVirtual)) {
             var virtualMethodString = methods.stream()
-                .filter(this::isVirtual)
+                .filter(Utils::isVirtual)
                 .map(this::generateMethod)
                 .collect(Collectors.joining("\n\n"));
             builder.append(virtualMethodString).append("\n\n");
@@ -207,7 +188,7 @@ public class IrClassGenerator {
         builder.append("\n\n");
 
         var methodString = methods.stream()
-            .filter(Predicate.not(this::isVirtual))
+            .filter(Predicate.not(Utils::isVirtual))
             .map(this::generateMethod)
             .collect(Collectors.joining("\n\n"));
         builder.append(methodString).append("\n");
@@ -241,8 +222,8 @@ public class IrClassGenerator {
         var vtableType = new LlvmType.Declared(typeName);
         builder.append(vtableType).append(" = type {");
 
-        if (!vtable.isEmpty()) {
-            var vtableString = vtable.stream()
+        if (!vtables.get(className).isEmpty()) {
+            var vtableString = vtables.get(className).stream()
                 .map(VtableInfo::signature)
                 .map(LlvmType.Pointer::new)
                 .map(Objects::toString)
@@ -252,12 +233,6 @@ public class IrClassGenerator {
 
         builder.append(" }");
         return vtableType;
-    }
-
-    private boolean isVirtual(MethodModel method) {
-        return !method.flags().has(AccessFlag.FINAL) &&
-            !method.flags().has(AccessFlag.STATIC) &&
-            !method.methodName().stringValue().endsWith(">");
     }
 
     private void generateType(StringBuilder builder, LlvmType vtableType) {
@@ -274,8 +249,8 @@ public class IrClassGenerator {
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
-        if (!vtable.isEmpty()) {
-            var mappings = vtable.stream()
+        if (!vtables.get(className).isEmpty()) {
+            var mappings = vtables.get(className).stream()
                 .map(vi -> STR."\{vi.signature()}* \{vi.functionName()}")
                 .collect(Collectors.joining(",\n  "));
             builder.append(" ".repeat(2))
@@ -288,7 +263,7 @@ public class IrClassGenerator {
 
     private String generateMethod(MethodModel method) {
         if (!method.flags().has(AccessFlag.NATIVE)) {
-            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), varargs, vtable, debug);
+            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), varargs, vtables, debug);
             return builder.generate();
         }
 

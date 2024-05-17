@@ -121,12 +121,16 @@ label3:
   %24 = getelementptr inbounds [12 x i8], ptr %12, i64 0, i32 11
   store i8 0, ptr %24
   %25 = alloca [1 x i32]
-  %26 = call i32 @"CustomException_getCode()I"(%CustomException* %e)
-  %27 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
-  store i32 %26, ptr %27
-  %28 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
-  %29 = load i32, i32* %28
-  %30 = call i32 @printf(ptr %12, i32 %29)
+  %26 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %e, i64 0, i32 0
+  %27 = load %ExceptionsData_vtable_type*, %ExceptionsData_vtable_type** %26
+  %28 = getelementptr inbounds %ExceptionsData_vtable_type, %ExceptionsData_vtable_type* %27, i64 0, i32 0
+  %29 = load i32(%CustomException*)*, i32(%CustomException*)** %28
+  %30 = call i32 %29(%CustomException* %e)
+  %31 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
+  store i32 %30, ptr %31
+  %32 = getelementptr inbounds [1 x i32], ptr %25, i64 0, i32 0
+  %33 = load i32, i32* %32
+  %34 = call i32 @printf(ptr %12, i32 %33)
   br label %label4
 label4:
   ; Line 13

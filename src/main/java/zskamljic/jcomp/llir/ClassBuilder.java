@@ -2,6 +2,8 @@ package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.StdLibResolver;
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.Vtable;
+import zskamljic.jcomp.llir.models.VtableInfo;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
@@ -11,10 +13,12 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.constant.MethodTypeDesc;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,10 +27,6 @@ public class ClassBuilder {
     private final Path classPath;
     private final boolean debug;
     private final StdLibResolver resolver;
-
-    public ClassBuilder(StdLibResolver resolver, Path inputClass, boolean debug) throws IOException {
-        this(resolver, ClassFile.of().parse(inputClass), inputClass.getParent(), debug);
-    }
 
     public ClassBuilder(StdLibResolver resolver, ClassModel classModel, Path classPath, boolean debug) {
         this.resolver = resolver;
@@ -37,25 +37,90 @@ public class ClassBuilder {
 
     public Map<String, IrClassGenerator> generate() throws IOException {
         var generated = new HashMap<String, IrClassGenerator>();
-        return generate(generated);
+        var vtables = generateVtables();
+        // TODO: remove when exception compiles
+        vtables.put("java/lang/Exception", new Vtable());
+        return generate(generated, vtables);
     }
 
-    public Map<String, IrClassGenerator> generate(Map<String, IrClassGenerator> generatedClasses) throws IOException {
+    private Map<String, Vtable> generateVtables() throws IOException {
+        var vtables = new HashMap<String, Vtable>();
+        generateVtable(classModel, vtables);
+
+        return vtables;
+    }
+
+    private Vtable generateVtable(ClassModel current, Map<String, Vtable> vtables) throws IOException {
+        var className = current.thisClass().name().stringValue();
+        if (vtables.containsKey(className)) return vtables.get(className);
+
+        var vtable = new Vtable();
+        if (current.superclass().isPresent()) {
+            var parentClass = loadClass(current.superclass().get().name().stringValue());
+            if (parentClass.isPresent()) {
+                var parent = generateVtable(parentClass.get(), vtables);
+                vtable.addAll(parent);
+            }
+        }
+        for (var method : current.methods()) {
+            if (isUnsupportedFunction(method)) {
+                continue;
+            }
+            if (Utils.isVirtual(method)) {
+                var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
+                var parameterList = generateParameterList(className, method.methodTypeSymbol());
+                var functionSignature = new LlvmType.Function(returnType, parameterList);
+                var functionName = STR."@\{Utils.methodName(className, method)}";
+                vtable.put(
+                    method.methodName().stringValue(),
+                    method.methodTypeSymbol(),
+                    new VtableInfo(functionSignature, functionName)
+                );
+            }
+        }
+        vtables.put(className, vtable);
+
+        for (var entry : classModel.constantPool()) {
+            if (!(entry instanceof ClassEntry classEntry)) continue;
+
+            var referencedClass = loadClass(classEntry.name().stringValue());
+            if (referencedClass.isPresent()) {
+                generateVtable(referencedClass.get(), vtables);
+            }
+        }
+        return vtable;
+    }
+
+    private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
+        var parameterList = new ArrayList<LlvmType>();
+        parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
+        for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
+            var parameter = methodTypeSymbol.parameterType(i);
+            var type = IrTypeMapper.mapType(parameter);
+            parameterList.add(type);
+        }
+        return parameterList;
+    }
+
+    public Map<String, IrClassGenerator> generate(
+        Map<String, IrClassGenerator> generatedClasses,
+        Map<String, Vtable> vtables
+    ) throws IOException {
         var className = classModel.thisClass().name().stringValue();
-        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses));
+        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), vtables);
 
         var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
         if (classModel.superclass().isPresent()) {
             var superclass = classModel.superclass().get();
-            generateSuperClass(superclass, classGenerator, generatedClasses);
+            generateSuperClass(superclass, classGenerator, generatedClasses, vtables);
             Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
                 .flatMap(IrClassGenerator::getExceptionDefinition)
                 .ifPresent(thrownExceptions::add);
         }
         for (var entry : classModel.constantPool()) {
             if (entry instanceof ClassEntry classEntry) {
-                generateClass(classEntry, generatedClasses);
+                generateClass(classEntry, generatedClasses, vtables);
                 classGenerator.addRequiredType(new LlvmType.Declared(classEntry.name().stringValue()));
                 Optional.ofNullable(generatedClasses.get(classEntry.name().stringValue()))
                     .flatMap(IrClassGenerator::getExceptionDefinition)
@@ -131,13 +196,20 @@ public class ClassBuilder {
     }
 
     private void generateSuperClass(
-        ClassEntry entry, IrClassGenerator classGenerator, Map<String, IrClassGenerator> generatedClasses
+        ClassEntry entry,
+        IrClassGenerator classGenerator,
+        Map<String, IrClassGenerator> generatedClasses,
+        Map<String, Vtable> vtables
     ) throws IOException {
-        generateClass(entry, generatedClasses);
+        generateClass(entry, generatedClasses, vtables);
         classGenerator.inherit(generatedClasses.get(entry.name().stringValue()));
     }
 
-    private void generateClass(ClassEntry entry, Map<String, IrClassGenerator> generatedClasses) throws IOException {
+    private void generateClass(
+        ClassEntry entry,
+        Map<String, IrClassGenerator> generatedClasses,
+        Map<String, Vtable> vtables
+    ) throws IOException {
         if (generatedClasses.containsKey(entry.name().stringValue())) return;
 
         ClassBuilder classBuilder;
@@ -149,7 +221,7 @@ public class ClassBuilder {
                     classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
                 }
                 case "java/lang/Exception" -> {
-                    var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses));
+                    var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), vtables);
                     generator.injectCode("""
                         define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
                           ret void
@@ -164,14 +236,29 @@ public class ClassBuilder {
                 }
             }
         } else {
-            var tagetPath = classPath.resolve(STR."\{entry.name()}.class");
-            if (!Files.exists(tagetPath)) {
-                System.err.println(STR."Class not found: \{tagetPath}");
-                return;
-            }
-            classBuilder = new ClassBuilder(resolver, tagetPath, debug);
+            var targetClass = loadClass(entry.name().stringValue()).orElseThrow();
+            classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 
-        generatedClasses.putAll(classBuilder.generate(generatedClasses));
+        generatedClasses.putAll(classBuilder.generate(generatedClasses, vtables));
+    }
+
+    // TODO: join with above method
+    private Optional<ClassModel> loadClass(String className) throws IOException {
+        if (className.startsWith("java/lang") || className.startsWith("jdk/internal")) {
+            if (className.equals("java/lang/Object")) {
+                return Optional.of(resolver.resolve(className));
+            } else {
+                System.err.println(STR."Class \{className} not supported");
+                return Optional.empty();
+            }
+        } else {
+            var targetPath = classPath.resolve(STR."\{className}.class");
+            if (!Files.exists(targetPath)) {
+                System.err.println(STR."Class not found: \{targetPath}");
+                return Optional.empty();
+            }
+            return Optional.of(ClassFile.of().parse(targetPath));
+        }
     }
 }

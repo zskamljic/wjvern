@@ -43,15 +43,21 @@ public class FunctionBuilder {
     private final MethodModel method;
     private final List<String> fieldDefinition;
     private final Set<String> varargs;
-    private final Vtable vtable;
+    private final Map<String, Vtable> vtables;
     private final boolean debug;
     private final String parent;
 
-    public FunctionBuilder(MethodModel method, List<String> fieldNames, Set<String> varargs, Vtable vtable, boolean debug) {
+    public FunctionBuilder(
+        MethodModel method,
+        List<String> fieldNames,
+        Set<String> varargs,
+        Map<String, Vtable> vtables,
+        boolean debug
+    ) {
         this.method = method;
         this.fieldDefinition = fieldNames;
         this.varargs = varargs;
-        this.vtable = vtable;
+        this.vtables = vtables;
         this.debug = debug;
         this.parent = method.parent()
             .orElseThrow(() -> new IllegalArgumentException("Method must have a parent class"))
@@ -72,10 +78,7 @@ public class FunctionBuilder {
             returnType = LlvmType.Primitive.VOID;
         }
 
-        var codeGenerator = new IrMethodGenerator(
-            returnType,
-            name
-        );
+        var codeGenerator = new IrMethodGenerator(returnType, name);
         var labels = method.code()
             .stream()
             .flatMap(CompoundElement::elementStream)
@@ -676,7 +679,8 @@ public class FunctionBuilder {
     private String handleInvokeVirtual(
         IrMethodGenerator generator, InvokeInstruction invocation, List<Parameter> parameters
     ) {
-        if (!vtable.containsKey(invocation.name().stringValue(), invocation.typeSymbol())) {
+        var ownerClass = invocation.method().owner().name().stringValue();
+        if (!vtables.get(ownerClass).containsKey(invocation.name().stringValue(), invocation.typeSymbol())) {
             return directCall(invocation); // TODO: invoke correct vtable
         }
 
@@ -690,6 +694,7 @@ public class FunctionBuilder {
         var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
 
         // Get vtable pointer to function
+        var vtable = vtables.get(ownerClass);
         var vtableInfo = vtable.get(invocation.name().stringValue(), invocation.typeSymbol());
         var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, String.valueOf(vtable.index(vtableInfo)));
 

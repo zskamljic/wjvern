@@ -83,26 +83,30 @@ label4:
   %11 = load %CustomException*, ptr %local.0
   %e = bitcast ptr %11 to %CustomException*
   ; Line 6
-  %12 = call i32 @"CustomException_getCode()I"(%CustomException* %e)
+  %12 = getelementptr inbounds %Exceptions, %Exceptions* %e, i64 0, i32 0
+  %13 = load %Exceptions_vtable_type*, %Exceptions_vtable_type** %12
+  %14 = getelementptr inbounds %Exceptions_vtable_type, %Exceptions_vtable_type* %13, i64 0, i32 0
+  %15 = load i32(%CustomException*)*, i32(%CustomException*)** %14
+  %16 = call i32 %15(%CustomException* %e)
   %local.1 = alloca ptr
-  store i32 %12, ptr %local.1
+  store i32 %16, ptr %local.1
   br label %label2
 label2:
   ; Line 8
   call void @print()
   ; Line 6
-  %13 = load i32, ptr %local.1
-  ret i32 %13
+  %17 = load i32, ptr %local.1
+  ret i32 %17
 label3:
-  %14 = load ptr, ptr %1
-  %15 = call ptr @__cxa_begin_catch(ptr %14)
+  %18 = load ptr, ptr %1
+  %19 = call ptr @__cxa_begin_catch(ptr %18)
   ; Line 8
   %local.2 = alloca ptr
-  store ptr %15, ptr %local.2
+  store ptr %19, ptr %local.2
   call void @print()
   ; Line 9
-  %16 = load ptr, ptr %local.2
-  call void @__cxa_throw(ptr %16, ptr null, ptr null)
+  %20 = load ptr, ptr %local.2
+  call void @__cxa_throw(ptr %20, ptr null, ptr null)
   unreachable
 }
 

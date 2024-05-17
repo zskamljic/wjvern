@@ -5,6 +5,8 @@ import zskamljic.jcomp.llir.ClassBuilder;
 import zskamljic.jcomp.llir.IrClassGenerator;
 
 import java.io.IOException;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +33,7 @@ public class Main {
                 Files.createDirectory(buildDir);
             }
             var resolver = new StdLibResolver(Path.of("stdlib"));
-            var generator = new ClassBuilder(resolver, options.inputClass, options.debug);
+            var generator = new ClassBuilder(resolver, ClassFile.of().parse(options.inputClass), options.inputClass.getParent(), options.debug);
 
             var generatedFiles = generator.generate();
 

@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import zskamljic.jcomp.llir.ClassBuilder;
 
 import java.io.IOException;
+import java.lang.classfile.ClassFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -47,7 +48,8 @@ class IrCodeTest {
         "ReturnReference"
     })
     void generatesValid(String fileName) throws IOException {
-        var classGenerator = new ClassBuilder(resolver, Path.of(STR."target/test-classes/\{fileName}.class"), true);
+        var classPath = Path.of("target/test-classes/");
+        var classGenerator = new ClassBuilder(resolver, ClassFile.of().parse(classPath.resolve(STR."\{fileName}.class")), classPath, true);
 
         if (!Files.exists(BUILD_PATH)) {
             Files.createDirectory(BUILD_PATH);

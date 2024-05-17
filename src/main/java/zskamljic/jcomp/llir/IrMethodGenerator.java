@@ -3,6 +3,7 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.llir.models.CodeEntry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
+import zskamljic.jcomp.llir.models.Vtable;
 
 import java.util.ArrayList;
 import java.util.List;
