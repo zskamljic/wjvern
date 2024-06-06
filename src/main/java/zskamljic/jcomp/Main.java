@@ -6,7 +6,6 @@ import zskamljic.jcomp.llir.IrClassGenerator;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
-import java.lang.classfile.ClassModel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
@@ -104,6 +104,22 @@ public class Main {
             .map(buildDir::resolve)
             .map(Objects::toString)
             .forEach(command::add);
+
+        Stream.of("stock_native.ll")
+            .forEach(name -> {
+                try (var input = Main.class.getResourceAsStream(STR."/\{name}")) {
+                    if (input == null) throw new IllegalStateException(STR."Unable to load \{name}");
+
+                    var output = buildDir.resolve(name);
+                    try (var outputStream = Files.newOutputStream(output)) {
+                        input.transferTo(outputStream);
+                    }
+                    command.add(output.toString());
+                } catch (IOException e) {
+                    throw new IllegalStateException(STR."Unable to load \{name}");
+                }
+            });
+
         return new ProcessBuilder(command.toArray(new String[0]));
     }
 }

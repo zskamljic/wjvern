@@ -2,13 +2,14 @@
 
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
+declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
-%ReturnReference_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%ReturnReference*)* }
+%ReturnReference_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%ReturnReference*)* }
 
 %ReturnReference = type { %ReturnReference_vtable_type* }
 
@@ -21,6 +22,7 @@ label0:
 declare i32 @__gxx_personality_v0(...)
 
 @ReturnReference_vtable_data = global %ReturnReference_vtable_type {
+  i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V",
   i32(%ReturnReference*)* @"ReturnReference_returnValue()I"
@@ -57,7 +59,7 @@ label0:
   ; Line 12
   %3 = getelementptr inbounds %ReturnReference, %ReturnReference* %instance, i64 0, i32 0
   %4 = load %ReturnReference_vtable_type*, %ReturnReference_vtable_type** %3
-  %5 = getelementptr inbounds %ReturnReference_vtable_type, %ReturnReference_vtable_type* %4, i64 0, i32 2
+  %5 = getelementptr inbounds %ReturnReference_vtable_type, %ReturnReference_vtable_type* %4, i64 0, i32 3
   %6 = load i32(%ReturnReference*)*, i32(%ReturnReference*)** %5
   %7 = call i32 %6(%ReturnReference* %instance)
   ret i32 %7

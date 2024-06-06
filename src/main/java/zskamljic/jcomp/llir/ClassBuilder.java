@@ -204,7 +204,6 @@ public class ClassBuilder {
         return "wait".equals(method.methodName().stringValue()) ||
             "toString".equals(method.methodName().stringValue()) ||
                 "getClass".equals(method.methodName().stringValue()) ||
-                "hashCode".equals(method.methodName().stringValue()) ||
                 "clone".equals(method.methodName().stringValue());
     }
 

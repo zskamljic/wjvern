@@ -6,13 +6,14 @@ declare void @"CustomException_<init>(I)V"(%CustomException*, i32)
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"CustomException_getCode()I"(%CustomException*)
 
+declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
-%Exceptions_vtable_type = type { i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%Exceptions_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %Exceptions = type { %Exceptions_vtable_type* }
 
@@ -37,6 +38,7 @@ declare void @__cxa_end_catch()
 @PCustomException_type_info = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @PCustomException_type_string, i32 0, ptr @CustomException_type_info }
 
 @Exceptions_vtable_data = global %Exceptions_vtable_type {
+  i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }

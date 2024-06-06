@@ -52,6 +52,9 @@ public class StdLibResolver {
     }
 
     public boolean contains(String className) {
+        if (!Files.isDirectory(output)) {
+            extractModule();
+        }
         return Files.exists(output.resolve("classes").resolve(STR."\{className}.class"));
     }
 }
