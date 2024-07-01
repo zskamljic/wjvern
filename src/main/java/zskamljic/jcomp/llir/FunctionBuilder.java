@@ -798,7 +798,8 @@ public class FunctionBuilder {
         IrMethodGenerator generator, InvokeInstruction invocation, List<Parameter> parameters
     ) {
         var ownerClass = invocation.method().owner().name().stringValue();
-        if (!functionRegistry.getVtable(ownerClass).containsKey(invocation.name().stringValue(), invocation.typeSymbol())) {
+        var virtualInfo = functionRegistry.getVirtual(ownerClass, invocation.name().stringValue(), invocation.typeSymbol());
+        if (virtualInfo.isEmpty()) {
             return directCall(invocation);
         }
 
@@ -812,9 +813,8 @@ public class FunctionBuilder {
         var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
 
         // Get vtable pointer to function
-        var vtable = functionRegistry.getVtable(ownerClass);
-        var vtableInfo = vtable.get(invocation.name().stringValue(), invocation.typeSymbol());
-        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, List.of("0", String.valueOf(vtable.index(vtableInfo))));
+        var vtableInfo = virtualInfo.get();
+        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, List.of("0", String.valueOf(vtableInfo.index())));
 
         var function = vtableInfo.signature();
         var functionPointer = new LlvmType.Pointer(function);

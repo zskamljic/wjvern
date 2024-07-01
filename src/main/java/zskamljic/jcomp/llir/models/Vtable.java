@@ -1,53 +1,45 @@
 package zskamljic.jcomp.llir.models;
 
 import java.lang.constant.MethodTypeDesc;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class Vtable {
-    private final List<VtableInfo> infoList = new ArrayList<>();
     private final Map<String, VtableInfo> vtableEntries = new HashMap<>();
 
     public void addAll(Vtable vtable) {
-        infoList.addAll(vtable.infoList);
         vtableEntries.putAll(vtable.vtableEntries);
     }
 
-    public void put(String name, MethodTypeDesc methodTypeDesc, VtableInfo vtableInfo) {
-        var previous = vtableEntries.put(name + methodTypeDesc.descriptorString(), vtableInfo);
+    public void put(String name, MethodTypeDesc methodTypeDesc, LlvmType.Function functionSignature, String functionName) {
+        var previous = vtableEntries.get(name + methodTypeDesc.descriptorString());
         if (previous != null) {
-            var index = infoList.indexOf(previous);
-            infoList.set(index, vtableInfo);
+            var index = previous.index();
+            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, index));
         } else {
-            infoList.add(vtableInfo);
+            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, vtableEntries.size()));
         }
     }
 
     public boolean isEmpty() {
-        return infoList.isEmpty();
+        return vtableEntries.isEmpty();
     }
 
-    public boolean containsKey(String name, MethodTypeDesc methodTypeDesc) {
-        return vtableEntries.containsKey(name + methodTypeDesc.descriptorString());
-    }
-
-    public VtableInfo get(String name, MethodTypeDesc methodTypeDesc) {
-        return vtableEntries.get(name + methodTypeDesc.descriptorString());
-    }
-
-    public int index(VtableInfo vtableInfo) {
-        return infoList.indexOf(vtableInfo);
+    public Optional<VtableInfo> get(String name, MethodTypeDesc methodTypeDesc) {
+        return Optional.ofNullable(vtableEntries.get(name + methodTypeDesc.descriptorString()));
     }
 
     public Stream<VtableInfo> stream() {
-        return infoList.stream();
+        return vtableEntries.values().stream().sorted(Comparator.comparing(VtableInfo::index));
     }
 
     public List<LlvmType.Declared> requiredTypes() {
-        return infoList.stream()
+        return vtableEntries.values()
+            .stream()
             .map(VtableInfo::signature)
             .<LlvmType>mapMulti((vi, c) -> {
                 c.accept(vi.returnType());

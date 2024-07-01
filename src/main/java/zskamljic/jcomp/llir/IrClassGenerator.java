@@ -135,7 +135,7 @@ public class IrClassGenerator {
         var builder = new StringBuilder();
 
         var requiredTypes = new HashSet<>(classDependencies);
-        requiredTypes.addAll(functionRegistry.getVtable(className).requiredTypes());
+        requiredTypes.addAll(functionRegistry.getRequiredTypes(className));
         requiredTypes.addAll(methodRequiredTypes());
         for (var typeDependency : requiredTypes) {
             if (typeDependency.type().equals(className)) continue;
@@ -221,13 +221,13 @@ public class IrClassGenerator {
         var vtableType = new LlvmType.Declared(typeName);
         builder.append(vtableType).append(" = type {");
 
-        if (!functionRegistry.getVtable(className).isEmpty()) {
-            var vtableString = functionRegistry.getVtable(className)
-                .stream()
+        var virtualFunctions = functionRegistry.getVirtualFunctions(className);
+        if (!virtualFunctions.isEmpty()) {
+            var vtableString = virtualFunctions.stream()
                 .map(VtableInfo::signature)
                 .map(LlvmType.Pointer::new)
                 .map(Objects::toString)
-                .collect(Collectors.joining(", "));
+                    .collect(Collectors.joining(", "));
             builder.append(" ").append(vtableString);
         }
 
@@ -249,8 +249,9 @@ public class IrClassGenerator {
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
-        if (!functionRegistry.getVtable(className).isEmpty()) {
-            var mappings = functionRegistry.getVtable(className).stream()
+        var virtualFunctions = functionRegistry.getVirtualFunctions(className);
+        if (!virtualFunctions.isEmpty()) {
+            var mappings = virtualFunctions.stream()
                 .map(vi -> STR."\{vi.signature()}* \{vi.functionName()}")
                 .collect(Collectors.joining(",\n  "));
             builder.append(" ".repeat(2))

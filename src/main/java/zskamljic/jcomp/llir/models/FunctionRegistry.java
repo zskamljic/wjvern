@@ -34,10 +34,18 @@ public class FunctionRegistry {
         methods.put("java/lang/Exception", new HashSet<>());
     }
 
-    // TODO: create direct methods to optionally access vtable items directly
-    @Deprecated
-    public Vtable getVtable(String className) {
-        return vtables.get(className);
+    public List<LlvmType.Declared> getRequiredTypes(String className) {
+        return vtables.get(className).requiredTypes();
+    }
+
+    public List<VtableInfo> getVirtualFunctions(String className) {
+        return vtables.get(className)
+            .stream()
+            .toList();
+    }
+
+    public Optional<VtableInfo> getVirtual(String ownerClass, String functionName, MethodTypeDesc methodTypeDesc) {
+        return vtables.get(ownerClass).get(functionName, methodTypeDesc);
     }
 
     public boolean isNative(String className, MemberRefEntry methodRefEntry) {
@@ -61,7 +69,7 @@ public class FunctionRegistry {
 
     private Vtable generateVtable(ClassModel current) throws IOException {
         var className = current.thisClass().name().stringValue();
-        if (vtables.containsKey(className)) return getVtable(className);
+        if (vtables.containsKey(className)) return vtables.get(className);
 
         var vtable = new Vtable();
         if (current.superclass().isPresent()) {
@@ -83,7 +91,8 @@ public class FunctionRegistry {
                 vtable.put(
                     method.methodName().stringValue(),
                     method.methodTypeSymbol(),
-                    new VtableInfo(functionSignature, functionName)
+                    functionSignature,
+                    functionName
                 );
             }
             methods.computeIfAbsent(className, ignored -> new HashSet<>()).add(method);
