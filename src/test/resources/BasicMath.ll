@@ -21,13 +21,17 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"BasicMath_<init>()V"(%BasicMath* %this) personality ptr @__gxx_personality_v0 {
+define void @"BasicMath_<init>()V"(%BasicMath* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %BasicMath, %BasicMath* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %BasicMath, %BasicMath* %local.0, i32 0, i32 0
   store %BasicMath_vtable_type* @BasicMath_vtable_data, %BasicMath_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -36,23 +40,23 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store float 1.0, ptr %local.0
   br label %label0
 label0:
-  %f = bitcast ptr %local.0 to float*
+  ; %f entered scope under name %local.0
   ; Line 4
-  %1 = load float, float* %f
+  %1 = load float, float* %local.0
   %2 = fadd float %1, 2.0
-  store float %2, float* %f
+  store float %2, float* %local.0
   ; Line 5
-  %3 = load float, float* %f
+  %3 = load float, float* %local.0
   %4 = fdiv float %3, 3.0
-  store float %4, float* %f
+  store float %4, float* %local.0
   ; Line 6
-  %5 = load float, float* %f
+  %5 = load float, float* %local.0
   %6 = fmul float %5, 4.0
-  store float %6, float* %f
+  store float %6, float* %local.0
   ; Line 7
-  %7 = load float, float* %f
+  %7 = load float, float* %local.0
   %8 = fsub float %7, 1.0
-  store float %8, float* %f
+  store float %8, float* %local.0
   ; Line 8
   %9 = alloca %java_Array
   %10 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 0
@@ -85,7 +89,7 @@ label0:
   %29 = getelementptr inbounds %java_Array, %java_Array* %25, i32 0, i32 1
   %30 = load ptr, ptr %29
   %31 = getelementptr inbounds float, ptr %30, i32 0
-  %32 = load float, float* %f
+  %32 = load float, float* %local.0
   store float %32, ptr %31
   %33 = getelementptr inbounds %java_Array, ptr %25, i32 0, i32 1
   %34 = load ptr, ptr %33
@@ -100,23 +104,23 @@ label0:
   store double 1.0, ptr %local.1
   br label %label2
 label2:
-  %d = bitcast ptr %local.1 to double*
+  ; %d entered scope under name %local.1
   ; Line 11
-  %41 = load double, double* %d
+  %41 = load double, double* %local.1
   %42 = fadd double %41, 2.0
-  store double %42, double* %d
+  store double %42, double* %local.1
   ; Line 12
-  %43 = load double, double* %d
+  %43 = load double, double* %local.1
   %44 = fdiv double %43, 3.0
-  store double %44, double* %d
+  store double %44, double* %local.1
   ; Line 13
-  %45 = load double, double* %d
+  %45 = load double, double* %local.1
   %46 = fmul double %45, 4.0
-  store double %46, double* %d
+  store double %46, double* %local.1
   ; Line 14
-  %47 = load double, double* %d
+  %47 = load double, double* %local.1
   %48 = fsub double %47, 1.0
-  store double %48, double* %d
+  store double %48, double* %local.1
   ; Line 15
   %49 = alloca %java_Array
   %50 = getelementptr inbounds %java_Array, %java_Array* %49, i32 0, i32 0
@@ -149,7 +153,7 @@ label2:
   %69 = getelementptr inbounds %java_Array, %java_Array* %65, i32 0, i32 1
   %70 = load ptr, ptr %69
   %71 = getelementptr inbounds double, ptr %70, i32 0
-  %72 = load double, double* %d
+  %72 = load double, double* %local.1
   store double %72, ptr %71
   %73 = getelementptr inbounds %java_Array, ptr %65, i32 0, i32 1
   %74 = load ptr, ptr %73
@@ -163,26 +167,31 @@ label2:
   store i32 1, ptr %local.3
   br label %label3
 label3:
-  %i = bitcast ptr %local.3 to i32*
+  ; %i entered scope under name %local.3
   ; Line 18
-  %80 = load i32, i32* %i
+  %80 = load i32, i32* %local.3
   %81 = add i32 %80, 2
-  store i32 %81, i32* %i
+  store i32 %81, i32* %local.3
   ; Line 19
-  %82 = load i32, i32* %i
+  %82 = load i32, i32* %local.3
   %83 = sdiv i32 %82, 3
-  store i32 %83, i32* %i
+  store i32 %83, i32* %local.3
   ; Line 20
-  %84 = load i32, i32* %i
+  %84 = load i32, i32* %local.3
   %85 = mul i32 %84, 4
-  store i32 %85, i32* %i
+  store i32 %85, i32* %local.3
   ; Line 21
-  %86 = load i32, i32* %i
+  %86 = load i32, i32* %local.3
   %87 = add i32 %86, -1
-  store i32 %87, i32* %i
+  store i32 %87, i32* %local.3
   ; Line 22
-  %88 = load i32, i32* %i
+  %88 = load i32, i32* %local.3
   ret i32 %88
+label1:
+  ; %f exited scope under name %local.0
+  ; %d exited scope under name %local.1
+  ; %i exited scope under name %local.3
+  unreachable
 }
 
 declare i32 @printf(%java_Array, ...) nounwind

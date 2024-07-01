@@ -21,20 +21,25 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Switch_<init>()V"(%Switch* %this) personality ptr @__gxx_personality_v0 {
+define void @"Switch_<init>()V"(%Switch* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Switch, %Switch* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %Switch, %Switch* %local.0, i32 0, i32 0
   store %Switch_vtable_type* @Switch_vtable_data, %Switch_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define i32 @switchFunc(i32 %value) personality ptr @__gxx_personality_v0 {
+define i32 @switchFunc(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %value entered scope under name %local.0
   ; Line 3
   %0 = alloca ptr
-  switch i32 %value, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
+  switch i32 %local.0, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
 label2:
   ; Line 4
   store i64 5, ptr %0
@@ -60,6 +65,9 @@ label7:
   %1 = load i64, i64* %0
   %2 = trunc i64 %1 to i32
   ret i32 %2
+label1:
+  ; %value exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {

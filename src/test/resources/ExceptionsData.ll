@@ -42,13 +42,17 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ExceptionsData_<init>()V"(%ExceptionsData* %this) personality ptr @__gxx_personality_v0 {
+define void @"ExceptionsData_<init>()V"(%ExceptionsData* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %local.0, i32 0, i32 0
   store %ExceptionsData_vtable_type* @ExceptionsData_vtable_data, %ExceptionsData_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -94,87 +98,88 @@ label2:
   call void @__cxa_end_catch()
   br label %label3
 label3:
-  %11 = load %CustomException*, ptr %local.0
-  %e = bitcast ptr %11 to %CustomException*
+  ; %e entered scope under name %local.0
   ; Line 11
-  %12 = alloca %java_Array
-  %13 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 0
-  store i32 12, i32* %13
-  %14 = alloca i8, i32 12
-  %15 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  store ptr %14, ptr %15
-  %16 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %17 = load ptr, ptr %16
-  %18 = getelementptr inbounds i8, ptr %17, i32 0
-  store i8 67, ptr %18
-  %19 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %20 = load ptr, ptr %19
-  %21 = getelementptr inbounds i8, ptr %20, i32 1
-  store i8 97, ptr %21
-  %22 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %23 = load ptr, ptr %22
-  %24 = getelementptr inbounds i8, ptr %23, i32 2
-  store i8 117, ptr %24
-  %25 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %26 = load ptr, ptr %25
-  %27 = getelementptr inbounds i8, ptr %26, i32 3
-  store i8 103, ptr %27
-  %28 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %29 = load ptr, ptr %28
-  %30 = getelementptr inbounds i8, ptr %29, i32 4
-  store i8 104, ptr %30
-  %31 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %32 = load ptr, ptr %31
-  %33 = getelementptr inbounds i8, ptr %32, i32 5
-  store i8 116, ptr %33
-  %34 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %35 = load ptr, ptr %34
-  %36 = getelementptr inbounds i8, ptr %35, i32 6
-  store i8 58, ptr %36
-  %37 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %38 = load ptr, ptr %37
-  %39 = getelementptr inbounds i8, ptr %38, i32 7
-  store i8 32, ptr %39
-  %40 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %41 = load ptr, ptr %40
-  %42 = getelementptr inbounds i8, ptr %41, i32 8
-  store i8 37, ptr %42
-  %43 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %44 = load ptr, ptr %43
-  %45 = getelementptr inbounds i8, ptr %44, i32 9
-  store i8 100, ptr %45
-  %46 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %47 = load ptr, ptr %46
-  %48 = getelementptr inbounds i8, ptr %47, i32 10
-  store i8 10, ptr %48
-  %49 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %50 = load ptr, ptr %49
-  %51 = getelementptr inbounds i8, ptr %50, i32 11
-  store i8 0, ptr %51
-  %52 = alloca %java_Array
-  %53 = getelementptr inbounds %java_Array, %java_Array* %52, i32 0, i32 0
-  store i32 1, i32* %53
-  %54 = alloca i32, i32 1
-  %55 = getelementptr inbounds %java_Array, %java_Array* %52, i32 0, i32 1
-  store ptr %54, ptr %55
-  %56 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %e, i32 0, i32 0
+  %11 = alloca %java_Array
+  %12 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 0
+  store i32 12, i32* %12
+  %13 = alloca i8, i32 12
+  %14 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  store ptr %13, ptr %14
+  %15 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %16 = load ptr, ptr %15
+  %17 = getelementptr inbounds i8, ptr %16, i32 0
+  store i8 67, ptr %17
+  %18 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %19 = load ptr, ptr %18
+  %20 = getelementptr inbounds i8, ptr %19, i32 1
+  store i8 97, ptr %20
+  %21 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %22 = load ptr, ptr %21
+  %23 = getelementptr inbounds i8, ptr %22, i32 2
+  store i8 117, ptr %23
+  %24 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %25 = load ptr, ptr %24
+  %26 = getelementptr inbounds i8, ptr %25, i32 3
+  store i8 103, ptr %26
+  %27 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %28 = load ptr, ptr %27
+  %29 = getelementptr inbounds i8, ptr %28, i32 4
+  store i8 104, ptr %29
+  %30 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %31 = load ptr, ptr %30
+  %32 = getelementptr inbounds i8, ptr %31, i32 5
+  store i8 116, ptr %32
+  %33 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %34 = load ptr, ptr %33
+  %35 = getelementptr inbounds i8, ptr %34, i32 6
+  store i8 58, ptr %35
+  %36 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %37 = load ptr, ptr %36
+  %38 = getelementptr inbounds i8, ptr %37, i32 7
+  store i8 32, ptr %38
+  %39 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %40 = load ptr, ptr %39
+  %41 = getelementptr inbounds i8, ptr %40, i32 8
+  store i8 37, ptr %41
+  %42 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %43 = load ptr, ptr %42
+  %44 = getelementptr inbounds i8, ptr %43, i32 9
+  store i8 100, ptr %44
+  %45 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %46 = load ptr, ptr %45
+  %47 = getelementptr inbounds i8, ptr %46, i32 10
+  store i8 10, ptr %47
+  %48 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
+  %49 = load ptr, ptr %48
+  %50 = getelementptr inbounds i8, ptr %49, i32 11
+  store i8 0, ptr %50
+  %51 = alloca %java_Array
+  %52 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 0
+  store i32 1, i32* %52
+  %53 = alloca i32, i32 1
+  %54 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
+  store ptr %53, ptr %54
+  %55 = load %CustomException*, %CustomException** %local.0
+  %56 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %55, i32 0, i32 0
   %57 = load %ExceptionsData_vtable_type*, %ExceptionsData_vtable_type** %56
   %58 = getelementptr inbounds %ExceptionsData_vtable_type, %ExceptionsData_vtable_type* %57, i32 0, i32 0
   %59 = load i32(%CustomException*)*, i32(%CustomException*)** %58
-  %60 = call i32 %59(%CustomException* %e)
-  %61 = getelementptr inbounds %java_Array, %java_Array* %52, i32 0, i32 1
+  %60 = call i32 %59(%CustomException* %55)
+  %61 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
   %62 = load ptr, ptr %61
   %63 = getelementptr inbounds i32, ptr %62, i32 0
   store i32 %60, ptr %63
-  %64 = getelementptr inbounds %java_Array, ptr %52, i32 0, i32 1
+  %64 = getelementptr inbounds %java_Array, ptr %51, i32 0, i32 1
   %65 = load ptr, ptr %64
   %66 = getelementptr inbounds %java_Array, ptr %65, i32 0
   %67 = load i32, i32* %66
-  %68 = getelementptr inbounds %java_Array, ptr %12, i32 0, i32 1
+  %68 = getelementptr inbounds %java_Array, ptr %11, i32 0, i32 1
   %69 = load ptr, ptr %68
   %70 = call i32 @printf(ptr %69, i32 %67)
   br label %label4
 label4:
+  ; %e exited scope under name %local.0
   ; Line 13
   ret void
 }

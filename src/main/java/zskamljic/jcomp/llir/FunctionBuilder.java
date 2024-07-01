@@ -5,7 +5,6 @@ import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
 
-import java.awt.Toolkit;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
@@ -111,7 +110,7 @@ public class FunctionBuilder {
             if (paramType instanceof LlvmType.Declared) {
                 paramType = new LlvmType.Pointer(paramType);
             }
-            codeGenerator.addParameter(parameter.name().stringValue(), paramType);
+            codeGenerator.addParameter(STR."local.\{i}", paramType);
         }
 
         generateCode(codeGenerator);
@@ -132,7 +131,6 @@ public class FunctionBuilder {
         var switchStates = new SwitchStates(generator, types);
         String currentLabel = null;
         for (var element : code) {
-            var line = STR."\{method.methodName()}: \{element}";
             switch (element) {
                 case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, locals, as);
                 case ArrayLoadInstruction al -> handleArrayLoad(generator, stack, types, locals, al);
@@ -140,10 +138,10 @@ public class FunctionBuilder {
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case ConvertInstruction c -> handleConvertInstruction(generator, stack, types, locals, c);
                 case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
-                case FieldInstruction f -> handleFieldInstruction(generator, stack, types, f);
+                case FieldInstruction f -> handleFieldInstruction(generator, stack, types, locals, f);
                 case IncrementInstruction i -> handleIncrement(generator, locals, i);
                 case InvokeInstruction i -> {
-                    handleInvoke(generator, stack, types, labelGenerator, exceptionState, i);
+                    handleInvoke(generator, stack, types, locals, labelGenerator, exceptionState, i);
                     if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
                         addInitVtable(generator);
                     }
@@ -152,10 +150,7 @@ public class FunctionBuilder {
                     currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, switchStates, label);
                 case LineNumber l -> generator.comment(STR."Line \{l.line()}");
                 case LoadInstruction l -> loadValue(generator, stack, locals, types, l);
-                case LocalVariable v -> {
-                    types.put(STR."%\{v.name().stringValue()}", IrTypeMapper.mapType(v.typeSymbol()));
-                    locals.register(v);
-                }
+                case LocalVariable v -> locals.register(v);
                 case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n);
                 case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(generator, stack, types, locals, a);
                 case NewReferenceArrayInstruction a -> handleCreateRefArray(generator, stack, types, locals, a);
@@ -166,12 +161,8 @@ public class FunctionBuilder {
                 case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, switchStates, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> {
-                    if (debug) Toolkit.getDefaultToolkit().beep();
-                    line += ": not handled";
+                    if (debug) System.out.println(STR."\{method.methodName()}: \{element}: not handled");
                 }
-            }
-            if (debug) {
-                System.out.println(line);
             }
         }
         if (debug && !stack.isEmpty()) {
@@ -215,7 +206,7 @@ public class FunctionBuilder {
 
     private void addInitVtable(IrMethodGenerator generator) {
         var parentClass = new LlvmType.Declared(parent);
-        var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%this", List.of("0", "0"));
+        var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%local.0", List.of("0", "0"));
         var vtableType = new LlvmType.Pointer(new LlvmType.Declared(STR."\{parent}_vtable_type"));
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
         generator.store(vtableType, STR."@\{parent}_vtable_data", vtableTypePointer, vtablePointer);
@@ -470,7 +461,10 @@ public class FunctionBuilder {
     }
 
     private String loadIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, Locals locals, String value) {
-        if (types.get(value) instanceof LlvmType.Pointer p) {
+        var type = types.get(value);
+        if (!(type instanceof LlvmType.Pointer(LlvmType.Declared _)) &&
+            type instanceof LlvmType.Pointer p &&
+            !generator.hasParameter(value.substring(1))) {
             var loadedType = p.type();
             if (locals.contains(value) && (p.type() instanceof LlvmType.Array || p.type() instanceof LlvmType.SizedArray)) {
                 loadedType = new LlvmType.Pointer(p.type());
@@ -633,13 +627,14 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, FieldInstruction instruction) {
+    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, Locals locals, FieldInstruction instruction) {
         if (instruction.opcode() == Opcode.GETFIELD) {
             var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
 
+            var source = loadIfNeeded(generator, types, locals, stack.pop());
             var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
             var varName = generator.getElementPointer(
-                parentType, new LlvmType.Pointer(parentType), stack.pop(),
+                parentType, new LlvmType.Pointer(parentType), source,
                 List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1))
             );
 
@@ -668,10 +663,10 @@ public class FunctionBuilder {
             case IINC -> locals.get(instruction.slot());
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
-        if (source.type() instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
-            var valueName = generator.load(p, source.type(), source.varName());
+        if (source.type() instanceof LlvmType.Primitive p) {
+            var valueName = generator.load(p, new LlvmType.Pointer(source.type()), source.varName());
             var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
-            generator.store(p, updatedName, source.type(), source.varName());
+            generator.store(p, updatedName, new LlvmType.Pointer(source.type()), source.varName());
         } else {
             throw new IllegalStateException("Local variable attempted to increment non-primitive");
         }
@@ -681,6 +676,7 @@ public class FunctionBuilder {
         IrMethodGenerator generator,
         Deque<String> stack,
         Map<String, LlvmType> types,
+        Locals locals,
         LabelGenerator labelGenerator,
         ExceptionState exceptions,
         InvokeInstruction invocation
@@ -689,27 +685,7 @@ public class FunctionBuilder {
 
         var parameterCount = invocation.typeSymbol().parameterCount();
         if (isVarArg) {
-            var parameter = stack.pop();
-            if (types.get(parameter) instanceof LlvmType.SizedArray array) {
-                parameterCount = parameterCount - 1 + array.length();
-                for (int i = 0; i < array.length(); i++) {
-                    var pointer = generator.getElementPointer(array, LlvmType.Primitive.POINTER, parameter, List.of("0", "1"));
-                    var actualArray = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, pointer);
-                    var varPointer = generator.getElementPointer(array, LlvmType.Primitive.POINTER, actualArray, String.valueOf(i));
-                    var varName = generator.load(array.type(), new LlvmType.Pointer(array.type()), varPointer);
-                    switch (array.type()) {
-                        case LlvmType.Primitive p when p == LlvmType.Primitive.FLOAT -> {
-                            var extendedName = generator.floatingPointExtend(varName);
-                            stack.push(extendedName);
-                        }
-                        case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> {
-                            var extendedName = generator.signedExtend(array.type(), varName, LlvmType.Primitive.INT);
-                            stack.push(extendedName);
-                        }
-                        default -> stack.push(varName);
-                    }
-                }
-            }
+            parameterCount = prepareVarArgParameters(generator, stack, types, parameterCount);
         }
 
         var parameters = new ArrayList<Parameter>();
@@ -753,11 +729,9 @@ public class FunctionBuilder {
 
         // Add implicit this
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
-            var typeName = STR."\"\{invocation.method().owner().name()}\"";
-            if (!typeName.contains("/")) {
-                typeName = typeName.replaceAll("\"", "");
-            }
-            parameters.addFirst(new Parameter(stack.pop(), new LlvmType.Pointer(new LlvmType.Declared(typeName))));
+            var typeName = Utils.escape(invocation.method().owner().name().stringValue());
+            var thisParameter = loadIfNeeded(generator, types, locals, stack.pop());
+            parameters.addFirst(new Parameter(thisParameter, new LlvmType.Pointer(new LlvmType.Declared(typeName))));
         }
 
         var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType());
@@ -788,6 +762,31 @@ public class FunctionBuilder {
             types.put(returnVar, returnType);
             stack.push(returnVar);
         }
+    }
+
+    private static int prepareVarArgParameters(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, int parameterCount) {
+        var parameter = stack.pop();
+        if (types.get(parameter) instanceof LlvmType.SizedArray array) {
+            parameterCount = parameterCount - 1 + array.length();
+            for (int i = 0; i < array.length(); i++) {
+                var pointer = generator.getElementPointer(array, LlvmType.Primitive.POINTER, parameter, List.of("0", "1"));
+                var actualArray = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, pointer);
+                var varPointer = generator.getElementPointer(array, LlvmType.Primitive.POINTER, actualArray, String.valueOf(i));
+                var varName = generator.load(array.type(), new LlvmType.Pointer(array.type()), varPointer);
+                switch (array.type()) {
+                    case LlvmType.Primitive p when p == LlvmType.Primitive.FLOAT -> {
+                        var extendedName = generator.floatingPointExtend(varName);
+                        stack.push(extendedName);
+                    }
+                    case LlvmType.Primitive p when p == LlvmType.Primitive.BYTE || p == LlvmType.Primitive.SHORT -> {
+                        var extendedName = generator.signedExtend(array.type(), varName, LlvmType.Primitive.INT);
+                        stack.push(extendedName);
+                    }
+                    default -> stack.push(varName);
+                }
+            }
+        }
+        return parameterCount;
     }
 
     private static String directCall(InvokeInstruction invocation) {
@@ -963,7 +962,11 @@ public class FunctionBuilder {
         } else if (sourceType instanceof LlvmType.Array || sourceType instanceof LlvmType.SizedArray) {
             sourceType = new LlvmType.Pointer(sourceType);
         }
-        generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, local.type(), local.varName());
+        var targetType = local.type();
+        if (targetType != LlvmType.Primitive.POINTER) {
+            targetType = new LlvmType.Pointer(targetType);
+        }
+        generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, targetType, local.varName());
     }
 
     private void handleSwitch(

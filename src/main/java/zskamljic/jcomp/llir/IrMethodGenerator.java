@@ -7,6 +7,7 @@ import zskamljic.jcomp.llir.models.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IrMethodGenerator {
@@ -219,12 +220,14 @@ public class IrMethodGenerator {
         writeMethodDefinition(builder);
 
         // Java sometimes has labels at the end, without instructions following. That's invalid in LLVM IR
-        if (codeEntries.getLast() instanceof CodeEntry.Label) {
-            codeEntries.removeLast();
-            // Automatically added if there is a label inserted
-            if (codeEntries.getLast() instanceof CodeEntry.Branch.Label) {
-                codeEntries.removeLast();
-            }
+        var hasLastEmptyLabel = codeEntries.reversed()
+            .stream()
+            .filter(Predicate.not(CodeEntry.Comment.class::isInstance))
+            .findFirst()
+            .stream()
+            .anyMatch(CodeEntry.Label.class::isInstance);
+        if (hasLastEmptyLabel) {
+            unreachable();
         }
 
         codeEntries.forEach(e -> {

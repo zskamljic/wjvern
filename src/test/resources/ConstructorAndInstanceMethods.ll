@@ -21,11 +21,12 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ConstructorAndInstanceMethods_<init>()V"(%ConstructorAndInstanceMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"ConstructorAndInstanceMethods_<init>()V"(%ConstructorAndInstanceMethods* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 2
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %ConstructorAndInstanceMethods, %ConstructorAndInstanceMethods* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %ConstructorAndInstanceMethods, %ConstructorAndInstanceMethods* %local.0, i32 0, i32 0
   store %ConstructorAndInstanceMethods_vtable_type* @ConstructorAndInstanceMethods_vtable_data, %ConstructorAndInstanceMethods_vtable_type** %0
   ; Line 3
   %1 = alloca %java_Array
@@ -97,10 +98,14 @@ label0:
   %50 = call i32 @printf(ptr %49)
   ; Line 4
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define void @"ConstructorAndInstanceMethods_method()V"(%ConstructorAndInstanceMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"ConstructorAndInstanceMethods_method()V"(%ConstructorAndInstanceMethods* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 7
   %0 = alloca %java_Array
   %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
@@ -151,6 +156,9 @@ label0:
   %34 = call i32 @printf(ptr %33)
   ; Line 8
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {

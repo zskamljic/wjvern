@@ -9,28 +9,28 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
-%ObjectArrays_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%ReusedLocals_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-%ObjectArrays = type { %ObjectArrays_vtable_type*, i32 }
+%ReusedLocals = type { %ReusedLocals_vtable_type*, i32 }
 
 declare i32 @__gxx_personality_v0(...)
 
-@ObjectArrays_vtable_data = global %ObjectArrays_vtable_type {
+@ReusedLocals_vtable_data = global %ReusedLocals_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ObjectArrays_<init>(I)V"(%ObjectArrays* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
+define void @"ReusedLocals_<init>(I)V"(%ReusedLocals* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
 label0:
   ; %this entered scope under name %local.0
   ; %x entered scope under name %local.1
   ; Line 4
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %local.0, i32 0, i32 0
-  store %ObjectArrays_vtable_type* @ObjectArrays_vtable_data, %ObjectArrays_vtable_type** %0
+  %0 = getelementptr inbounds %ReusedLocals, %ReusedLocals* %local.0, i32 0, i32 0
+  store %ReusedLocals_vtable_type* @ReusedLocals_vtable_data, %ReusedLocals_vtable_type** %0
   ; Line 5
-  %1 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %local.0, i32 0, i32 1
+  %1 = getelementptr inbounds %ReusedLocals, %ReusedLocals* %local.0, i32 0, i32 1
   store i32 %local.1, i32* %1
   ; Line 6
   ret void
@@ -50,8 +50,8 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store ptr %3, ptr %4
   %local.0 = alloca ptr
   store %java_Array* %1, ptr %local.0
-  br label %label8
-label8:
+  br label %label6
+label6:
   ; %intArray entered scope under name %local.0
   ; Line 11
   %local.1 = alloca ptr
@@ -82,110 +82,78 @@ not_label1:
 label1:
   ; %i exited scope under name %local.1
   ; Line 15
-  store i32 0, ptr %local.1
+  %18 = alloca %java_Array
+  %19 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 0
+  store i32 3, i32* %19
+  %20 = alloca %ReusedLocals, i32 3
+  %21 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 1
+  store ptr %20, ptr %21
+  store %java_Array* %18, ptr %local.1
+  br label %label8
+label8:
+  ; %array entered scope under name %local.1
+  ; Line 17
+  %local.2 = alloca ptr
+  store i32 0, ptr %local.2
   br label %label2
 label2:
-  ; %j entered scope under name %local.1
-  %18 = load %java_Array*, %java_Array* %local.0
-  %19 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 0
-  %20 = load i32, ptr %19
-  %21 = load i32, i32* %local.1
-  %22 = icmp sge i32 %21, %20
-  br i1 %22, label %label3, label %not_label3
+  ; %i entered scope under name %local.2
+  %22 = load %java_Array*, %java_Array* %local.1
+  %23 = getelementptr inbounds %java_Array, %java_Array* %22, i32 0, i32 0
+  %24 = load i32, ptr %23
+  %25 = load i32, i32* %local.2
+  %26 = icmp sge i32 %25, %24
+  br i1 %26, label %label3, label %not_label3
 not_label3:
-  ; Line 16
-  %23 = load i32, i32* %local.1
-  %24 = load %java_Array*, %java_Array* %local.0
-  %25 = getelementptr inbounds %java_Array, %java_Array* %24, i32 0, i32 1
-  %26 = load ptr, ptr %25
-  %27 = getelementptr inbounds i32, ptr %26, i32 %23
-  %28 = load i32, ptr %27
-  call void @print(i32 %28)
-  ; Line 15
-  %29 = load i32, i32* %local.1
-  %30 = add i32 %29, 1
-  store i32 %30, i32* %local.1
+  ; Line 18
+  %27 = alloca %ReusedLocals
+  %28 = load i32, i32* %local.2
+  call void @"ReusedLocals_<init>(I)V"(%ReusedLocals* %27, i32 %28)
+  %29 = load %java_Array*, %java_Array* %local.1
+  %30 = getelementptr inbounds %java_Array, %java_Array* %29, i32 0, i32 1
+  %31 = load ptr, ptr %30
+  %32 = load i32, i32* %local.2
+  %33 = getelementptr inbounds %ReusedLocals, ptr %31, i32 %32
+  store %ReusedLocals* %27, ptr %33
+  ; Line 17
+  %34 = load i32, i32* %local.2
+  %35 = add i32 %34, 1
+  store i32 %35, i32* %local.2
   br label %label2
 label3:
-  ; %j exited scope under name %local.1
-  ; Line 19
-  %31 = alloca %java_Array
-  %32 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 0
-  store i32 3, i32* %32
-  %33 = alloca %ObjectArrays, i32 3
-  %34 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
-  store ptr %33, ptr %34
-  store %java_Array* %31, ptr %local.1
-  br label %label10
-label10:
-  ; %array entered scope under name %local.1
-  ; Line 20
-  %35 = load %java_Array*, %java_Array* %local.1
-  %36 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 0
-  %37 = load i32, ptr %36
-  call void @print(i32 %37)
-  ; Line 22
-  %local.2 = alloca ptr
+  ; %i exited scope under name %local.2
+  ; Line 21
   store i32 0, ptr %local.2
   br label %label4
 label4:
-  ; %k entered scope under name %local.2
-  %38 = load %java_Array*, %java_Array* %local.1
-  %39 = getelementptr inbounds %java_Array, %java_Array* %38, i32 0, i32 0
-  %40 = load i32, ptr %39
-  %41 = load i32, i32* %local.2
-  %42 = icmp sge i32 %41, %40
-  br i1 %42, label %label5, label %not_label5
+  ; %i entered scope under name %local.2
+  %36 = load %java_Array*, %java_Array* %local.1
+  %37 = getelementptr inbounds %java_Array, %java_Array* %36, i32 0, i32 0
+  %38 = load i32, ptr %37
+  %39 = load i32, i32* %local.2
+  %40 = icmp sge i32 %39, %38
+  br i1 %40, label %label5, label %not_label5
 not_label5:
-  ; Line 23
-  %43 = alloca %ObjectArrays
-  %44 = load i32, i32* %local.2
-  call void @"ObjectArrays_<init>(I)V"(%ObjectArrays* %43, i32 %44)
-  %45 = load %java_Array*, %java_Array* %local.1
-  %46 = getelementptr inbounds %java_Array, %java_Array* %45, i32 0, i32 1
-  %47 = load ptr, ptr %46
-  %48 = load i32, i32* %local.2
-  %49 = getelementptr inbounds %ObjectArrays, ptr %47, i32 %48
-  store %ObjectArrays* %43, ptr %49
   ; Line 22
-  %50 = load i32, i32* %local.2
-  %51 = add i32 %50, 1
-  store i32 %51, i32* %local.2
+  %41 = load i32, i32* %local.2
+  %42 = load %java_Array*, %java_Array* %local.1
+  %43 = getelementptr inbounds %java_Array, %java_Array* %42, i32 0, i32 1
+  %44 = load ptr, ptr %43
+  %45 = getelementptr inbounds %ReusedLocals, ptr %44, i32 %41
+  %46 = load %ReusedLocals*, ptr %45
+  %47 = getelementptr inbounds %ReusedLocals, %ReusedLocals* %46, i32 0, i32 1
+  %48 = load i32, i32* %47
+  call void @print(i32 %48)
+  ; Line 21
+  %49 = load i32, i32* %local.2
+  %50 = add i32 %49, 1
+  store i32 %50, i32* %local.2
   br label %label4
 label5:
-  ; %k exited scope under name %local.2
-  ; Line 26
-  store i32 0, ptr %local.2
-  br label %label6
-label6:
-  ; %l entered scope under name %local.2
-  %52 = load %java_Array*, %java_Array* %local.1
-  %53 = getelementptr inbounds %java_Array, %java_Array* %52, i32 0, i32 0
-  %54 = load i32, ptr %53
-  %55 = load i32, i32* %local.2
-  %56 = icmp sge i32 %55, %54
-  br i1 %56, label %label7, label %not_label7
-not_label7:
-  ; Line 27
-  %57 = load i32, i32* %local.2
-  %58 = load %java_Array*, %java_Array* %local.1
-  %59 = getelementptr inbounds %java_Array, %java_Array* %58, i32 0, i32 1
-  %60 = load ptr, ptr %59
-  %61 = getelementptr inbounds %ObjectArrays, ptr %60, i32 %57
-  %62 = load %ObjectArrays*, ptr %61
-  %63 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %62, i32 0, i32 1
-  %64 = load i32, i32* %63
-  call void @print(i32 %64)
-  ; Line 26
-  %65 = load i32, i32* %local.2
-  %66 = add i32 %65, 1
-  store i32 %66, i32* %local.2
-  br label %label6
-label7:
-  ; %l exited scope under name %local.2
-  ; Line 29
+  ; %i exited scope under name %local.2
+  ; Line 24
   ret i32 0
-label9:
+label7:
   ; %intArray exited scope under name %local.0
   ; %array exited scope under name %local.1
   unreachable
@@ -194,7 +162,7 @@ label9:
 define void @print(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %number entered scope under name %local.0
-  ; Line 33
+  ; Line 28
   %0 = alloca %java_Array
   %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
   store i32 4, i32* %1
@@ -222,7 +190,7 @@ label0:
   br label %label2
 label2:
   ; %pattern entered scope under name %local.1
-  ; Line 34
+  ; Line 29
   %16 = alloca %java_Array
   %17 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 0
   store i32 1, i32* %17
@@ -241,7 +209,7 @@ label2:
   %28 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
   %29 = load ptr, ptr %28
   %30 = call i32 @printf(ptr %29, i32 %26)
-  ; Line 35
+  ; Line 30
   ret void
 label1:
   ; %number exited scope under name %local.0

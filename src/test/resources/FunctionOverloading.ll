@@ -13,16 +13,26 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %FunctionOverloading = type { %FunctionOverloading_vtable_type* }
 
-define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %this) personality ptr @__gxx_personality_v0 {
+define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 3
   ret i32 1
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %this, i32 %a) personality ptr @__gxx_personality_v0 {
+define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
+  ; %a entered scope under name %local.1
   ; Line 7
-  ret i32 %a
+  ret i32 %local.1
+label1:
+  ; %this exited scope under name %local.0
+  ; %a exited scope under name %local.1
+  unreachable
 }
 
 declare i32 @__gxx_personality_v0(...)
@@ -35,13 +45,17 @@ declare i32 @__gxx_personality_v0(...)
   i32(%FunctionOverloading*, i32)* @"FunctionOverloading_doSomething(I)I"
 }
 
-define void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %this) personality ptr @__gxx_personality_v0 {
+define void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %local.0, i32 0, i32 0
   store %FunctionOverloading_vtable_type* @FunctionOverloading_vtable_data, %FunctionOverloading_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -52,19 +66,23 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store %FunctionOverloading* %1, ptr %local.0
   br label %label0
 label0:
-  %2 = load %FunctionOverloading*, ptr %local.0
-  %instance = bitcast ptr %2 to %FunctionOverloading*
+  ; %instance entered scope under name %local.0
   ; Line 12
-  %3 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i32 0, i32 0
+  %2 = load %FunctionOverloading*, %FunctionOverloading** %local.0
+  %3 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %2, i32 0, i32 0
   %4 = load %FunctionOverloading_vtable_type*, %FunctionOverloading_vtable_type** %3
   %5 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %4, i32 0, i32 3
   %6 = load i32(%FunctionOverloading*)*, i32(%FunctionOverloading*)** %5
-  %7 = call i32 %6(%FunctionOverloading* %instance)
-  %8 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i32 0, i32 0
-  %9 = load %FunctionOverloading_vtable_type*, %FunctionOverloading_vtable_type** %8
-  %10 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %9, i32 0, i32 4
-  %11 = load i32(%FunctionOverloading*, i32)*, i32(%FunctionOverloading*, i32)** %10
-  %12 = call i32 %11(%FunctionOverloading* %instance, i32 2)
-  %13 = add i32 %7, %12
-  ret i32 %13
+  %7 = call i32 %6(%FunctionOverloading* %2)
+  %8 = load %FunctionOverloading*, %FunctionOverloading** %local.0
+  %9 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %8, i32 0, i32 0
+  %10 = load %FunctionOverloading_vtable_type*, %FunctionOverloading_vtable_type** %9
+  %11 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %10, i32 0, i32 4
+  %12 = load i32(%FunctionOverloading*, i32)*, i32(%FunctionOverloading*, i32)** %11
+  %13 = call i32 %12(%FunctionOverloading* %8, i32 2)
+  %14 = add i32 %7, %13
+  ret i32 %14
+label1:
+  ; %instance exited scope under name %local.0
+  unreachable
 }

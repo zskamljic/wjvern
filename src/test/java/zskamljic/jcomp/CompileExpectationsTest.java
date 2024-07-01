@@ -44,7 +44,7 @@ class CompileExpectationsTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference", "ObjectArrays"
+        "ReturnReference", "ObjectArrays", "ReusedLocals"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString()});
@@ -66,12 +66,12 @@ class CompileExpectationsTest {
                 String line;
                 do {
                     line = actualReader.readLine();
-                    if (line != null) output.append(line);
+                    if (line != null) output.append(line).append("\n");
                 } while (line != null);
                 try (var errorReader = process.errorReader()) {
                     do {
                         line = errorReader.readLine();
-                        if (line != null) output.append(line);
+                        if (line != null) output.append(line).append("\n");
                     } while (line != null);
                 }
                 fail(STR."""

@@ -13,22 +13,30 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %Parent = type { %Parent_vtable_type*, i32, i32 }
 
-define void @"Parent_parentMethod()V"(%Parent* %this) personality ptr @__gxx_personality_v0 {
+define void @"Parent_parentMethod()V"(%Parent* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 6
-  %0 = getelementptr inbounds %Parent, %Parent* %this, i32 0, i32 1
+  %0 = getelementptr inbounds %Parent, %Parent* %local.0, i32 0, i32 1
   store i32 5, i32* %0
   ; Line 7
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define void @"Parent_dynamic()V"(%Parent* %this) personality ptr @__gxx_personality_v0 {
+define void @"Parent_dynamic()V"(%Parent* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 10
-  %0 = getelementptr inbounds %Parent, %Parent* %this, i32 0, i32 2
+  %0 = getelementptr inbounds %Parent, %Parent* %local.0, i32 0, i32 2
   store i32 3, i32* %0
   ; Line 11
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @__gxx_personality_v0(...)
@@ -41,11 +49,15 @@ declare i32 @__gxx_personality_v0(...)
   void(%Parent*)* @"Parent_dynamic()V"
 }
 
-define void @"Parent_<init>()V"(%Parent* %this) personality ptr @__gxx_personality_v0 {
+define void @"Parent_<init>()V"(%Parent* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Parent, %Parent* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %Parent, %Parent* %local.0, i32 0, i32 0
   store %Parent_vtable_type* @Parent_vtable_data, %Parent_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }

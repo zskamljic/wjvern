@@ -21,19 +21,29 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Parameters_<init>()V"(%Parameters* %this) personality ptr @__gxx_personality_v0 {
+define void @"Parameters_<init>()V"(%Parameters* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Parameters, %Parameters* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %Parameters, %Parameters* %local.0, i32 0, i32 0
   store %Parameters_vtable_type* @Parameters_vtable_data, %Parameters_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define i32 @"Parameters_something(I)I"(%Parameters* %this, i32 %a) personality ptr @__gxx_personality_v0 {
+define i32 @"Parameters_something(I)I"(%Parameters* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
+  ; %a entered scope under name %local.1
   ; Line 3
-  ret i32 %a
+  ret i32 %local.1
+label1:
+  ; %this exited scope under name %local.0
+  ; %a exited scope under name %local.1
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -44,9 +54,12 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store %Parameters* %1, ptr %local.0
   br label %label0
 label0:
-  %2 = load %Parameters*, ptr %local.0
-  %instance = bitcast ptr %2 to %Parameters*
+  ; %instance entered scope under name %local.0
   ; Line 8
-  %3 = call i32 @"Parameters_something(I)I"(%Parameters* %instance, i32 5)
+  %2 = load %Parameters*, %Parameters** %local.0
+  %3 = call i32 @"Parameters_something(I)I"(%Parameters* %2, i32 5)
   ret i32 %3
+label1:
+  ; %instance exited scope under name %local.0
+  unreachable
 }

@@ -43,13 +43,17 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Exceptions_<init>()V"(%Exceptions* %this) personality ptr @__gxx_personality_v0 {
+define void @"Exceptions_<init>()V"(%Exceptions* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Exceptions, %Exceptions* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %Exceptions, %Exceptions* %local.0, i32 0, i32 0
   store %Exceptions_vtable_type* @Exceptions_vtable_data, %Exceptions_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -82,14 +86,14 @@ label1:
   call void @__cxa_end_catch()
   br label %label4
 label4:
-  %11 = load %CustomException*, ptr %local.0
-  %e = bitcast ptr %11 to %CustomException*
+  ; %e entered scope under name %local.0
   ; Line 6
-  %12 = getelementptr inbounds %Exceptions, %Exceptions* %e, i32 0, i32 0
+  %11 = load %CustomException*, %CustomException** %local.0
+  %12 = getelementptr inbounds %Exceptions, %Exceptions* %11, i32 0, i32 0
   %13 = load %Exceptions_vtable_type*, %Exceptions_vtable_type** %12
   %14 = getelementptr inbounds %Exceptions_vtable_type, %Exceptions_vtable_type* %13, i32 0, i32 0
   %15 = load i32(%CustomException*)*, i32(%CustomException*)** %14
-  %16 = call i32 %15(%CustomException* %e)
+  %16 = call i32 %15(%CustomException* %11)
   %local.1 = alloca ptr
   store i32 %16, ptr %local.1
   br label %label2
@@ -100,6 +104,7 @@ label2:
   %17 = load i32, ptr %local.1
   ret i32 %17
 label3:
+  ; %e exited scope under name %local.0
   %18 = load ptr, ptr %1
   %19 = call ptr @__cxa_begin_catch(ptr %18)
   ; Line 8

@@ -6,12 +6,16 @@ declare void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*)
 
 %CustomException = type { %CustomException_vtable_type*, i32 }
 
-define i32 @"CustomException_getCode()I"(%CustomException* %this) personality ptr @__gxx_personality_v0 {
+define i32 @"CustomException_getCode()I"(%CustomException* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 27
-  %0 = getelementptr inbounds %CustomException, %CustomException* %this, i32 0, i32 1
+  %0 = getelementptr inbounds %CustomException, %CustomException* %local.0, i32 0, i32 1
   %1 = load i32, i32* %0
   ret i32 %1
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @__gxx_personality_v0(...)
@@ -20,15 +24,21 @@ declare i32 @__gxx_personality_v0(...)
   i32(%CustomException*)* @"CustomException_getCode()I"
 }
 
-define void @"CustomException_<init>(I)V"(%CustomException* %this, i32 %code) personality ptr @__gxx_personality_v0 {
+define void @"CustomException_<init>(I)V"(%CustomException* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
+  ; %code entered scope under name %local.1
   ; Line 22
-  call void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"* %this)
-  %0 = getelementptr inbounds %CustomException, %CustomException* %this, i32 0, i32 0
+  call void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"* %local.0)
+  %0 = getelementptr inbounds %CustomException, %CustomException* %local.0, i32 0, i32 0
   store %CustomException_vtable_type* @CustomException_vtable_data, %CustomException_vtable_type** %0
   ; Line 23
-  %1 = getelementptr inbounds %CustomException, %CustomException* %this, i32 0, i32 1
-  store i32 %code, i32* %1
+  %1 = getelementptr inbounds %CustomException, %CustomException* %local.0, i32 0, i32 1
+  store i32 %local.1, i32* %1
   ; Line 24
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  ; %code exited scope under name %local.1
+  unreachable
 }

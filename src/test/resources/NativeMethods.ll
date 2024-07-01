@@ -21,13 +21,17 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"NativeMethods_<init>()V"(%NativeMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"NativeMethods_<init>()V"(%NativeMethods* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %NativeMethods, %NativeMethods* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %NativeMethods, %NativeMethods* %local.0, i32 0, i32 0
   store %NativeMethods_vtable_type* @NativeMethods_vtable_data, %NativeMethods_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {

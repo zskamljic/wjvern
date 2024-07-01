@@ -21,13 +21,17 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"WhileLoop_<init>()V"(%WhileLoop* %this) personality ptr @__gxx_personality_v0 {
+define void @"WhileLoop_<init>()V"(%WhileLoop* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %WhileLoop, %WhileLoop* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %WhileLoop, %WhileLoop* %local.0, i32 0, i32 0
   store %WhileLoop_vtable_type* @WhileLoop_vtable_data, %WhileLoop_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -36,9 +40,9 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store i32 10, ptr %local.0
   br label %label0
 label0:
-  %i = bitcast ptr %local.0 to i32*
+  ; %i entered scope under name %local.0
   ; Line 4
-  %1 = load i32, i32* %i
+  %1 = load i32, i32* %local.0
   %2 = icmp sle i32 %1, 0
   br i1 %2, label %label2, label %not_label2
 not_label2:
@@ -74,7 +78,7 @@ not_label2:
   %23 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 1
   %24 = load ptr, ptr %23
   %25 = getelementptr inbounds i32, ptr %24, i32 0
-  %26 = load i32, i32* %i
+  %26 = load i32, i32* %local.0
   store i32 %26, ptr %25
   %27 = getelementptr inbounds %java_Array, ptr %19, i32 0, i32 1
   %28 = load ptr, ptr %27
@@ -84,13 +88,16 @@ not_label2:
   %32 = load ptr, ptr %31
   %33 = call i32 @printf(ptr %32, i32 %30)
   ; Line 6
-  %34 = load i32, i32* %i
+  %34 = load i32, i32* %local.0
   %35 = add i32 %34, -1
-  store i32 %35, i32* %i
+  store i32 %35, i32* %local.0
   br label %label0
 label2:
   ; Line 8
   ret i32 0
+label1:
+  ; %i exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @printf(%java_Array, ...) nounwind

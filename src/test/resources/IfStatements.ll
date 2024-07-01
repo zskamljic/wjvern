@@ -21,40 +21,48 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"IfStatements_<init>()V"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_<init>()V"(%IfStatements* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 0
   store %IfStatements_vtable_type* @IfStatements_vtable_data, %IfStatements_vtable_type** %0
   ; Line 3
-  %1 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 2
+  %1 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
   store i1 0, i1* %1
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
-define void @"IfStatements_doSomething()V"(%IfStatements* %this) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_doSomething()V"(%IfStatements* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 6
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 2
+  %0 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
   %1 = load i1, i1* %0
   br i1 %1, label %label2, label %not_label2
 not_label2:
   ; Line 7
-  %2 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 2
+  %2 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
   store i1 1, i1* %2
   ; Line 8
-  %3 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 1
+  %3 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
   store i32 1, i32* %3
   br label %label3
 label2:
   ; Line 10
-  %4 = getelementptr inbounds %IfStatements, %IfStatements* %this, i32 0, i32 1
+  %4 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
   store i32 2, i32* %4
   br label %label3
 label3:
   ; Line 12
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -65,10 +73,10 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store %IfStatements* %1, ptr %local.0
   br label %label0
 label0:
-  %2 = load %IfStatements*, ptr %local.0
-  %instance = bitcast ptr %2 to %IfStatements*
+  ; %instance entered scope under name %local.0
   ; Line 16
-  call void @"IfStatements_doSomething()V"(%IfStatements* %instance)
+  %2 = load %IfStatements*, %IfStatements** %local.0
+  call void @"IfStatements_doSomething()V"(%IfStatements* %2)
   ; Line 17
   %3 = alloca %java_Array
   %4 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 0
@@ -106,73 +114,79 @@ label0:
   %27 = alloca i32, i32 1
   %28 = getelementptr inbounds %java_Array, %java_Array* %25, i32 0, i32 1
   store ptr %27, ptr %28
-  %29 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i32 0, i32 1
-  %30 = load i32, i32* %29
-  %31 = getelementptr inbounds %java_Array, %java_Array* %25, i32 0, i32 1
-  %32 = load ptr, ptr %31
-  %33 = getelementptr inbounds i32, ptr %32, i32 0
-  store i32 %30, ptr %33
-  %34 = getelementptr inbounds %java_Array, ptr %25, i32 0, i32 1
-  %35 = load ptr, ptr %34
-  %36 = getelementptr inbounds %java_Array, ptr %35, i32 0
-  %37 = load i32, i32* %36
-  %38 = getelementptr inbounds %java_Array, ptr %3, i32 0, i32 1
-  %39 = load ptr, ptr %38
-  %40 = call i32 @printf(ptr %39, i32 %37)
+  %29 = load %IfStatements*, %IfStatements** %local.0
+  %30 = getelementptr inbounds %IfStatements, %IfStatements* %29, i32 0, i32 1
+  %31 = load i32, i32* %30
+  %32 = getelementptr inbounds %java_Array, %java_Array* %25, i32 0, i32 1
+  %33 = load ptr, ptr %32
+  %34 = getelementptr inbounds i32, ptr %33, i32 0
+  store i32 %31, ptr %34
+  %35 = getelementptr inbounds %java_Array, ptr %25, i32 0, i32 1
+  %36 = load ptr, ptr %35
+  %37 = getelementptr inbounds %java_Array, ptr %36, i32 0
+  %38 = load i32, i32* %37
+  %39 = getelementptr inbounds %java_Array, ptr %3, i32 0, i32 1
+  %40 = load ptr, ptr %39
+  %41 = call i32 @printf(ptr %40, i32 %38)
   ; Line 18
-  call void @"IfStatements_doSomething()V"(%IfStatements* %instance)
+  %42 = load %IfStatements*, %IfStatements** %local.0
+  call void @"IfStatements_doSomething()V"(%IfStatements* %42)
   ; Line 19
-  %41 = alloca %java_Array
-  %42 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 0
-  store i32 6, i32* %42
-  %43 = alloca i8, i32 6
-  %44 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  store ptr %43, ptr %44
-  %45 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %46 = load ptr, ptr %45
-  %47 = getelementptr inbounds i8, ptr %46, i32 0
-  store i8 106, ptr %47
-  %48 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %49 = load ptr, ptr %48
-  %50 = getelementptr inbounds i8, ptr %49, i32 1
-  store i8 58, ptr %50
-  %51 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %52 = load ptr, ptr %51
-  %53 = getelementptr inbounds i8, ptr %52, i32 2
-  store i8 37, ptr %53
-  %54 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %55 = load ptr, ptr %54
-  %56 = getelementptr inbounds i8, ptr %55, i32 3
-  store i8 100, ptr %56
-  %57 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %58 = load ptr, ptr %57
-  %59 = getelementptr inbounds i8, ptr %58, i32 4
-  store i8 10, ptr %59
-  %60 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
-  %61 = load ptr, ptr %60
-  %62 = getelementptr inbounds i8, ptr %61, i32 5
-  store i8 0, ptr %62
-  %63 = alloca %java_Array
-  %64 = getelementptr inbounds %java_Array, %java_Array* %63, i32 0, i32 0
-  store i32 1, i32* %64
-  %65 = alloca i32, i32 1
-  %66 = getelementptr inbounds %java_Array, %java_Array* %63, i32 0, i32 1
-  store ptr %65, ptr %66
-  %67 = getelementptr inbounds %IfStatements, %IfStatements* %instance, i32 0, i32 1
-  %68 = load i32, i32* %67
-  %69 = getelementptr inbounds %java_Array, %java_Array* %63, i32 0, i32 1
-  %70 = load ptr, ptr %69
-  %71 = getelementptr inbounds i32, ptr %70, i32 0
-  store i32 %68, ptr %71
-  %72 = getelementptr inbounds %java_Array, ptr %63, i32 0, i32 1
+  %43 = alloca %java_Array
+  %44 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 0
+  store i32 6, i32* %44
+  %45 = alloca i8, i32 6
+  %46 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  store ptr %45, ptr %46
+  %47 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %48 = load ptr, ptr %47
+  %49 = getelementptr inbounds i8, ptr %48, i32 0
+  store i8 106, ptr %49
+  %50 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %51 = load ptr, ptr %50
+  %52 = getelementptr inbounds i8, ptr %51, i32 1
+  store i8 58, ptr %52
+  %53 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %54 = load ptr, ptr %53
+  %55 = getelementptr inbounds i8, ptr %54, i32 2
+  store i8 37, ptr %55
+  %56 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %57 = load ptr, ptr %56
+  %58 = getelementptr inbounds i8, ptr %57, i32 3
+  store i8 100, ptr %58
+  %59 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %60 = load ptr, ptr %59
+  %61 = getelementptr inbounds i8, ptr %60, i32 4
+  store i8 10, ptr %61
+  %62 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
+  %63 = load ptr, ptr %62
+  %64 = getelementptr inbounds i8, ptr %63, i32 5
+  store i8 0, ptr %64
+  %65 = alloca %java_Array
+  %66 = getelementptr inbounds %java_Array, %java_Array* %65, i32 0, i32 0
+  store i32 1, i32* %66
+  %67 = alloca i32, i32 1
+  %68 = getelementptr inbounds %java_Array, %java_Array* %65, i32 0, i32 1
+  store ptr %67, ptr %68
+  %69 = load %IfStatements*, %IfStatements** %local.0
+  %70 = getelementptr inbounds %IfStatements, %IfStatements* %69, i32 0, i32 1
+  %71 = load i32, i32* %70
+  %72 = getelementptr inbounds %java_Array, %java_Array* %65, i32 0, i32 1
   %73 = load ptr, ptr %72
-  %74 = getelementptr inbounds %java_Array, ptr %73, i32 0
-  %75 = load i32, i32* %74
-  %76 = getelementptr inbounds %java_Array, ptr %41, i32 0, i32 1
-  %77 = load ptr, ptr %76
-  %78 = call i32 @printf(ptr %77, i32 %75)
+  %74 = getelementptr inbounds i32, ptr %73, i32 0
+  store i32 %71, ptr %74
+  %75 = getelementptr inbounds %java_Array, ptr %65, i32 0, i32 1
+  %76 = load ptr, ptr %75
+  %77 = getelementptr inbounds %java_Array, ptr %76, i32 0
+  %78 = load i32, i32* %77
+  %79 = getelementptr inbounds %java_Array, ptr %43, i32 0, i32 1
+  %80 = load ptr, ptr %79
+  %81 = call i32 @printf(ptr %80, i32 %78)
   ; Line 20
   ret i32 0
+label1:
+  ; %instance exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @printf(%java_Array, ...) nounwind

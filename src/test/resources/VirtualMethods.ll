@@ -13,8 +13,9 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %VirtualMethods = type { %VirtualMethods_vtable_type*, i32 }
 
-define void @"VirtualMethods_doSomething()V"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"VirtualMethods_doSomething()V"(%VirtualMethods* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 4
   %0 = alloca %java_Array
   %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
@@ -64,10 +65,13 @@ label0:
   %33 = load ptr, ptr %32
   %34 = call i32 @printf(ptr %33)
   ; Line 5
-  %35 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i32 0, i32 1
+  %35 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %local.0, i32 0, i32 1
   store i32 5, i32* %35
   ; Line 6
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @__gxx_personality_v0(...)
@@ -79,13 +83,17 @@ declare i32 @__gxx_personality_v0(...)
   void(%VirtualMethods*)* @"VirtualMethods_doSomething()V"
 }
 
-define void @"VirtualMethods_<init>()V"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
+define void @"VirtualMethods_<init>()V"(%VirtualMethods* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %local.0, i32 0, i32 0
   store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -96,18 +104,22 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store %VirtualMethods* %1, ptr %local.0
   br label %label0
 label0:
-  %2 = load %VirtualMethods*, ptr %local.0
-  %instance = bitcast ptr %2 to %VirtualMethods*
+  ; %instance entered scope under name %local.0
   ; Line 10
-  %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i32 0, i32 0
+  %2 = load %VirtualMethods*, %VirtualMethods** %local.0
+  %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %2, i32 0, i32 0
   %4 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %3
   %5 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %4, i32 0, i32 3
   %6 = load void(%VirtualMethods*)*, void(%VirtualMethods*)** %5
-  call void %6(%VirtualMethods* %instance)
+  call void %6(%VirtualMethods* %2)
   ; Line 11
-  %7 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i32 0, i32 1
-  %8 = load i32, i32* %7
-  ret i32 %8
+  %7 = load %VirtualMethods*, %VirtualMethods** %local.0
+  %8 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %7, i32 0, i32 1
+  %9 = load i32, i32* %8
+  ret i32 %9
+label1:
+  ; %instance exited scope under name %local.0
+  unreachable
 }
 
 declare i32 @printf(%java_Array, ...) nounwind

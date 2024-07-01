@@ -21,13 +21,17 @@ declare i32 @__gxx_personality_v0(...)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Comparisons_<init>()V"(%Comparisons* %this) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_<init>()V"(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Comparisons, %Comparisons* %this, i32 0, i32 0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
+  %0 = getelementptr inbounds %Comparisons, %Comparisons* %local.0, i32 0, i32 0
   store %Comparisons_vtable_type* @Comparisons_vtable_data, %Comparisons_vtable_type** %0
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
@@ -38,28 +42,26 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   store %Comparisons* %1, ptr %local.0
   br label %label0
 label0:
-  %2 = load %Comparisons*, ptr %local.0
-  %a = bitcast ptr %2 to %Comparisons*
+  ; %a entered scope under name %local.0
   ; Line 4
-  %3 = alloca %Comparisons
-  call void @"Comparisons_<init>()V"(%Comparisons* %3)
+  %2 = alloca %Comparisons
+  call void @"Comparisons_<init>()V"(%Comparisons* %2)
   %local.1 = alloca ptr
-  store %Comparisons* %3, ptr %local.1
+  store %Comparisons* %2, ptr %local.1
   br label %label2
 label2:
-  %4 = load %Comparisons*, ptr %local.1
-  %b = bitcast ptr %4 to %Comparisons*
+  ; %b entered scope under name %local.1
   ; Line 5
-  %5 = icmp ne ptr %a, %a
-  br i1 %5, label %label3, label %not_label3
+  %3 = icmp ne ptr %local.0, %local.0
+  br i1 %3, label %label3, label %not_label3
 not_label3:
   ; Line 6
   call void @printOk(i32 0)
   br label %label3
 label3:
   ; Line 8
-  %6 = icmp eq ptr %a, %b
-  br i1 %6, label %label4, label %not_label4
+  %4 = icmp eq ptr %local.0, %local.1
+  br i1 %4, label %label4, label %not_label4
 not_label4:
   ; Line 9
   call void @printOk(i32 1)
@@ -80,15 +82,20 @@ label4:
   ; Line 17
   call void @compareNull(%Comparisons* null)
   ; Line 18
-  call void @compareNull(%Comparisons* %a)
+  call void @compareNull(%Comparisons* %local.0)
   ; Line 19
   ret i32 0
+label1:
+  ; %a exited scope under name %local.0
+  ; %b exited scope under name %local.1
+  unreachable
 }
 
-define void @compare(i32 %value) personality ptr @__gxx_personality_v0 {
+define void @compare(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %value entered scope under name %local.0
   ; Line 23
-  %0 = icmp ne i32 %value, 1
+  %0 = icmp ne i32 %local.0, 1
   br i1 %0, label %label2, label %not_label2
 not_label2:
   ; Line 24
@@ -96,7 +103,7 @@ not_label2:
   br label %label2
 label2:
   ; Line 26
-  %1 = icmp eq i32 %value, 2
+  %1 = icmp eq i32 %local.0, 2
   br i1 %1, label %label3, label %not_label3
 not_label3:
   ; Line 27
@@ -104,7 +111,7 @@ not_label3:
   br label %label3
 label3:
   ; Line 29
-  %2 = icmp sge i32 %value, 2
+  %2 = icmp sge i32 %local.0, 2
   br i1 %2, label %label4, label %not_label4
 not_label4:
   ; Line 30
@@ -112,7 +119,7 @@ not_label4:
   br label %label4
 label4:
   ; Line 32
-  %3 = icmp sle i32 2, %value
+  %3 = icmp sle i32 2, %local.0
   br i1 %3, label %label5, label %not_label5
 not_label5:
   ; Line 33
@@ -121,12 +128,16 @@ not_label5:
 label5:
   ; Line 35
   ret void
+label1:
+  ; %value exited scope under name %local.0
+  unreachable
 }
 
-define void @compareZero(i32 %value) personality ptr @__gxx_personality_v0 {
+define void @compareZero(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %value entered scope under name %local.0
   ; Line 38
-  %0 = icmp ne i32 %value, 0
+  %0 = icmp ne i32 %local.0, 0
   br i1 %0, label %label2, label %not_label2
 not_label2:
   ; Line 39
@@ -134,7 +145,7 @@ not_label2:
   br label %label2
 label2:
   ; Line 41
-  %1 = icmp eq i32 %value, 0
+  %1 = icmp eq i32 %local.0, 0
   br i1 %1, label %label3, label %not_label3
 not_label3:
   ; Line 42
@@ -142,7 +153,7 @@ not_label3:
   br label %label3
 label3:
   ; Line 44
-  %2 = icmp sge i32 %value, 0
+  %2 = icmp sge i32 %local.0, 0
   br i1 %2, label %label4, label %not_label4
 not_label4:
   ; Line 45
@@ -150,7 +161,7 @@ not_label4:
   br label %label4
 label4:
   ; Line 47
-  %3 = icmp slt i32 %value, 0
+  %3 = icmp slt i32 %local.0, 0
   br i1 %3, label %label5, label %not_label5
 not_label5:
   ; Line 48
@@ -158,7 +169,7 @@ not_label5:
   br label %label5
 label5:
   ; Line 50
-  %4 = icmp sgt i32 %value, 0
+  %4 = icmp sgt i32 %local.0, 0
   br i1 %4, label %label6, label %not_label6
 not_label6:
   ; Line 51
@@ -167,19 +178,23 @@ not_label6:
 label6:
   ; Line 53
   ret void
+label1:
+  ; %value exited scope under name %local.0
+  unreachable
 }
 
-define void @compareLong(i64 %l) personality ptr @__gxx_personality_v0 {
+define void @compareLong(i64 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %l entered scope under name %local.0
   ; Line 56
   %0 = alloca i32
-  %1 = icmp slt i64 %l, 0
+  %1 = icmp slt i64 %local.0, 0
   br i1 %1, label %label3, label %label4
 label3:
   store i32 -1, i32* %0
   br label %label2
 label4:
-  %2 = icmp sgt i64 %l, 0
+  %2 = icmp sgt i64 %local.0, 0
   br i1 %2, label %label5, label %label6
 label5:
   store i32 1, i32* %0
@@ -198,13 +213,13 @@ not_label7:
 label7:
   ; Line 59
   %5 = alloca i32
-  %6 = icmp slt i64 %l, 0
+  %6 = icmp slt i64 %local.0, 0
   br i1 %6, label %label9, label %label10
 label9:
   store i32 -1, i32* %5
   br label %label8
 label10:
-  %7 = icmp sgt i64 %l, 0
+  %7 = icmp sgt i64 %local.0, 0
   br i1 %7, label %label11, label %label12
 label11:
   store i32 1, i32* %5
@@ -223,13 +238,13 @@ not_label13:
 label13:
   ; Line 62
   %10 = alloca i32
-  %11 = icmp slt i64 %l, 0
+  %11 = icmp slt i64 %local.0, 0
   br i1 %11, label %label15, label %label16
 label15:
   store i32 -1, i32* %10
   br label %label14
 label16:
-  %12 = icmp sgt i64 %l, 0
+  %12 = icmp sgt i64 %local.0, 0
   br i1 %12, label %label17, label %label18
 label17:
   store i32 1, i32* %10
@@ -248,12 +263,16 @@ not_label19:
 label19:
   ; Line 65
   ret void
+label1:
+  ; %l exited scope under name %local.0
+  unreachable
 }
 
-define void @compareNull(%Comparisons* %o) personality ptr @__gxx_personality_v0 {
+define void @compareNull(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %o entered scope under name %local.0
   ; Line 68
-  %0 = icmp ne ptr %o, null
+  %0 = icmp ne ptr %local.0, null
   br i1 %0, label %label2, label %not_label2
 not_label2:
   ; Line 69
@@ -261,7 +280,7 @@ not_label2:
   br label %label2
 label2:
   ; Line 71
-  %1 = icmp eq ptr %o, null
+  %1 = icmp eq ptr %local.0, null
   br i1 %1, label %label3, label %not_label3
 not_label3:
   ; Line 72
@@ -270,18 +289,22 @@ not_label3:
 label3:
   ; Line 74
   ret void
+label1:
+  ; %o exited scope under name %local.0
+  unreachable
 }
 
-define void @printOk(i32 %count) personality ptr @__gxx_personality_v0 {
+define void @printOk(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
+  ; %count entered scope under name %local.0
   ; Line 77
-  %0 = add i32 48, %count
+  %0 = add i32 48, %local.0
   %1 = trunc i32 %0 to i8
   %local.1 = alloca ptr
   store i8 %1, ptr %local.1
   br label %label2
 label2:
-  %c = bitcast ptr %local.1 to i8*
+  ; %c entered scope under name %local.1
   ; Line 78
   %2 = alloca %java_Array
   %3 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 0
@@ -304,7 +327,7 @@ label2:
   %15 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %16 = load ptr, ptr %15
   %17 = getelementptr inbounds i8, ptr %16, i32 3
-  %18 = load i8, i8* %c
+  %18 = load i8, i8* %local.1
   store i8 %18, ptr %17
   %19 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %20 = load ptr, ptr %19
@@ -315,6 +338,10 @@ label2:
   %24 = call i32 @puts(ptr %23)
   ; Line 79
   ret void
+label1:
+  ; %count exited scope under name %local.0
+  ; %c exited scope under name %local.1
+  unreachable
 }
 
 declare i32 @puts(%java_Array) nounwind
