@@ -101,7 +101,7 @@ label2:
   ; Line 8
   call void @print()
   ; Line 6
-  %17 = load i32, ptr %local.1
+  %17 = load i32, i32* %local.1
   ret i32 %17
 label3:
   ; %e exited scope under name %local.0

@@ -139,7 +139,7 @@ public class FunctionBuilder {
                 case ConvertInstruction c -> handleConvertInstruction(generator, stack, types, locals, c);
                 case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
                 case FieldInstruction f -> handleFieldInstruction(generator, stack, types, locals, f);
-                case IncrementInstruction i -> handleIncrement(generator, locals, i);
+                case IncrementInstruction i -> handleIncrement(generator, locals, types, i);
                 case InvokeInstruction i -> {
                     handleInvoke(generator, stack, types, locals, labelGenerator, exceptionState, i);
                     if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
@@ -264,7 +264,13 @@ public class FunctionBuilder {
             case LlvmType.SizedArray a -> a.type();
             case LlvmType.Pointer(LlvmType.Array a) -> a.type();
             case LlvmType.Pointer(LlvmType.SizedArray a) -> a.type();
-            default -> throw new IllegalStateException(STR."Invalid reference type \{reference}: \{types.get(reference)}");
+            default -> {
+                var instructionType = IrTypeMapper.mapType(instruction.typeKind());
+                if (instructionType == LlvmType.Primitive.POINTER) {
+                    throw new IllegalStateException(STR."Invalid reference type \{reference}: \{types.get(reference)}");
+                }
+                yield instructionType;
+            }
         };
 
         var indexPointer = generator.getElementPointer(type, LlvmType.Primitive.POINTER, array, index);
@@ -658,15 +664,19 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleIncrement(IrMethodGenerator generator, Locals locals, IncrementInstruction instruction) {
+    private void handleIncrement(IrMethodGenerator generator, Locals locals, HashMap<String, LlvmType> types, IncrementInstruction instruction) {
         var source = switch (instruction.opcode()) {
             case IINC -> locals.get(instruction.slot());
             default -> throw new IllegalArgumentException(STR."Unsupported increment type \{instruction.opcode()}");
         };
-        if (source.type() instanceof LlvmType.Primitive p) {
+        if (source.type() instanceof LlvmType.Primitive p && p != LlvmType.Primitive.POINTER) {
             var valueName = generator.load(p, new LlvmType.Pointer(source.type()), source.varName());
             var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
             generator.store(p, updatedName, new LlvmType.Pointer(source.type()), source.varName());
+        } else if (types.get(source.varName()) instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
+            var valueName = generator.load(p, new LlvmType.Pointer(p), source.varName());
+            var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
+            generator.store(p, updatedName, new LlvmType.Pointer(p), source.varName());
         } else {
             throw new IllegalStateException("Local variable attempted to increment non-primitive");
         }
@@ -967,6 +977,9 @@ public class FunctionBuilder {
             targetType = new LlvmType.Pointer(targetType);
         }
         generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, targetType, local.varName());
+        if (targetType == LlvmType.Primitive.POINTER) {
+            types.put(local.varName(), new LlvmType.Pointer(sourceType));
+        }
     }
 
     private void handleSwitch(
