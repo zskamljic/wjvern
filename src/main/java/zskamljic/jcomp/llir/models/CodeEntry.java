@@ -28,9 +28,16 @@ public interface CodeEntry {
         }
     }
 
-    record Alloca(String varName, LlvmType type) implements CodeEntry {
+    record Alloca(String varName, LlvmType type, String size) implements CodeEntry {
+        public Alloca(String varName, LlvmType type) {
+            this(varName, type, null);
+        }
+
         @Override
         public String toString() {
+            if (size != null) {
+                return STR."\{varName} = alloca \{type}, \{LlvmType.Primitive.INT} \{size}";
+            }
             return STR."\{varName} = alloca \{type}";
         }
     }
@@ -138,10 +145,22 @@ public interface CodeEntry {
         }
     }
 
-    record GetElementByPointer(String variableName, LlvmType targetType, LlvmType sourceType, String source, String index) implements CodeEntry {
+    record GetElementByPointer(
+        String variableName,
+        LlvmType targetType,
+        LlvmType sourceType,
+        String source,
+        List<String> indices
+    ) implements CodeEntry {
         @Override
         public String toString() {
-            return STR."\{variableName} = getelementptr inbounds \{targetType}, \{sourceType} \{source}, i64 0, i32 \{index}";
+            var line = STR."\{variableName} = getelementptr inbounds \{targetType}, \{sourceType} \{source}";
+            if (!indices.isEmpty()) {
+                line += STR.", \{indices.stream()
+                    .map(i -> STR."i32 \{i}")
+                    .collect(Collectors.joining(", "))}";
+            }
+            return line;
         }
     }
 

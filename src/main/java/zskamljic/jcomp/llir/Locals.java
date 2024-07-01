@@ -5,8 +5,10 @@ import zskamljic.jcomp.llir.models.LlvmType;
 import java.lang.classfile.instruction.LocalVariable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class Locals {
@@ -16,6 +18,7 @@ public class Locals {
     private final Map<String, LlvmType> types;
     private final LabelGenerator labelGenerator;
     private final Predicate<String> parameterChecker;
+    private final Set<String> allocatedLocals = new HashSet<>();
 
     public Locals(IrMethodGenerator generator, Map<String, LlvmType> types, LabelGenerator labelGenerator, Predicate<String> parameterChecker) {
         this.generator = generator;
@@ -28,8 +31,10 @@ public class Locals {
         return activeLocals.computeIfAbsent(slot, s -> {
             var name = STR."%local.\{s}";
             var local = new Local(name, LlvmType.Primitive.POINTER, s, null, null);
-            generator.alloca(name, LlvmType.Primitive.POINTER);
-            types.put(name, LlvmType.Primitive.POINTER);
+            if (!types.containsKey(name)) {
+                generator.alloca(name, LlvmType.Primitive.POINTER);
+                types.put(name, LlvmType.Primitive.POINTER);
+            }
             return local;
         });
     }
@@ -67,10 +72,18 @@ public class Locals {
             .forEach(v -> {
                 if (activeLocals.containsKey(v.slot())) {
                     var variable = activeLocals.get(v.slot()).varName();
-                    if (!(v.type() instanceof LlvmType.Pointer(LlvmType.Primitive _))) {
+                    if (!(v.type() instanceof LlvmType.Pointer(LlvmType.Primitive _)) &&
+                        !(v.type() instanceof LlvmType.Pointer(LlvmType.Array _)) &&
+                        !(v.type() instanceof LlvmType.Pointer(LlvmType.SizedArray _))) {
                         variable = generator.load(v.type(), LlvmType.Primitive.POINTER, activeLocals.get(v.slot()).varName());
                     }
-                    generator.bitcast(v.varName(), LlvmType.Primitive.POINTER, variable, v.type());
+                    if (allocatedLocals.contains(v.varName())) {
+                        var loaded = generator.load(((LlvmType.Pointer)v.type()).type(), LlvmType.Primitive.POINTER, variable);
+                        generator.store(((LlvmType.Pointer)v.type()).type(), loaded, v.type(), v.varName());
+                    } else {
+                        allocatedLocals.add(v.varName());
+                        generator.bitcast(v.varName(), LlvmType.Primitive.POINTER, variable, v.type());
+                    }
                 }
                 var type = v.type();
                 if (type instanceof LlvmType.Primitive && !parameterChecker.test(v.varName().substring(1))) {
@@ -79,5 +92,9 @@ public class Locals {
                 types.put(v.varName(), type);
                 activeLocals.put(v.slot(), v);
             });
+    }
+
+    public boolean contains(String value) {
+        return activeLocals.values().stream().anyMatch(v -> v.varName().equals(value));
     }
 }

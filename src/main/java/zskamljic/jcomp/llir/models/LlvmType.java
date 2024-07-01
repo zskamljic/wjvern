@@ -7,11 +7,17 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public sealed interface LlvmType {
-
-    record Array(int length, LlvmType type) implements LlvmType {
+    record Array(LlvmType type) implements LlvmType {
         @Override
         public String toString() {
-            return STR."[\{length} x \{type}]";
+            return "%java_Array";
+        }
+    }
+
+    record SizedArray(int length, LlvmType type) implements LlvmType {
+        @Override
+        public String toString() {
+            return "%java_Array";
         }
     }
 

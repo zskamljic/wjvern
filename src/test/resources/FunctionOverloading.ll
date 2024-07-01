@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -39,7 +39,7 @@ define void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %this) person
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %this, i32 0, i32 0
   store %FunctionOverloading_vtable_type* @FunctionOverloading_vtable_data, %FunctionOverloading_vtable_type** %0
   ret void
 }
@@ -55,14 +55,14 @@ label0:
   %2 = load %FunctionOverloading*, ptr %local.0
   %instance = bitcast ptr %2 to %FunctionOverloading*
   ; Line 12
-  %3 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i64 0, i32 0
+  %3 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i32 0, i32 0
   %4 = load %FunctionOverloading_vtable_type*, %FunctionOverloading_vtable_type** %3
-  %5 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %4, i64 0, i32 3
+  %5 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %4, i32 0, i32 3
   %6 = load i32(%FunctionOverloading*)*, i32(%FunctionOverloading*)** %5
   %7 = call i32 %6(%FunctionOverloading* %instance)
-  %8 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i64 0, i32 0
+  %8 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %instance, i32 0, i32 0
   %9 = load %FunctionOverloading_vtable_type*, %FunctionOverloading_vtable_type** %8
-  %10 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %9, i64 0, i32 4
+  %10 = getelementptr inbounds %FunctionOverloading_vtable_type, %FunctionOverloading_vtable_type* %9, i32 0, i32 4
   %11 = load i32(%FunctionOverloading*, i32)*, i32(%FunctionOverloading*, i32)** %10
   %12 = call i32 %11(%FunctionOverloading* %instance, i32 2)
   %13 = add i32 %7, %12

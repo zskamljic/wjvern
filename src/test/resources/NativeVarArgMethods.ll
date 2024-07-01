@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -25,63 +25,135 @@ define void @"NativeVarArgMethods_<init>()V"(%NativeVarArgMethods* %this) person
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %NativeVarArgMethods, %NativeVarArgMethods* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %NativeVarArgMethods, %NativeVarArgMethods* %this, i32 0, i32 0
   store %NativeVarArgMethods_vtable_type* @NativeVarArgMethods_vtable_data, %NativeVarArgMethods_vtable_type** %0
   ret void
 }
 
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 3
-  %1 = alloca [4 x i8]
-  %2 = getelementptr inbounds [4 x i8], ptr %1, i64 0, i32 0
-  store i8 37, ptr %2
-  %3 = getelementptr inbounds [4 x i8], ptr %1, i64 0, i32 1
-  store i8 100, ptr %3
-  %4 = getelementptr inbounds [4 x i8], ptr %1, i64 0, i32 2
-  store i8 10, ptr %4
-  %5 = getelementptr inbounds [4 x i8], ptr %1, i64 0, i32 3
-  store i8 0, ptr %5
-  %6 = alloca [1 x i32]
-  %7 = getelementptr inbounds [1 x i32], ptr %6, i64 0, i32 0
-  store i32 1, ptr %7
-  %8 = getelementptr inbounds [1 x i32], ptr %6, i64 0, i32 0
-  %9 = load i32, i32* %8
-  %10 = call i32 @printf(ptr %1, i32 %9)
+  %1 = alloca %java_Array
+  %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
+  store i32 4, i32* %2
+  %3 = alloca i8, i32 4
+  %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  store ptr %3, ptr %4
+  %5 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %6 = load ptr, ptr %5
+  %7 = getelementptr inbounds i8, ptr %6, i32 0
+  store i8 37, ptr %7
+  %8 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %9 = load ptr, ptr %8
+  %10 = getelementptr inbounds i8, ptr %9, i32 1
+  store i8 100, ptr %10
+  %11 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %12 = load ptr, ptr %11
+  %13 = getelementptr inbounds i8, ptr %12, i32 2
+  store i8 10, ptr %13
+  %14 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %15 = load ptr, ptr %14
+  %16 = getelementptr inbounds i8, ptr %15, i32 3
+  store i8 0, ptr %16
+  %17 = alloca %java_Array
+  %18 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 0
+  store i32 1, i32* %18
+  %19 = alloca i32, i32 1
+  %20 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  store ptr %19, ptr %20
+  %21 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  %22 = load ptr, ptr %21
+  %23 = getelementptr inbounds i32, ptr %22, i32 0
+  store i32 1, ptr %23
+  %24 = getelementptr inbounds %java_Array, ptr %17, i32 0, i32 1
+  %25 = load ptr, ptr %24
+  %26 = getelementptr inbounds %java_Array, ptr %25, i32 0
+  %27 = load i32, i32* %26
+  %28 = getelementptr inbounds %java_Array, ptr %1, i32 0, i32 1
+  %29 = load ptr, ptr %28
+  %30 = call i32 @printf(ptr %29, i32 %27)
   ; Line 4
-  %11 = alloca [4 x i8]
-  %12 = getelementptr inbounds [4 x i8], ptr %11, i64 0, i32 0
-  store i8 37, ptr %12
-  %13 = getelementptr inbounds [4 x i8], ptr %11, i64 0, i32 1
-  store i8 102, ptr %13
-  %14 = getelementptr inbounds [4 x i8], ptr %11, i64 0, i32 2
-  store i8 10, ptr %14
-  %15 = getelementptr inbounds [4 x i8], ptr %11, i64 0, i32 3
-  store i8 0, ptr %15
-  %16 = alloca [1 x float]
-  %17 = getelementptr inbounds [1 x float], ptr %16, i64 0, i32 0
-  store float 2.0, ptr %17
-  %18 = getelementptr inbounds [1 x float], ptr %16, i64 0, i32 0
-  %19 = load float, float* %18
-  %20 = fpext float %19 to double
-  %21 = call i32 @printf(ptr %11, double %20)
+  %31 = alloca %java_Array
+  %32 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 0
+  store i32 4, i32* %32
+  %33 = alloca i8, i32 4
+  %34 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
+  store ptr %33, ptr %34
+  %35 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
+  %36 = load ptr, ptr %35
+  %37 = getelementptr inbounds i8, ptr %36, i32 0
+  store i8 37, ptr %37
+  %38 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
+  %39 = load ptr, ptr %38
+  %40 = getelementptr inbounds i8, ptr %39, i32 1
+  store i8 102, ptr %40
+  %41 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
+  %42 = load ptr, ptr %41
+  %43 = getelementptr inbounds i8, ptr %42, i32 2
+  store i8 10, ptr %43
+  %44 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
+  %45 = load ptr, ptr %44
+  %46 = getelementptr inbounds i8, ptr %45, i32 3
+  store i8 0, ptr %46
+  %47 = alloca %java_Array
+  %48 = getelementptr inbounds %java_Array, %java_Array* %47, i32 0, i32 0
+  store i32 1, i32* %48
+  %49 = alloca float, i32 1
+  %50 = getelementptr inbounds %java_Array, %java_Array* %47, i32 0, i32 1
+  store ptr %49, ptr %50
+  %51 = getelementptr inbounds %java_Array, %java_Array* %47, i32 0, i32 1
+  %52 = load ptr, ptr %51
+  %53 = getelementptr inbounds float, ptr %52, i32 0
+  store float 2.0, ptr %53
+  %54 = getelementptr inbounds %java_Array, ptr %47, i32 0, i32 1
+  %55 = load ptr, ptr %54
+  %56 = getelementptr inbounds %java_Array, ptr %55, i32 0
+  %57 = load float, float* %56
+  %58 = fpext float %57 to double
+  %59 = getelementptr inbounds %java_Array, ptr %31, i32 0, i32 1
+  %60 = load ptr, ptr %59
+  %61 = call i32 @printf(ptr %60, double %58)
   ; Line 5
-  %22 = alloca [4 x i8]
-  %23 = getelementptr inbounds [4 x i8], ptr %22, i64 0, i32 0
-  store i8 37, ptr %23
-  %24 = getelementptr inbounds [4 x i8], ptr %22, i64 0, i32 1
-  store i8 102, ptr %24
-  %25 = getelementptr inbounds [4 x i8], ptr %22, i64 0, i32 2
-  store i8 10, ptr %25
-  %26 = getelementptr inbounds [4 x i8], ptr %22, i64 0, i32 3
-  store i8 0, ptr %26
-  %27 = alloca [1 x double]
-  %28 = getelementptr inbounds [1 x double], ptr %27, i64 0, i32 0
-  store double 3.0, ptr %28
-  %29 = getelementptr inbounds [1 x double], ptr %27, i64 0, i32 0
-  %30 = load double, double* %29
-  %31 = call i32 @printf(ptr %22, double %30)
+  %62 = alloca %java_Array
+  %63 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 0
+  store i32 4, i32* %63
+  %64 = alloca i8, i32 4
+  %65 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
+  store ptr %64, ptr %65
+  %66 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
+  %67 = load ptr, ptr %66
+  %68 = getelementptr inbounds i8, ptr %67, i32 0
+  store i8 37, ptr %68
+  %69 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
+  %70 = load ptr, ptr %69
+  %71 = getelementptr inbounds i8, ptr %70, i32 1
+  store i8 102, ptr %71
+  %72 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
+  %73 = load ptr, ptr %72
+  %74 = getelementptr inbounds i8, ptr %73, i32 2
+  store i8 10, ptr %74
+  %75 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
+  %76 = load ptr, ptr %75
+  %77 = getelementptr inbounds i8, ptr %76, i32 3
+  store i8 0, ptr %77
+  %78 = alloca %java_Array
+  %79 = getelementptr inbounds %java_Array, %java_Array* %78, i32 0, i32 0
+  store i32 1, i32* %79
+  %80 = alloca double, i32 1
+  %81 = getelementptr inbounds %java_Array, %java_Array* %78, i32 0, i32 1
+  store ptr %80, ptr %81
+  %82 = getelementptr inbounds %java_Array, %java_Array* %78, i32 0, i32 1
+  %83 = load ptr, ptr %82
+  %84 = getelementptr inbounds double, ptr %83, i32 0
+  store double 3.0, ptr %84
+  %85 = getelementptr inbounds %java_Array, ptr %78, i32 0, i32 1
+  %86 = load ptr, ptr %85
+  %87 = getelementptr inbounds %java_Array, ptr %86, i32 0
+  %88 = load double, double* %87
+  %89 = getelementptr inbounds %java_Array, ptr %62, i32 0, i32 1
+  %90 = load ptr, ptr %89
+  %91 = call i32 @printf(ptr %90, double %88)
   ; Line 6
   ret i32 0
 }
 
-declare i32 @printf(ptr, ...) nounwind
+declare i32 @printf(%java_Array, ...) nounwind

@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -32,7 +32,7 @@ define void @"ReturnReference_<init>()V"(%ReturnReference* %this) personality pt
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %ReturnReference, %ReturnReference* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %ReturnReference, %ReturnReference* %this, i32 0, i32 0
   store %ReturnReference_vtable_type* @ReturnReference_vtable_data, %ReturnReference_vtable_type** %0
   ret void
 }
@@ -57,9 +57,9 @@ label0:
   %2 = load %ReturnReference*, ptr %local.0
   %instance = bitcast ptr %2 to %ReturnReference*
   ; Line 12
-  %3 = getelementptr inbounds %ReturnReference, %ReturnReference* %instance, i64 0, i32 0
+  %3 = getelementptr inbounds %ReturnReference, %ReturnReference* %instance, i32 0, i32 0
   %4 = load %ReturnReference_vtable_type*, %ReturnReference_vtable_type** %3
-  %5 = getelementptr inbounds %ReturnReference_vtable_type, %ReturnReference_vtable_type* %4, i64 0, i32 3
+  %5 = getelementptr inbounds %ReturnReference_vtable_type, %ReturnReference_vtable_type* %4, i32 0, i32 3
   %6 = load i32(%ReturnReference*)*, i32(%ReturnReference*)** %5
   %7 = call i32 %6(%ReturnReference* %instance)
   ret i32 %7

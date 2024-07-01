@@ -15,6 +15,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class CompileExpectationsTest {
     private static final Path BUILD_PATH = Path.of("integrationBuild");
@@ -43,7 +44,7 @@ class CompileExpectationsTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference"
+        "ReturnReference", "ObjectArrays"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString()});
@@ -60,15 +61,34 @@ class CompileExpectationsTest {
             var expectedCode = Integer.parseInt(expectedReader.readLine());
             var actualCode = process.waitFor();
 
-            assertEquals(expectedCode, actualCode);
+            if (expectedCode != actualCode) {
+                var output = new StringBuilder();
+                String line;
+                do {
+                    line = actualReader.readLine();
+                    if (line != null) output.append(line);
+                } while (line != null);
+                try (var errorReader = process.errorReader()) {
+                    do {
+                        line = errorReader.readLine();
+                        if (line != null) output.append(line);
+                    } while (line != null);
+                }
+                fail(STR."""
+                        Output code mismatch, expected \{expectedCode}, got \{actualCode}
+                        Output:
+                        \{output}""");
+            }
 
             String expected;
             String actual;
+            int line = 2;
             do {
                 expected = expectedReader.readLine();
                 actual = actualReader.readLine();
 
-                assertEquals(expected, actual);
+                assertEquals(expected, actual, STR."Line \{line}");
+                line++;
             } while (expected != null && actual != null);
         }
     }

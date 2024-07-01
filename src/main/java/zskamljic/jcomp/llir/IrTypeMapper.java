@@ -30,7 +30,11 @@ public class IrTypeMapper {
 
     private static LlvmType mapComplexType(ClassDesc classDesc) {
         if (classDesc.isArray()) {
-            return LlvmType.Primitive.POINTER; // TODO: check if all arrays should use ptr
+            // TODO: handle multi dimensional arrays
+            while (classDesc.isArray()) {
+                classDesc = classDesc.componentType();
+            }
+            return new LlvmType.Array(mapType(classDesc));
         }
 
         return new LlvmType.Declared(classDesc.descriptorString()

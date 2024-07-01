@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -25,7 +25,7 @@ define void @"Comparisons_<init>()V"(%Comparisons* %this) personality ptr @__gxx
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Comparisons, %Comparisons* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %Comparisons, %Comparisons* %this, i32 0, i32 0
   store %Comparisons_vtable_type* @Comparisons_vtable_data, %Comparisons_vtable_type** %0
   ret void
 }
@@ -276,27 +276,45 @@ define void @printOk(i32 %count) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 77
   %0 = add i32 48, %count
+  %1 = trunc i32 %0 to i8
   %local.1 = alloca ptr
-  store i32 %0, ptr %local.1
+  store i8 %1, ptr %local.1
   br label %label2
 label2:
   %c = bitcast ptr %local.1 to i8*
   ; Line 78
-  %1 = alloca [5 x i8]
-  %2 = getelementptr inbounds [5 x i8], ptr %1, i64 0, i32 0
-  store i8 79, ptr %2
-  %3 = getelementptr inbounds [5 x i8], ptr %1, i64 0, i32 1
-  store i8 75, ptr %3
-  %4 = getelementptr inbounds [5 x i8], ptr %1, i64 0, i32 2
-  store i8 35, ptr %4
-  %5 = getelementptr inbounds [5 x i8], ptr %1, i64 0, i32 3
-  %6 = load i8, i8* %c
-  store i8 %6, ptr %5
-  %7 = getelementptr inbounds [5 x i8], ptr %1, i64 0, i32 4
-  store i8 0, ptr %7
-  %8 = call i32 @puts(ptr %1)
+  %2 = alloca %java_Array
+  %3 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 0
+  store i32 5, i32* %3
+  %4 = alloca i8, i32 5
+  %5 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  store ptr %4, ptr %5
+  %6 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  %7 = load ptr, ptr %6
+  %8 = getelementptr inbounds i8, ptr %7, i32 0
+  store i8 79, ptr %8
+  %9 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  %10 = load ptr, ptr %9
+  %11 = getelementptr inbounds i8, ptr %10, i32 1
+  store i8 75, ptr %11
+  %12 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  %13 = load ptr, ptr %12
+  %14 = getelementptr inbounds i8, ptr %13, i32 2
+  store i8 35, ptr %14
+  %15 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  %16 = load ptr, ptr %15
+  %17 = getelementptr inbounds i8, ptr %16, i32 3
+  %18 = load i8, i8* %c
+  store i8 %18, ptr %17
+  %19 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
+  %20 = load ptr, ptr %19
+  %21 = getelementptr inbounds i8, ptr %20, i32 4
+  store i8 0, ptr %21
+  %22 = getelementptr inbounds %java_Array, ptr %2, i32 0, i32 1
+  %23 = load ptr, ptr %22
+  %24 = call i32 @puts(ptr %23)
   ; Line 79
   ret void
 }
 
-declare i32 @puts(ptr) nounwind
+declare i32 @puts(%java_Array) nounwind

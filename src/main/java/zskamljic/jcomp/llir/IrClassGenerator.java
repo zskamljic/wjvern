@@ -1,7 +1,7 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
-import zskamljic.jcomp.llir.models.Vtable;
 import zskamljic.jcomp.llir.models.VtableInfo;
 
 import java.lang.classfile.ClassModel;
@@ -31,32 +31,30 @@ public class IrClassGenerator {
     private final Function<LlvmType.Declared, String> definitionMapper;
     private final List<LlvmType.Declared> classDependencies = new ArrayList<>();
     private final Set<String> methodDependencies = new HashSet<>();
-    private final Map<String,Vtable> vtables;
+    private final FunctionRegistry functionRegistry;
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
     private final List<MethodModel> parentMethods = new ArrayList<>();
     private final List<MethodModel> methods = new ArrayList<>();
-    private final List<String> injectedMethods = new ArrayList<>();
-    private final Set<String> varargs = new HashSet<>();
+    private final List<String> injectedCode = new ArrayList<>();
     private boolean isException;
 
     public IrClassGenerator(
         String className,
         boolean debug,
         Function<LlvmType.Declared, String> definitionMapper,
-        Map<String,Vtable> vtables
+        FunctionRegistry functionRegistry
     ) {
         isException = "java/lang/Throwable".equals(className);
         this.className = className;
         this.debug = debug;
         this.definitionMapper = definitionMapper;
-        this.vtables = vtables;
+        this.functionRegistry = functionRegistry;
     }
 
     public void inherit(IrClassGenerator parent) {
         fields.putAll(parent.fields);
         parentMethods.addAll(parent.methods);
         parentMethods.addAll(parent.parentMethods);
-        varargs.addAll(parent.varargs);
         if (!isException) {
             isException = parent.isException;
         }
@@ -75,14 +73,11 @@ public class IrClassGenerator {
     }
 
     public void addMethod(MethodModel method) {
-        var isNativeVarArg = method.flags().has(AccessFlag.VARARGS) &&
-            method.flags().has(AccessFlag.NATIVE);
-        var alreadyPresent = isNativeVarArg &&
-            methods.stream()
-                .filter(m -> m.flags().has(AccessFlag.VARARGS))
-                .filter(m -> m.flags().has(AccessFlag.NATIVE))
-                .filter(m -> m.methodName().equals(method.methodName()))
-                .anyMatch(m -> hasMatchingLeadParams(m, method));
+        var alreadyPresent = methods.stream()
+            .filter(m -> m.flags().has(AccessFlag.VARARGS))
+            .filter(m -> m.flags().has(AccessFlag.NATIVE))
+            .filter(m -> m.methodName().equals(method.methodName()))
+            .anyMatch(m -> hasMatchingLeadParams(m, method));
 
         method.code()
             .stream()
@@ -101,12 +96,13 @@ public class IrClassGenerator {
         if (!alreadyPresent) {
             methods.add(method);
         }
-        if (isNativeVarArg) {
-            varargs.add(method.methodName() + method.methodTypeSymbol().descriptorString());
-        }
     }
 
     public void addMethodDependency(MethodRefEntry method) {
+        addMethodDependency(method, false);
+    }
+
+    public void addMethodDependency(MethodRefEntry method, boolean isStatic) {
         if (method.owner().name().stringValue().equals(className)) return;
 
         var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
@@ -116,7 +112,9 @@ public class IrClassGenerator {
             .map(IrTypeMapper::mapType)
             .map(Objects::toString)
             .collect(Collectors.toCollection(ArrayList::new));
-        parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
+        if (!isStatic) {
+            parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
+        }
 
         var parameterString = String.join(", ", parameters);
 
@@ -137,13 +135,14 @@ public class IrClassGenerator {
         var builder = new StringBuilder();
 
         var requiredTypes = new HashSet<>(classDependencies);
-        requiredTypes.addAll(vtables.get(className).requiredTypes());
+        requiredTypes.addAll(functionRegistry.getVtable(className).requiredTypes());
         requiredTypes.addAll(methodRequiredTypes());
         for (var typeDependency : requiredTypes) {
             if (typeDependency.type().equals(className)) continue;
 
             builder.append(definitionMapper.apply(typeDependency)).append("\n");
         }
+        builder.append("%java_Array = type { i32, ptr }");
         if (!requiredTypes.isEmpty()) {
             builder.append("\n");
         }
@@ -178,8 +177,8 @@ public class IrClassGenerator {
             builder.append(virtualMethodString).append("\n\n");
         }
 
-        if (!injectedMethods.isEmpty()) {
-            for (var method : injectedMethods) {
+        if (!injectedCode.isEmpty()) {
+            for (var method : injectedCode) {
                 builder.append(method).append("\n\n");
             }
         }
@@ -222,8 +221,9 @@ public class IrClassGenerator {
         var vtableType = new LlvmType.Declared(typeName);
         builder.append(vtableType).append(" = type {");
 
-        if (!vtables.get(className).isEmpty()) {
-            var vtableString = vtables.get(className).stream()
+        if (!functionRegistry.getVtable(className).isEmpty()) {
+            var vtableString = functionRegistry.getVtable(className)
+                .stream()
                 .map(VtableInfo::signature)
                 .map(LlvmType.Pointer::new)
                 .map(Objects::toString)
@@ -249,8 +249,8 @@ public class IrClassGenerator {
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
-        if (!vtables.get(className).isEmpty()) {
-            var mappings = vtables.get(className).stream()
+        if (!functionRegistry.getVtable(className).isEmpty()) {
+            var mappings = functionRegistry.getVtable(className).stream()
                 .map(vi -> STR."\{vi.signature()}* \{vi.functionName()}")
                 .collect(Collectors.joining(",\n  "));
             builder.append(" ".repeat(2))
@@ -263,7 +263,7 @@ public class IrClassGenerator {
 
     private String generateMethod(MethodModel method) {
         if (!method.flags().has(AccessFlag.NATIVE)) {
-            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), varargs, vtables, debug);
+            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), functionRegistry, debug);
             return builder.generate();
         }
 
@@ -309,7 +309,7 @@ public class IrClassGenerator {
     }
 
     public void injectCode(String source) {
-        injectedMethods.add(source);
+        injectedCode.add(source);
     }
 
     public String getSimpleType() {

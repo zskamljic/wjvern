@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -16,28 +16,56 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 define void @"VirtualMethods_doSomething()V"(%VirtualMethods* %this) personality ptr @__gxx_personality_v0 {
 label0:
   ; Line 4
-  %0 = alloca [8 x i8]
-  %1 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 0
-  store i8 109, ptr %1
-  %2 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 1
-  store i8 101, ptr %2
-  %3 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 2
-  store i8 116, ptr %3
-  %4 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 3
-  store i8 104, ptr %4
-  %5 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 4
-  store i8 111, ptr %5
-  %6 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 5
-  store i8 100, ptr %6
-  %7 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 6
-  store i8 10, ptr %7
-  %8 = getelementptr inbounds [8 x i8], ptr %0, i64 0, i32 7
-  store i8 0, ptr %8
-  %9 = alloca [0 x i32]
-  %10 = call i32 @printf(ptr %0)
+  %0 = alloca %java_Array
+  %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
+  store i32 8, i32* %1
+  %2 = alloca i8, i32 8
+  %3 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  store ptr %2, ptr %3
+  %4 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %5 = load ptr, ptr %4
+  %6 = getelementptr inbounds i8, ptr %5, i32 0
+  store i8 109, ptr %6
+  %7 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %8 = load ptr, ptr %7
+  %9 = getelementptr inbounds i8, ptr %8, i32 1
+  store i8 101, ptr %9
+  %10 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %11 = load ptr, ptr %10
+  %12 = getelementptr inbounds i8, ptr %11, i32 2
+  store i8 116, ptr %12
+  %13 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %14 = load ptr, ptr %13
+  %15 = getelementptr inbounds i8, ptr %14, i32 3
+  store i8 104, ptr %15
+  %16 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %17 = load ptr, ptr %16
+  %18 = getelementptr inbounds i8, ptr %17, i32 4
+  store i8 111, ptr %18
+  %19 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %20 = load ptr, ptr %19
+  %21 = getelementptr inbounds i8, ptr %20, i32 5
+  store i8 100, ptr %21
+  %22 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %23 = load ptr, ptr %22
+  %24 = getelementptr inbounds i8, ptr %23, i32 6
+  store i8 10, ptr %24
+  %25 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
+  %26 = load ptr, ptr %25
+  %27 = getelementptr inbounds i8, ptr %26, i32 7
+  store i8 0, ptr %27
+  %28 = alloca %java_Array
+  %29 = getelementptr inbounds %java_Array, %java_Array* %28, i32 0, i32 0
+  store i32 0, i32* %29
+  %30 = alloca i32, i32 0
+  %31 = getelementptr inbounds %java_Array, %java_Array* %28, i32 0, i32 1
+  store ptr %30, ptr %31
+  %32 = getelementptr inbounds %java_Array, ptr %0, i32 0, i32 1
+  %33 = load ptr, ptr %32
+  %34 = call i32 @printf(ptr %33)
   ; Line 5
-  %11 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i64 0, i32 1
-  store i32 5, i32* %11
+  %35 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i32 0, i32 1
+  store i32 5, i32* %35
   ; Line 6
   ret void
 }
@@ -55,7 +83,7 @@ define void @"VirtualMethods_<init>()V"(%VirtualMethods* %this) personality ptr 
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %this, i32 0, i32 0
   store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %0
   ret void
 }
@@ -71,15 +99,15 @@ label0:
   %2 = load %VirtualMethods*, ptr %local.0
   %instance = bitcast ptr %2 to %VirtualMethods*
   ; Line 10
-  %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 0
+  %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i32 0, i32 0
   %4 = load %VirtualMethods_vtable_type*, %VirtualMethods_vtable_type** %3
-  %5 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %4, i64 0, i32 3
+  %5 = getelementptr inbounds %VirtualMethods_vtable_type, %VirtualMethods_vtable_type* %4, i32 0, i32 3
   %6 = load void(%VirtualMethods*)*, void(%VirtualMethods*)** %5
   call void %6(%VirtualMethods* %instance)
   ; Line 11
-  %7 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i64 0, i32 1
+  %7 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %instance, i32 0, i32 1
   %8 = load i32, i32* %7
   ret i32 %8
 }
 
-declare i32 @printf(ptr, ...) nounwind
+declare i32 @printf(%java_Array, ...) nounwind

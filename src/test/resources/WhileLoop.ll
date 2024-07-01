@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -25,7 +25,7 @@ define void @"WhileLoop_<init>()V"(%WhileLoop* %this) personality ptr @__gxx_per
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %WhileLoop, %WhileLoop* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %WhileLoop, %WhileLoop* %this, i32 0, i32 0
   store %WhileLoop_vtable_type* @WhileLoop_vtable_data, %WhileLoop_vtable_type** %0
   ret void
 }
@@ -43,30 +43,54 @@ label0:
   br i1 %2, label %label2, label %not_label2
 not_label2:
   ; Line 5
-  %3 = alloca [4 x i8]
-  %4 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 0
-  store i8 37, ptr %4
-  %5 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 1
-  store i8 100, ptr %5
-  %6 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 2
-  store i8 10, ptr %6
-  %7 = getelementptr inbounds [4 x i8], ptr %3, i64 0, i32 3
-  store i8 0, ptr %7
-  %8 = alloca [1 x i32]
-  %9 = getelementptr inbounds [1 x i32], ptr %8, i64 0, i32 0
-  %10 = load i32, i32* %i
-  store i32 %10, ptr %9
-  %11 = getelementptr inbounds [1 x i32], ptr %8, i64 0, i32 0
-  %12 = load i32, i32* %11
-  %13 = call i32 @printf(ptr %3, i32 %12)
+  %3 = alloca %java_Array
+  %4 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 0
+  store i32 4, i32* %4
+  %5 = alloca i8, i32 4
+  %6 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
+  store ptr %5, ptr %6
+  %7 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
+  %8 = load ptr, ptr %7
+  %9 = getelementptr inbounds i8, ptr %8, i32 0
+  store i8 37, ptr %9
+  %10 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
+  %11 = load ptr, ptr %10
+  %12 = getelementptr inbounds i8, ptr %11, i32 1
+  store i8 100, ptr %12
+  %13 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
+  %14 = load ptr, ptr %13
+  %15 = getelementptr inbounds i8, ptr %14, i32 2
+  store i8 10, ptr %15
+  %16 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
+  %17 = load ptr, ptr %16
+  %18 = getelementptr inbounds i8, ptr %17, i32 3
+  store i8 0, ptr %18
+  %19 = alloca %java_Array
+  %20 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 0
+  store i32 1, i32* %20
+  %21 = alloca i32, i32 1
+  %22 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 1
+  store ptr %21, ptr %22
+  %23 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 1
+  %24 = load ptr, ptr %23
+  %25 = getelementptr inbounds i32, ptr %24, i32 0
+  %26 = load i32, i32* %i
+  store i32 %26, ptr %25
+  %27 = getelementptr inbounds %java_Array, ptr %19, i32 0, i32 1
+  %28 = load ptr, ptr %27
+  %29 = getelementptr inbounds %java_Array, ptr %28, i32 0
+  %30 = load i32, i32* %29
+  %31 = getelementptr inbounds %java_Array, ptr %3, i32 0, i32 1
+  %32 = load ptr, ptr %31
+  %33 = call i32 @printf(ptr %32, i32 %30)
   ; Line 6
-  %14 = load i32, i32* %i
-  %15 = add i32 %14, -1
-  store i32 %15, i32* %i
+  %34 = load i32, i32* %i
+  %35 = add i32 %34, -1
+  store i32 %35, i32* %i
   br label %label0
 label2:
   ; Line 8
   ret i32 0
 }
 
-declare i32 @printf(ptr, ...) nounwind
+declare i32 @printf(%java_Array, ...) nounwind

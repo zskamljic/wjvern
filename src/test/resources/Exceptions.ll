@@ -1,7 +1,7 @@
 %"java/lang/Object" = type { ptr }
 %CustomException = type { ptr, i32 }
 %"java/lang/Throwable" = type opaque
-
+%java_Array = type { i32, ptr }
 declare void @"CustomException_<init>(I)V"(%CustomException*, i32)
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"CustomException_getCode()I"(%CustomException*)
@@ -47,7 +47,7 @@ define void @"Exceptions_<init>()V"(%Exceptions* %this) personality ptr @__gxx_p
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %Exceptions, %Exceptions* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %Exceptions, %Exceptions* %this, i32 0, i32 0
   store %Exceptions_vtable_type* @Exceptions_vtable_data, %Exceptions_vtable_type** %0
   ret void
 }
@@ -85,9 +85,9 @@ label4:
   %11 = load %CustomException*, ptr %local.0
   %e = bitcast ptr %11 to %CustomException*
   ; Line 6
-  %12 = getelementptr inbounds %Exceptions, %Exceptions* %e, i64 0, i32 0
+  %12 = getelementptr inbounds %Exceptions, %Exceptions* %e, i32 0, i32 0
   %13 = load %Exceptions_vtable_type*, %Exceptions_vtable_type** %12
-  %14 = getelementptr inbounds %Exceptions_vtable_type, %Exceptions_vtable_type* %13, i64 0, i32 0
+  %14 = getelementptr inbounds %Exceptions_vtable_type, %Exceptions_vtable_type* %13, i32 0, i32 0
   %15 = load i32(%CustomException*)*, i32(%CustomException*)** %14
   %16 = call i32 %15(%CustomException* %e)
   %local.1 = alloca ptr
@@ -114,24 +114,45 @@ label3:
 
 define void @print() personality ptr @__gxx_personality_v0 {
   ; Line 13
-  %1 = alloca [7 x i8]
-  %2 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 0
-  store i8 72, ptr %2
-  %3 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 1
-  store i8 101, ptr %3
-  %4 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 2
-  store i8 108, ptr %4
-  %5 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 3
-  store i8 108, ptr %5
-  %6 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 4
-  store i8 111, ptr %6
-  %7 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 5
-  store i8 33, ptr %7
-  %8 = getelementptr inbounds [7 x i8], ptr %1, i64 0, i32 6
-  store i8 0, ptr %8
-  %9 = call i32 @puts(ptr %1)
+  %1 = alloca %java_Array
+  %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
+  store i32 7, i32* %2
+  %3 = alloca i8, i32 7
+  %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  store ptr %3, ptr %4
+  %5 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %6 = load ptr, ptr %5
+  %7 = getelementptr inbounds i8, ptr %6, i32 0
+  store i8 72, ptr %7
+  %8 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %9 = load ptr, ptr %8
+  %10 = getelementptr inbounds i8, ptr %9, i32 1
+  store i8 101, ptr %10
+  %11 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %12 = load ptr, ptr %11
+  %13 = getelementptr inbounds i8, ptr %12, i32 2
+  store i8 108, ptr %13
+  %14 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %15 = load ptr, ptr %14
+  %16 = getelementptr inbounds i8, ptr %15, i32 3
+  store i8 108, ptr %16
+  %17 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %18 = load ptr, ptr %17
+  %19 = getelementptr inbounds i8, ptr %18, i32 4
+  store i8 111, ptr %19
+  %20 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %21 = load ptr, ptr %20
+  %22 = getelementptr inbounds i8, ptr %21, i32 5
+  store i8 33, ptr %22
+  %23 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %24 = load ptr, ptr %23
+  %25 = getelementptr inbounds i8, ptr %24, i32 6
+  store i8 0, ptr %25
+  %26 = getelementptr inbounds %java_Array, ptr %1, i32 0, i32 1
+  %27 = load ptr, ptr %26
+  %28 = call i32 @puts(ptr %27)
   ; Line 14
   ret void
 }
 
-declare i32 @puts(ptr) nounwind
+declare i32 @puts(%java_Array) nounwind

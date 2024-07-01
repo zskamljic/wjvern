@@ -1,5 +1,5 @@
 %"java/lang/Object" = type { ptr }
-
+%java_Array = type { i32, ptr }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -25,7 +25,7 @@ define void @"StaticFunctions_<init>()V"(%StaticFunctions* %this) personality pt
 label0:
   ; Line 1
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %this)
-  %0 = getelementptr inbounds %StaticFunctions, %StaticFunctions* %this, i64 0, i32 0
+  %0 = getelementptr inbounds %StaticFunctions, %StaticFunctions* %this, i32 0, i32 0
   store %StaticFunctions_vtable_type* @StaticFunctions_vtable_data, %StaticFunctions_vtable_type** %0
   ret void
 }

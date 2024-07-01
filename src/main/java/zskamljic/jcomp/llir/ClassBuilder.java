@@ -1,25 +1,24 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.StdLibResolver;
+import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
-import zskamljic.jcomp.llir.models.Vtable;
-import zskamljic.jcomp.llir.models.VtableInfo;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.Opcode;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
+import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodTypeDesc;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,103 +37,51 @@ public class ClassBuilder {
 
     public Map<String, IrClassGenerator> generate() throws IOException {
         var generated = new HashMap<String, IrClassGenerator>();
-        var vtables = generateVtables();
-        // TODO: remove when exception compiles
-        vtables.put("java/lang/Exception", new Vtable());
-        return generate(generated, vtables);
+        var functionRegistry = generateFunctionRegistry();
+        return generate(generated, functionRegistry);
     }
 
-    private Map<String, Vtable> generateVtables() throws IOException {
-        var vtables = new HashMap<String, Vtable>();
-        generateVtable(classModel, vtables);
+    private FunctionRegistry generateFunctionRegistry() throws IOException {
+        var registry = new FunctionRegistry(this::loadClass, this::isUnsupportedFunction);
+        registry.walk(classModel);
 
-        return vtables;
-    }
-
-    private Vtable generateVtable(ClassModel current, Map<String, Vtable> vtables) throws IOException {
-        var className = current.thisClass().name().stringValue();
-        if (vtables.containsKey(className)) return vtables.get(className);
-
-        var vtable = new Vtable();
-        if (current.superclass().isPresent()) {
-            var parentClass = loadClass(current.superclass().get());
-            if (parentClass.isPresent()) {
-                var parent = generateVtable(parentClass.get(), vtables);
-                vtable.addAll(parent);
-            }
-        }
-        for (var method : current.methods()) {
-            if (isUnsupportedFunction(method)) {
-                continue;
-            }
-            if (Utils.isVirtual(method)) {
-                var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
-                var parameterList = generateParameterList(className, method.methodTypeSymbol());
-                var functionSignature = new LlvmType.Function(returnType, parameterList);
-                var functionName = STR."@\{Utils.methodName(className, method)}";
-                vtable.put(
-                    method.methodName().stringValue(),
-                    method.methodTypeSymbol(),
-                    new VtableInfo(functionSignature, functionName)
-                );
-            }
-        }
-        vtables.put(className, vtable);
-
-        for (var entry : current.constantPool()) {
-            if (entry instanceof ClassEntry classEntry) {
-                var referencedClass = loadClass(classEntry);
-                if (referencedClass.isPresent()) {
-                    generateVtable(referencedClass.get(), vtables);
-                } else {
-                    vtables.put(classEntry.name().stringValue(), new Vtable());
-                }
-            } else if (entry instanceof MethodRefEntry method) {
-                var owner = method.owner();
-                if (vtables.containsKey(owner.name().stringValue())) continue;
-
-                var referencedClass = loadClass(owner);
-                if (referencedClass.isPresent()) {
-                    generateVtable(referencedClass.get(), vtables);
-                } else {
-                    vtables.put(owner.name().stringValue(), new Vtable());
-                }
-            }
-        }
-        return vtable;
-    }
-
-    private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
-        var parameterList = new ArrayList<LlvmType>();
-        parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
-        for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
-            var parameter = methodTypeSymbol.parameterType(i);
-            var type = IrTypeMapper.mapType(parameter);
-            parameterList.add(type);
-        }
-        return parameterList;
+        return registry;
     }
 
     public Map<String, IrClassGenerator> generate(
         Map<String, IrClassGenerator> generatedClasses,
-        Map<String, Vtable> vtables
+        FunctionRegistry functionRegistry
     ) throws IOException {
         var className = classModel.thisClass().name().stringValue();
-        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), vtables);
+        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), functionRegistry);
 
         var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
         if (classModel.superclass().isPresent()) {
             var superclass = classModel.superclass().get();
-            generateSuperClass(superclass, classGenerator, generatedClasses, vtables);
+            generateSuperClass(superclass, classGenerator, generatedClasses, functionRegistry);
             Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
                 .flatMap(IrClassGenerator::getExceptionDefinition)
                 .ifPresent(thrownExceptions::add);
         }
+        var staticInvokes = classModel.methods()
+            .stream()
+            .map(MethodModel::code)
+            .flatMap(Optional::stream)
+            .flatMap(CompoundElement::elementStream)
+            .filter(InvokeInstruction.class::isInstance)
+            .map(InvokeInstruction.class::cast)
+            .filter(i -> i.opcode() == Opcode.INVOKESTATIC)
+            .map(InvokeInstruction::method)
+            .toList();
+
         for (var entry : classModel.constantPool()) {
             if (entry instanceof ClassEntry classEntry) {
-                generateClass(classEntry, generatedClasses, vtables);
-                classGenerator.addRequiredType(new LlvmType.Declared(classEntry.name().stringValue()));
+                generateClass(classEntry, generatedClasses, functionRegistry);
+                var dependent = Utils.unwrapType(classEntry);
+                if (!dependent.isPrimitive()) {
+                    classGenerator.addRequiredType(new LlvmType.Declared(typeName(dependent)));
+                }
                 Optional.ofNullable(generatedClasses.get(classEntry.name().stringValue()))
                     .flatMap(IrClassGenerator::getExceptionDefinition)
                     .ifPresent(thrownExceptions::add);
@@ -149,7 +96,7 @@ public class ClassBuilder {
                     .anyMatch(t -> t instanceof LlvmType.Declared d && d.type().startsWith("java/lang/"))) {
                     continue;
                 }
-                classGenerator.addMethodDependency(method);
+                classGenerator.addMethodDependency(method, staticInvokes.contains(method));
             }
         }
 
@@ -203,26 +150,26 @@ public class ClassBuilder {
     private boolean isUnsupportedFunction(MethodModel method) {
         return "wait".equals(method.methodName().stringValue()) ||
             "toString".equals(method.methodName().stringValue()) ||
-                "getClass".equals(method.methodName().stringValue()) ||
-                "clone".equals(method.methodName().stringValue());
+            "getClass".equals(method.methodName().stringValue()) ||
+            "clone".equals(method.methodName().stringValue());
     }
 
     private void generateSuperClass(
         ClassEntry entry,
         IrClassGenerator classGenerator,
         Map<String, IrClassGenerator> generatedClasses,
-        Map<String, Vtable> vtables
+        FunctionRegistry functionRegistry
     ) throws IOException {
-        generateClass(entry, generatedClasses, vtables);
+        generateClass(entry, generatedClasses, functionRegistry);
         classGenerator.inherit(generatedClasses.get(entry.name().stringValue()));
     }
 
     private void generateClass(
         ClassEntry entry,
         Map<String, IrClassGenerator> generatedClasses,
-        Map<String, Vtable> vtables
+        FunctionRegistry functionRegistry
     ) throws IOException {
-        var type = unwrapType(entry);
+        var type = Utils.unwrapType(entry);
         if (type.isPrimitive()) return;
 
         var name = typeName(type);
@@ -236,7 +183,7 @@ public class ClassBuilder {
                     classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
                 }
                 case "java/lang/Exception" -> {
-                    var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), vtables);
+                    var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), functionRegistry);
                     generator.injectCode("""
                         define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
                           ret void
@@ -256,15 +203,7 @@ public class ClassBuilder {
             classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 
-        generatedClasses.putAll(classBuilder.generate(generatedClasses, vtables));
-    }
-
-    private ClassDesc unwrapType(ClassEntry entry) {
-        var type = entry.asSymbol();
-        while (type.isArray()) {
-            type = type.componentType();
-        }
-        return type;
+        generatedClasses.putAll(classBuilder.generate(generatedClasses, functionRegistry));
     }
 
     private String typeName(ClassDesc type) {
@@ -277,7 +216,7 @@ public class ClassBuilder {
 
     // TODO: join with generateClass
     private Optional<ClassModel> loadClass(ClassEntry classEntry) throws IOException {
-        var type = unwrapType(classEntry);
+        var type = Utils.unwrapType(classEntry);
         if (type.isPrimitive()) return Optional.empty();
         return loadClass(typeName(type));
     }

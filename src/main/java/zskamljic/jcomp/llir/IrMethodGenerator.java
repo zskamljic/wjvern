@@ -3,7 +3,6 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.llir.models.CodeEntry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
-import zskamljic.jcomp.llir.models.Vtable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +38,13 @@ public class IrMethodGenerator {
         incrementIfNeeded(null);
         var varName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Alloca(varName, type));
+        return varName;
+    }
+
+    public String alloca(LlvmType type, String size) {
+        incrementIfNeeded(null);
+        var varName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.Alloca(varName, type, size));
         return varName;
     }
 
@@ -105,9 +111,13 @@ public class IrMethodGenerator {
     }
 
     public String getElementPointer(LlvmType targetType, LlvmType sourceType, String source, String index) {
+        return getElementPointer(targetType, sourceType, source, List.of(index));
+    }
+
+    public String getElementPointer(LlvmType targetType, LlvmType sourceType, String source, List<String> indices) {
         incrementIfNeeded(null);
         var variableName = unnamedGenerator.generateNext();
-        codeEntries.add(new CodeEntry.GetElementByPointer(variableName, targetType, sourceType, source, index));
+        codeEntries.add(new CodeEntry.GetElementByPointer(variableName, targetType, sourceType, source, indices));
         return variableName;
     }
 
@@ -258,7 +268,7 @@ public class IrMethodGenerator {
             .map(p -> {
                 var name = p.name();
                 var type = p.type();
-                if (type instanceof LlvmType.Array(var length, var typeName)) {
+                if (type instanceof LlvmType.SizedArray(var length, var typeName)) {
                     return STR."[\{typeName} x \{length}] %\{name}";
                 } else if (p.isReturn()) {
                     return STR."ptr sret(\{type}) \{name}";

@@ -1,7 +1,9 @@
 package zskamljic.jcomp.llir;
 
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MemberRefEntry;
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 
 public class Utils {
@@ -27,5 +29,13 @@ public class Utils {
         return !method.flags().has(AccessFlag.FINAL) &&
             !method.flags().has(AccessFlag.STATIC) &&
             !method.methodName().stringValue().endsWith(">");
+    }
+
+    public static ClassDesc unwrapType(ClassEntry entry) {
+        var type = entry.asSymbol();
+        while (type.isArray()) {
+            type = type.componentType();
+        }
+        return type;
     }
 }
