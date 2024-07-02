@@ -64,7 +64,7 @@ public class Main {
     }
 
     private static ProcessBuilder compileAssembly(List<Path> libraries) {
-        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "assembler", "-"));
+        var items = new ArrayList<>(List.of("clang++", "-x", "assembler", "-"));
         libraries.removeIf(p -> p.getFileName().toString().isBlank());
         if (!libraries.isEmpty()) {
             var paths = new HashSet<Path>();
@@ -75,10 +75,10 @@ public class Main {
                 libs.add(library.getFileName()
                     .toString()
                     .replaceAll("^lib", "")
-                    .replaceAll("\\.so$", ""));
+                    .replaceAll("\\.(so|a)$", ""));
             }
-            libs.forEach(l -> items.add(4, STR."-l\{l}"));
-            paths.forEach(p -> items.add(4, STR."-L\{p}"));
+            libs.forEach(l -> items.add(STR."-l\{l}"));
+            paths.forEach(p -> items.add(STR."-L\{p}"));
         }
 
         return new ProcessBuilder(items.toArray(new String[0]));

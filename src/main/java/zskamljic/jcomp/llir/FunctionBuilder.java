@@ -32,6 +32,7 @@ import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -98,7 +99,14 @@ public class FunctionBuilder {
             .toList();
 
         var parameterCount = method.methodTypeSymbol().parameterCount();
-        if (!method.flags().has(AccessFlag.STATIC)) parameterCount++;
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            parameterCount++;
+            if (parameterCandidates.isEmpty()) {
+                parameterCandidates = List.of(
+                    LocalVariable.of(0, "this", ClassDesc.of("java.lang.Object"), null, null)
+                );
+            }
+        }
 
         if (actualReturnType instanceof LlvmType.Declared) {
             codeGenerator.addReturnParameter(actualReturnType);
