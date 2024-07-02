@@ -271,9 +271,7 @@ public class IrMethodGenerator {
             .map(p -> {
                 var name = p.name();
                 var type = p.type();
-                if (type instanceof LlvmType.SizedArray(var length, var typeName)) {
-                    return STR."[\{typeName} x \{length}] %\{name}";
-                } else if (p.isReturn()) {
+                if (p.isReturn()) {
                     return STR."ptr sret(\{type}) \{name}";
                 } else {
                     return STR."\{type} %\{name}";

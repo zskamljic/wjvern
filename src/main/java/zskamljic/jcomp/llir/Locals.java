@@ -42,9 +42,7 @@ public class Locals {
 
         var type = IrTypeMapper.mapType(variable.typeSymbol());
 
-        if (type == LlvmType.Primitive.POINTER) {
-            throw new IllegalArgumentException(STR."Locals of type \{type} not yet supported");
-        } else if (type instanceof LlvmType.Declared) {
+        if (type instanceof LlvmType.Declared) {
             type = new LlvmType.Pointer(type);
         }
 

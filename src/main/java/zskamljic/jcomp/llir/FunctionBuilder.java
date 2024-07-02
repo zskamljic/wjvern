@@ -480,7 +480,7 @@ public class FunctionBuilder {
             type instanceof LlvmType.Pointer p &&
             !generator.hasParameter(value.substring(1))) {
             var loadedType = p.type();
-            if (locals.contains(value) && (p.type() instanceof LlvmType.Array || p.type() instanceof LlvmType.SizedArray)) {
+            if (locals.contains(value) && (p.type() instanceof LlvmType.Array)) {
                 loadedType = new LlvmType.Pointer(p.type());
             }
             var name = generator.load(loadedType, p, value);
@@ -728,7 +728,7 @@ public class FunctionBuilder {
                     variable = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, pointer);
                     irType = LlvmType.Primitive.POINTER;
                 }
-                case LlvmType.Pointer(LlvmType.Array _), LlvmType.Pointer(LlvmType.SizedArray _) -> {
+                case LlvmType.Pointer(LlvmType.Array _) -> {
                     variable = generator.load(ARRAY_POINTER_TYPE, ARRAY_POINTER_TYPE, variable);
                     var pointer = generator.getElementPointer(ARRAY_TYPE, ARRAY_POINTER_TYPE, variable, List.of("0", "1"));
                     variable = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, pointer);
@@ -861,12 +861,7 @@ public class FunctionBuilder {
     private void loadValue(IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, LoadInstruction instruction) {
         var local = locals.get(instruction.slot());
         var type = types.get(local.varName());
-        if (type == null) {
-            var loaded = generator.load(IrTypeMapper.mapType(instruction.typeKind()), LlvmType.Primitive.POINTER, local.varName());
-            stack.push(loaded);
-        } else {
-            stack.push(local.varName());
-        }
+        stack.push(local.varName());
     }
 
     private String handleLabel(
@@ -974,10 +969,7 @@ public class FunctionBuilder {
 
         var instructionType = IrTypeMapper.mapType(instruction.typeKind());
         var sourceType = types.getOrDefault(reference, instructionType);
-        if (sourceType instanceof LlvmType.Pointer p && local.type() != LlvmType.Primitive.POINTER) {
-            sourceType = p.type();
-            reference = generator.load(p.type(), p, reference);
-        } else if (sourceType instanceof LlvmType.Array || sourceType instanceof LlvmType.SizedArray) {
+        if (sourceType instanceof LlvmType.Array || sourceType instanceof LlvmType.SizedArray) {
             sourceType = new LlvmType.Pointer(sourceType);
         }
         var targetType = local.type();

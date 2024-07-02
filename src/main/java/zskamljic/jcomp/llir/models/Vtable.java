@@ -25,10 +25,6 @@ public class Vtable {
         }
     }
 
-    public boolean isEmpty() {
-        return vtableEntries.isEmpty();
-    }
-
     public Optional<VtableInfo> get(String name, MethodTypeDesc methodTypeDesc) {
         return Optional.ofNullable(vtableEntries.get(name + methodTypeDesc.descriptorString()));
     }

@@ -64,7 +64,7 @@ public class Main {
     }
 
     private static ProcessBuilder compileAssembly(List<Path> libraries) {
-        var items = new ArrayList<>(List.of("clang++", "-x", "assembler", "-"));
+        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "assembler", "-"));
         libraries.removeIf(p -> p.getFileName().toString().isBlank());
         if (!libraries.isEmpty()) {
             var paths = new HashSet<Path>();
@@ -84,7 +84,7 @@ public class Main {
         return new ProcessBuilder(items.toArray(new String[0]));
     }
 
-    private static ProcessBuilder linkFiles(Path buildDir, Map<String, IrClassGenerator> files) throws IOException {
+    private static ProcessBuilder linkFiles(Path buildDir, Map<String, IrClassGenerator> files) {
         var command = new ArrayList<>(List.of("llvm-link", "-S"));
         files.entrySet()
             .stream()

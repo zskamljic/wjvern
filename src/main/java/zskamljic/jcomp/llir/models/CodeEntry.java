@@ -101,7 +101,7 @@ public interface CodeEntry {
         public String toString() {
             var comparisonType = switch (type) {
                 case LlvmType.Primitive p when !p.isFloatingPoint() -> "icmp";
-                case LlvmType.Primitive p when p == LlvmType.Primitive.POINTER -> "icmp";
+                case LlvmType.Primitive.POINTER -> "icmp";
                 default -> throw new IllegalArgumentException(STR."Comparison between types of \{type} not yet supported");
             };
             var cond = switch (condition) {
