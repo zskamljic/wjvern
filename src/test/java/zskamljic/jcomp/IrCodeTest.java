@@ -45,7 +45,7 @@ class IrCodeTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach"
+        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions"
     })
     void generatesValid(String fileName) throws IOException {
         var classPath = Path.of("target/test-classes/");

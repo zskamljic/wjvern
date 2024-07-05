@@ -12,12 +12,32 @@ public sealed interface LlvmType {
         public String toString() {
             return "%java_Array";
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Array(var otherType)) {
+                return type.equals(otherType);
+            } else if (obj instanceof SizedArray(var _, var otherType)) {
+                return type.equals(otherType);
+            }
+            return false;
+        }
     }
 
     record SizedArray(int length, LlvmType type) implements LlvmType {
         @Override
         public String toString() {
             return "%java_Array";
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Array(var otherType)) {
+                return type.equals(otherType);
+            } else if (obj instanceof SizedArray(var _, var otherType)) {
+                return type.equals(otherType);
+            }
+            return false;
         }
     }
 
@@ -42,8 +62,14 @@ public sealed interface LlvmType {
         }
     }
 
-    record Pointer(LlvmType type) implements LlvmType {
+    record NativeVarArgReturn(LlvmType returnType, List<LlvmType> parameter) implements LlvmType {
+        @Override
+        public String toString() {
+            return STR."\{returnType}(\{parameter.stream().map(String::valueOf).collect(Collectors.joining(","))},...)";
+        }
+    }
 
+    record Pointer(LlvmType type) implements LlvmType {
         @Override
         public String toString() {
             return STR."\{type.toString()}*";
@@ -59,9 +85,6 @@ public sealed interface LlvmType {
         SHORT,
         INT,
         LONG,
-
-        // Unsigned integers
-        USHORT,
 
         // Floating points
         FLOAT,
@@ -87,7 +110,6 @@ public sealed interface LlvmType {
                 case POINTER -> "ptr";
                 case BYTE -> "i8";
                 case SHORT -> "i16";
-                case USHORT -> "u16";
                 case INT -> "i32";
                 case LONG -> "i64";
                 case FLOAT -> "float";

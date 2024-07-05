@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %ForEach = type { %ForEach_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @ForEach_vtable_data = global %ForEach_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -42,6 +46,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %3 = alloca i32, i32 3
   %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   store ptr %3, ptr %4
+  call void @llvm.memset.p0.i32(ptr %3, i8 0, i64 12, i1 false)
   %local.0 = alloca ptr
   store %java_Array* %1, ptr %local.0
   br label %label2
@@ -49,42 +54,43 @@ label2:
   ; %array entered scope under name %local.0
   ; Line 5
   %local.1 = alloca ptr
-  store %java_Array* %local.0, ptr %local.1
-  %5 = load %java_Array*, %java_Array** %local.1
-  %6 = getelementptr inbounds %java_Array, %java_Array* %5, i32 0, i32 0
-  %7 = load i32, ptr %6
+  %5 = load %java_Array*, %java_Array** %local.0
+  store %java_Array* %5, ptr %local.1
+  %6 = load %java_Array*, %java_Array** %local.1
+  %7 = getelementptr inbounds %java_Array, %java_Array* %6, i32 0, i32 0
+  %8 = load i32, ptr %7
   %local.2 = alloca ptr
-  store i32 %7, ptr %local.2
+  store i32 %8, ptr %local.2
   %local.3 = alloca ptr
   store i32 0, ptr %local.3
   br label %label4
 label4:
-  %8 = load i32, i32* %local.2
-  %9 = load i32, i32* %local.3
-  %10 = icmp sge i32 %9, %8
-  br i1 %10, label %label5, label %not_label5
+  %9 = load i32, i32* %local.2
+  %10 = load i32, i32* %local.3
+  %11 = icmp sge i32 %10, %9
+  br i1 %11, label %label5, label %not_label5
 not_label5:
-  %11 = load i32, i32* %local.3
-  %12 = load %java_Array*, %java_Array** %local.1
-  %13 = getelementptr inbounds %java_Array, %java_Array* %12, i32 0, i32 1
-  %14 = load ptr, ptr %13
-  %15 = getelementptr inbounds i32, ptr %14, i32 %11
-  %16 = load i32, ptr %15
+  %12 = load i32, i32* %local.3
+  %13 = load %java_Array*, %java_Array** %local.1
+  %14 = getelementptr inbounds %java_Array, %java_Array* %13, i32 0, i32 1
+  %15 = load ptr, ptr %14
+  %16 = getelementptr inbounds i32, ptr %15, i32 %12
+  %17 = load i32, ptr %16
   %local.4 = alloca ptr
-  store i32 %16, ptr %local.4
+  store i32 %17, ptr %local.4
   br label %label0
 label0:
   ; %i entered scope under name %local.4
   ; Line 6
-  %17 = load i32, i32* %local.4
-  call void @print(i32 %17)
+  %18 = load i32, i32* %local.4
+  call void @print(i32 %18)
   br label %label1
 label1:
   ; %i exited scope under name %local.4
   ; Line 5
-  %18 = load i32, i32* %local.3
-  %19 = add i32 %18, 1
-  store i32 %19, i32* %local.3
+  %19 = load i32, i32* %local.3
+  %20 = add i32 %19, 1
+  store i32 %20, i32* %local.3
   br label %label4
 label5:
   ; Line 9
@@ -104,6 +110,7 @@ label0:
   %2 = alloca i8, i32 4
   %3 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
   store ptr %2, ptr %3
+  call void @llvm.memset.p0.i8(ptr %2, i8 0, i64 4, i1 false)
   %4 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
   %5 = load ptr, ptr %4
   %6 = getelementptr inbounds i8, ptr %5, i32 0
@@ -132,6 +139,7 @@ label2:
   %18 = alloca i32, i32 1
   %19 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   store ptr %18, ptr %19
+  call void @llvm.memset.p0.i32(ptr %18, i8 0, i64 4, i1 false)
   %20 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   %21 = load ptr, ptr %20
   %22 = getelementptr inbounds i32, ptr %21, i32 0
@@ -143,7 +151,7 @@ label2:
   %27 = load %java_Array*, %java_Array* %local.1
   %28 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
   %29 = load ptr, ptr %28
-  %30 = call i32 @printf(ptr %29, i32 %26)
+  %30 = call i32(i8*,...) @printf(i8* %29, i32 %26)
   ; Line 15
   ret void
 label1:

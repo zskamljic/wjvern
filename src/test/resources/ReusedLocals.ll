@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %ReusedLocals = type { %ReusedLocals_vtable_type*, i32 }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @ReusedLocals_vtable_data = global %ReusedLocals_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -48,6 +52,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %3 = alloca i32, i32 3
   %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   store ptr %3, ptr %4
+  call void @llvm.memset.p0.i32(ptr %3, i8 0, i64 12, i1 false)
   %local.0 = alloca ptr
   store %java_Array* %1, ptr %local.0
   br label %label6
@@ -169,6 +174,7 @@ label0:
   %2 = alloca i8, i32 4
   %3 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
   store ptr %2, ptr %3
+  call void @llvm.memset.p0.i8(ptr %2, i8 0, i64 4, i1 false)
   %4 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
   %5 = load ptr, ptr %4
   %6 = getelementptr inbounds i8, ptr %5, i32 0
@@ -197,6 +203,7 @@ label2:
   %18 = alloca i32, i32 1
   %19 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   store ptr %18, ptr %19
+  call void @llvm.memset.p0.i32(ptr %18, i8 0, i64 4, i1 false)
   %20 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   %21 = load ptr, ptr %20
   %22 = getelementptr inbounds i32, ptr %21, i32 0
@@ -208,7 +215,7 @@ label2:
   %27 = load %java_Array*, %java_Array* %local.1
   %28 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
   %29 = load ptr, ptr %28
-  %30 = call i32 @printf(ptr %29, i32 %26)
+  %30 = call i32(i8*,...) @printf(i8* %29, i32 %26)
   ; Line 30
   ret void
 label1:

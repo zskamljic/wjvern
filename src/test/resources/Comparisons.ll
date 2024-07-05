@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %Comparisons = type { %Comparisons_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @Comparisons_vtable_data = global %Comparisons_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -82,7 +86,8 @@ label4:
   ; Line 17
   call void @compareNull(%Comparisons* null)
   ; Line 18
-  call void @compareNull(%Comparisons* %local.0)
+  %5 = load %Comparisons*, %Comparisons** %local.0
+  call void @compareNull(%Comparisons* %5)
   ; Line 19
   ret i32 0
 label1:
@@ -312,6 +317,7 @@ label2:
   %4 = alloca i8, i32 5
   %5 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   store ptr %4, ptr %5
+  call void @llvm.memset.p0.i8(ptr %4, i8 0, i64 5, i1 false)
   %6 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %7 = load ptr, ptr %6
   %8 = getelementptr inbounds i8, ptr %7, i32 0
@@ -333,9 +339,9 @@ label2:
   %20 = load ptr, ptr %19
   %21 = getelementptr inbounds i8, ptr %20, i32 4
   store i8 0, ptr %21
-  %22 = getelementptr inbounds %java_Array, ptr %2, i32 0, i32 1
+  %22 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %23 = load ptr, ptr %22
-  %24 = call i32 @puts(ptr %23)
+  %24 = call i32 @puts(i8* %23)
   ; Line 79
   ret void
 label1:

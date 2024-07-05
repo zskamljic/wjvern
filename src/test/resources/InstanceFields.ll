@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %InstanceFields = type { %InstanceFields_vtable_type*, i32, float, double }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @InstanceFields_vtable_data = global %InstanceFields_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -60,6 +64,7 @@ label0:
   %4 = alloca i8, i32 4
   %5 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   store ptr %4, ptr %5
+  call void @llvm.memset.p0.i8(ptr %4, i8 0, i64 4, i1 false)
   %6 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %7 = load ptr, ptr %6
   %8 = getelementptr inbounds i8, ptr %7, i32 0
@@ -82,6 +87,7 @@ label0:
   %20 = alloca i32, i32 1
   %21 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 1
   store ptr %20, ptr %21
+  call void @llvm.memset.p0.i32(ptr %20, i8 0, i64 4, i1 false)
   %22 = load %InstanceFields*, %InstanceFields** %local.0
   %23 = getelementptr inbounds %InstanceFields, %InstanceFields* %22, i32 0, i32 1
   %24 = load i32, i32* %23
@@ -93,9 +99,9 @@ label0:
   %29 = load ptr, ptr %28
   %30 = getelementptr inbounds %java_Array, ptr %29, i32 0
   %31 = load i32, i32* %30
-  %32 = getelementptr inbounds %java_Array, ptr %2, i32 0, i32 1
+  %32 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
   %33 = load ptr, ptr %32
-  %34 = call i32 @printf(ptr %33, i32 %31)
+  %34 = call i32(i8*,...) @printf(i8* %33, i32 %31)
   ; Line 15
   %35 = alloca %java_Array
   %36 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 0
@@ -103,6 +109,7 @@ label0:
   %37 = alloca i8, i32 4
   %38 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 1
   store ptr %37, ptr %38
+  call void @llvm.memset.p0.i8(ptr %37, i8 0, i64 4, i1 false)
   %39 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 1
   %40 = load ptr, ptr %39
   %41 = getelementptr inbounds i8, ptr %40, i32 0
@@ -125,6 +132,7 @@ label0:
   %53 = alloca float, i32 1
   %54 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
   store ptr %53, ptr %54
+  call void @llvm.memset.p0.i32(ptr %53, i8 0, i64 4, i1 false)
   %55 = load %InstanceFields*, %InstanceFields** %local.0
   %56 = getelementptr inbounds %InstanceFields, %InstanceFields* %55, i32 0, i32 2
   %57 = load float, float* %56
@@ -137,9 +145,9 @@ label0:
   %63 = getelementptr inbounds %java_Array, ptr %62, i32 0
   %64 = load float, float* %63
   %65 = fpext float %64 to double
-  %66 = getelementptr inbounds %java_Array, ptr %35, i32 0, i32 1
+  %66 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 1
   %67 = load ptr, ptr %66
-  %68 = call i32 @printf(ptr %67, double %65)
+  %68 = call i32(i8*,...) @printf(i8* %67, double %65)
   ; Line 16
   %69 = alloca %java_Array
   %70 = getelementptr inbounds %java_Array, %java_Array* %69, i32 0, i32 0
@@ -147,6 +155,7 @@ label0:
   %71 = alloca i8, i32 4
   %72 = getelementptr inbounds %java_Array, %java_Array* %69, i32 0, i32 1
   store ptr %71, ptr %72
+  call void @llvm.memset.p0.i8(ptr %71, i8 0, i64 4, i1 false)
   %73 = getelementptr inbounds %java_Array, %java_Array* %69, i32 0, i32 1
   %74 = load ptr, ptr %73
   %75 = getelementptr inbounds i8, ptr %74, i32 0
@@ -169,6 +178,7 @@ label0:
   %87 = alloca double, i32 1
   %88 = getelementptr inbounds %java_Array, %java_Array* %85, i32 0, i32 1
   store ptr %87, ptr %88
+  call void @llvm.memset.p0.i64(ptr %87, i8 0, i64 4, i1 false)
   %89 = load %InstanceFields*, %InstanceFields** %local.0
   %90 = getelementptr inbounds %InstanceFields, %InstanceFields* %89, i32 0, i32 3
   %91 = load double, double* %90
@@ -180,9 +190,9 @@ label0:
   %96 = load ptr, ptr %95
   %97 = getelementptr inbounds %java_Array, ptr %96, i32 0
   %98 = load double, double* %97
-  %99 = getelementptr inbounds %java_Array, ptr %69, i32 0, i32 1
+  %99 = getelementptr inbounds %java_Array, %java_Array* %69, i32 0, i32 1
   %100 = load ptr, ptr %99
-  %101 = call i32 @printf(ptr %100, double %98)
+  %101 = call i32(i8*,...) @printf(i8* %100, double %98)
   ; Line 17
   ret i32 0
 label1:

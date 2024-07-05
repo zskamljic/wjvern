@@ -44,7 +44,7 @@ class CompileExpectationsTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach"
+        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString()});

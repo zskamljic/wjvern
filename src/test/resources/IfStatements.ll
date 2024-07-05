@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @IfStatements_vtable_data = global %IfStatements_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -84,6 +88,7 @@ label0:
   %5 = alloca i8, i32 6
   %6 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   store ptr %5, ptr %6
+  call void @llvm.memset.p0.i8(ptr %5, i8 0, i64 6, i1 false)
   %7 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   %8 = load ptr, ptr %7
   %9 = getelementptr inbounds i8, ptr %8, i32 0
@@ -114,6 +119,7 @@ label0:
   %27 = alloca i32, i32 1
   %28 = getelementptr inbounds %java_Array, %java_Array* %25, i32 0, i32 1
   store ptr %27, ptr %28
+  call void @llvm.memset.p0.i32(ptr %27, i8 0, i64 4, i1 false)
   %29 = load %IfStatements*, %IfStatements** %local.0
   %30 = getelementptr inbounds %IfStatements, %IfStatements* %29, i32 0, i32 1
   %31 = load i32, i32* %30
@@ -125,9 +131,9 @@ label0:
   %36 = load ptr, ptr %35
   %37 = getelementptr inbounds %java_Array, ptr %36, i32 0
   %38 = load i32, i32* %37
-  %39 = getelementptr inbounds %java_Array, ptr %3, i32 0, i32 1
+  %39 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   %40 = load ptr, ptr %39
-  %41 = call i32 @printf(ptr %40, i32 %38)
+  %41 = call i32(i8*,...) @printf(i8* %40, i32 %38)
   ; Line 18
   %42 = load %IfStatements*, %IfStatements** %local.0
   call void @"IfStatements_doSomething()V"(%IfStatements* %42)
@@ -138,6 +144,7 @@ label0:
   %45 = alloca i8, i32 6
   %46 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
   store ptr %45, ptr %46
+  call void @llvm.memset.p0.i8(ptr %45, i8 0, i64 6, i1 false)
   %47 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
   %48 = load ptr, ptr %47
   %49 = getelementptr inbounds i8, ptr %48, i32 0
@@ -168,6 +175,7 @@ label0:
   %67 = alloca i32, i32 1
   %68 = getelementptr inbounds %java_Array, %java_Array* %65, i32 0, i32 1
   store ptr %67, ptr %68
+  call void @llvm.memset.p0.i32(ptr %67, i8 0, i64 4, i1 false)
   %69 = load %IfStatements*, %IfStatements** %local.0
   %70 = getelementptr inbounds %IfStatements, %IfStatements* %69, i32 0, i32 1
   %71 = load i32, i32* %70
@@ -179,9 +187,9 @@ label0:
   %76 = load ptr, ptr %75
   %77 = getelementptr inbounds %java_Array, ptr %76, i32 0
   %78 = load i32, i32* %77
-  %79 = getelementptr inbounds %java_Array, ptr %43, i32 0, i32 1
+  %79 = getelementptr inbounds %java_Array, %java_Array* %43, i32 0, i32 1
   %80 = load ptr, ptr %79
-  %81 = call i32 @printf(ptr %80, i32 %78)
+  %81 = call i32(i8*,...) @printf(i8* %80, i32 %78)
   ; Line 20
   ret i32 0
 label1:

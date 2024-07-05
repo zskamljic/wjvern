@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %WhileLoop = type { %WhileLoop_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @WhileLoop_vtable_data = global %WhileLoop_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -53,6 +57,7 @@ not_label2:
   %5 = alloca i8, i32 4
   %6 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   store ptr %5, ptr %6
+  call void @llvm.memset.p0.i8(ptr %5, i8 0, i64 4, i1 false)
   %7 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   %8 = load ptr, ptr %7
   %9 = getelementptr inbounds i8, ptr %8, i32 0
@@ -75,6 +80,7 @@ not_label2:
   %21 = alloca i32, i32 1
   %22 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 1
   store ptr %21, ptr %22
+  call void @llvm.memset.p0.i32(ptr %21, i8 0, i64 4, i1 false)
   %23 = getelementptr inbounds %java_Array, %java_Array* %19, i32 0, i32 1
   %24 = load ptr, ptr %23
   %25 = getelementptr inbounds i32, ptr %24, i32 0
@@ -84,9 +90,9 @@ not_label2:
   %28 = load ptr, ptr %27
   %29 = getelementptr inbounds %java_Array, ptr %28, i32 0
   %30 = load i32, i32* %29
-  %31 = getelementptr inbounds %java_Array, ptr %3, i32 0, i32 1
+  %31 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 1
   %32 = load ptr, ptr %31
-  %33 = call i32 @printf(ptr %32, i32 %30)
+  %33 = call i32(i8*,...) @printf(i8* %32, i32 %30)
   ; Line 6
   %34 = load i32, i32* %local.0
   %35 = add i32 %34, -1

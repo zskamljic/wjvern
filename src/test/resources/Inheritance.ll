@@ -44,6 +44,10 @@ label1:
 }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @Inheritance_vtable_data = global %Inheritance_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",

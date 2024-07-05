@@ -17,6 +17,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %ExceptionsData = type { %ExceptionsData_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 declare i32 @llvm.eh.typeid.for(ptr)
 
@@ -106,6 +110,7 @@ label3:
   %13 = alloca i8, i32 12
   %14 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
   store ptr %13, ptr %14
+  call void @llvm.memset.p0.i8(ptr %13, i8 0, i64 12, i1 false)
   %15 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
   %16 = load ptr, ptr %15
   %17 = getelementptr inbounds i8, ptr %16, i32 0
@@ -160,6 +165,7 @@ label3:
   %53 = alloca i32, i32 1
   %54 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
   store ptr %53, ptr %54
+  call void @llvm.memset.p0.i32(ptr %53, i8 0, i64 4, i1 false)
   %55 = load %CustomException*, %CustomException** %local.0
   %56 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %55, i32 0, i32 0
   %57 = load %ExceptionsData_vtable_type*, %ExceptionsData_vtable_type** %56
@@ -174,9 +180,9 @@ label3:
   %65 = load ptr, ptr %64
   %66 = getelementptr inbounds %java_Array, ptr %65, i32 0
   %67 = load i32, i32* %66
-  %68 = getelementptr inbounds %java_Array, ptr %11, i32 0, i32 1
+  %68 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
   %69 = load ptr, ptr %68
-  %70 = call i32 @printf(ptr %69, i32 %67)
+  %70 = call i32(i8*,...) @printf(i8* %69, i32 %67)
   br label %label4
 label4:
   ; %e exited scope under name %local.0

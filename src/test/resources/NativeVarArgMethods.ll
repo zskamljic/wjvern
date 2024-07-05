@@ -14,6 +14,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %NativeVarArgMethods = type { %NativeVarArgMethods_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @NativeVarArgMethods_vtable_data = global %NativeVarArgMethods_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
@@ -42,6 +46,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %3 = alloca i8, i32 4
   %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   store ptr %3, ptr %4
+  call void @llvm.memset.p0.i8(ptr %3, i8 0, i64 4, i1 false)
   %5 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   %6 = load ptr, ptr %5
   %7 = getelementptr inbounds i8, ptr %6, i32 0
@@ -64,6 +69,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %19 = alloca i32, i32 1
   %20 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
   store ptr %19, ptr %20
+  call void @llvm.memset.p0.i32(ptr %19, i8 0, i64 4, i1 false)
   %21 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
   %22 = load ptr, ptr %21
   %23 = getelementptr inbounds i32, ptr %22, i32 0
@@ -72,9 +78,9 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %25 = load ptr, ptr %24
   %26 = getelementptr inbounds %java_Array, ptr %25, i32 0
   %27 = load i32, i32* %26
-  %28 = getelementptr inbounds %java_Array, ptr %1, i32 0, i32 1
+  %28 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   %29 = load ptr, ptr %28
-  %30 = call i32 @printf(ptr %29, i32 %27)
+  %30 = call i32(i8*,...) @printf(i8* %29, i32 %27)
   ; Line 4
   %31 = alloca %java_Array
   %32 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 0
@@ -82,6 +88,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %33 = alloca i8, i32 4
   %34 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
   store ptr %33, ptr %34
+  call void @llvm.memset.p0.i8(ptr %33, i8 0, i64 4, i1 false)
   %35 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
   %36 = load ptr, ptr %35
   %37 = getelementptr inbounds i8, ptr %36, i32 0
@@ -104,6 +111,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %49 = alloca float, i32 1
   %50 = getelementptr inbounds %java_Array, %java_Array* %47, i32 0, i32 1
   store ptr %49, ptr %50
+  call void @llvm.memset.p0.i32(ptr %49, i8 0, i64 4, i1 false)
   %51 = getelementptr inbounds %java_Array, %java_Array* %47, i32 0, i32 1
   %52 = load ptr, ptr %51
   %53 = getelementptr inbounds float, ptr %52, i32 0
@@ -113,9 +121,9 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %56 = getelementptr inbounds %java_Array, ptr %55, i32 0
   %57 = load float, float* %56
   %58 = fpext float %57 to double
-  %59 = getelementptr inbounds %java_Array, ptr %31, i32 0, i32 1
+  %59 = getelementptr inbounds %java_Array, %java_Array* %31, i32 0, i32 1
   %60 = load ptr, ptr %59
-  %61 = call i32 @printf(ptr %60, double %58)
+  %61 = call i32(i8*,...) @printf(i8* %60, double %58)
   ; Line 5
   %62 = alloca %java_Array
   %63 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 0
@@ -123,6 +131,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %64 = alloca i8, i32 4
   %65 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
   store ptr %64, ptr %65
+  call void @llvm.memset.p0.i8(ptr %64, i8 0, i64 4, i1 false)
   %66 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
   %67 = load ptr, ptr %66
   %68 = getelementptr inbounds i8, ptr %67, i32 0
@@ -145,6 +154,7 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %80 = alloca double, i32 1
   %81 = getelementptr inbounds %java_Array, %java_Array* %78, i32 0, i32 1
   store ptr %80, ptr %81
+  call void @llvm.memset.p0.i64(ptr %80, i8 0, i64 4, i1 false)
   %82 = getelementptr inbounds %java_Array, %java_Array* %78, i32 0, i32 1
   %83 = load ptr, ptr %82
   %84 = getelementptr inbounds double, ptr %83, i32 0
@@ -153,9 +163,9 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
   %86 = load ptr, ptr %85
   %87 = getelementptr inbounds %java_Array, ptr %86, i32 0
   %88 = load double, double* %87
-  %89 = getelementptr inbounds %java_Array, ptr %62, i32 0, i32 1
+  %89 = getelementptr inbounds %java_Array, %java_Array* %62, i32 0, i32 1
   %90 = load ptr, ptr %89
-  %91 = call i32 @printf(ptr %90, double %88)
+  %91 = call i32(i8*,...) @printf(i8* %90, double %88)
   ; Line 6
   ret i32 0
 }

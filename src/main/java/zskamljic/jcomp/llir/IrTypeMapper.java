@@ -17,12 +17,11 @@ public class IrTypeMapper {
         return switch (classDesc.displayName()) {
             case "boolean" -> LlvmType.Primitive.BOOLEAN;
             case "byte" -> LlvmType.Primitive.BYTE;
-            case "char" -> LlvmType.Primitive.USHORT;
+            case "char", "short" -> LlvmType.Primitive.SHORT;
             case "double" -> LlvmType.Primitive.DOUBLE;
             case "float" -> LlvmType.Primitive.FLOAT;
             case "int" -> LlvmType.Primitive.INT;
             case "long" -> LlvmType.Primitive.LONG;
-            case "short" -> LlvmType.Primitive.SHORT;
             case "void" -> LlvmType.Primitive.VOID;
             default -> throw new IllegalArgumentException(STR."\{classDesc} type not supported yet");
         };
@@ -46,8 +45,10 @@ public class IrTypeMapper {
         return switch (typeKind) {
             case ByteType -> LlvmType.Primitive.BYTE;
             case DoubleType -> LlvmType.Primitive.DOUBLE;
+            case CharType, ShortType -> LlvmType.Primitive.SHORT;
             case FloatType -> LlvmType.Primitive.FLOAT;
             case IntType -> LlvmType.Primitive.INT;
+            case LongType -> LlvmType.Primitive.LONG;
             default -> LlvmType.Primitive.POINTER;
         };
     }

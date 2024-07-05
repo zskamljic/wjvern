@@ -19,6 +19,10 @@ label1:
 }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @CustomException_vtable_data = global %CustomException_vtable_type {
   i32(%CustomException*)* @"CustomException_getCode()I"

@@ -18,6 +18,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %Exceptions = type { %Exceptions_vtable_type* }
 
 declare i32 @__gxx_personality_v0(...)
+declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 declare i32 @llvm.eh.typeid.for(ptr)
 
@@ -125,6 +129,7 @@ define void @print() personality ptr @__gxx_personality_v0 {
   %3 = alloca i8, i32 7
   %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   store ptr %3, ptr %4
+  call void @llvm.memset.p0.i8(ptr %3, i8 0, i64 7, i1 false)
   %5 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   %6 = load ptr, ptr %5
   %7 = getelementptr inbounds i8, ptr %6, i32 0
@@ -153,9 +158,9 @@ define void @print() personality ptr @__gxx_personality_v0 {
   %24 = load ptr, ptr %23
   %25 = getelementptr inbounds i8, ptr %24, i32 6
   store i8 0, ptr %25
-  %26 = getelementptr inbounds %java_Array, ptr %1, i32 0, i32 1
+  %26 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
   %27 = load ptr, ptr %26
-  %28 = call i32 @puts(ptr %27)
+  %28 = call i32 @puts(i8* %27)
   ; Line 14
   ret void
 }

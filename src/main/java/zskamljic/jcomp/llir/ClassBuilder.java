@@ -121,7 +121,12 @@ public class ClassBuilder {
             classGenerator.addMethod(method);
         }
 
-        classGenerator.injectCode("declare i32 @__gxx_personality_v0(...)");
+        classGenerator.injectCode("""
+            declare i32 @__gxx_personality_v0(...)
+            declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
+            declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
+            declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
+            declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)""");
         if (hasThrow) {
             classGenerator.injectCode("declare i32 @llvm.eh.typeid.for(ptr)");
             classGenerator.injectCode("declare ptr @__cxa_allocate_exception(i64)");

@@ -55,7 +55,7 @@ public class Main {
             }
             if (!options.debug) {
                 for (var generatedFile : generatedFiles.keySet()) {
-                    Files.deleteIfExists(buildDir.resolve(STR."\{generatedFile}.ll"));
+                    //Files.deleteIfExists(buildDir.resolve(STR."\{generatedFile}.ll"));
                 }
             }
         } catch (IOException | InterruptedException e) {
