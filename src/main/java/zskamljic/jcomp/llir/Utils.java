@@ -1,7 +1,9 @@
 package zskamljic.jcomp.llir;
 
+import java.lang.classfile.FieldModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.FieldRefEntry;
 import java.lang.classfile.constantpool.MemberRefEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
@@ -23,6 +25,14 @@ public class Utils {
 
     public static String methodName(MemberRefEntry method) {
         return escape(STR."\{method.owner().name()}_\{method.name()}\{method.type()}");
+    }
+
+    public static String staticVariableName(FieldRefEntry field) {
+        return STR."@\{field.owner().name()}_\{field.name()}";
+    }
+
+    public static String staticVariableName(FieldModel field) {
+        return STR."@\{field.parent().orElseThrow().thisClass().name()}_\{field.fieldName()}";
     }
 
     public static boolean isVirtual(MethodModel method) {

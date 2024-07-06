@@ -15,6 +15,7 @@ import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.constant.ClassDesc;
+import java.lang.reflect.AccessFlag;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -106,7 +107,11 @@ public class ClassBuilder {
                 type = new LlvmType.Pointer(type);
             }
 
-            classGenerator.addField(field.fieldName().stringValue(), type);
+            if (field.flags().has(AccessFlag.STATIC)) {
+                classGenerator.addStaticField(Utils.staticVariableName(field), type);
+            } else {
+                classGenerator.addField(field.fieldName().stringValue(), type);
+            }
         }
 
         var hasThrow = false;

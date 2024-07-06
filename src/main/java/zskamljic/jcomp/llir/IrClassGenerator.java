@@ -33,6 +33,7 @@ public class IrClassGenerator {
     private final Set<String> methodDependencies = new HashSet<>();
     private final FunctionRegistry functionRegistry;
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
+    private final Map<String, LlvmType> staticFields = new LinkedHashMap<>();
     private final List<MethodModel> parentMethods = new ArrayList<>();
     private final List<MethodModel> methods = new ArrayList<>();
     private final List<String> injectedCode = new ArrayList<>();
@@ -70,6 +71,10 @@ public class IrClassGenerator {
 
     public void addField(String name, LlvmType type) {
         fields.put(name, type);
+    }
+
+    public void addStaticField(String name, LlvmType type) {
+        staticFields.put(name, type);
     }
 
     public void addMethod(MethodModel method) {
@@ -169,6 +174,9 @@ public class IrClassGenerator {
         generateType(builder, vtableType);
         builder.append("\n\n");
 
+        staticFields.forEach((name, type) -> builder.append(name).append(" = global ").append(type).append(" 0").append("\n"));
+        if (!staticFields.isEmpty()) builder.append("\n");
+
         if (methods.stream().anyMatch(Utils::isVirtual)) {
             var virtualMethodString = methods.stream()
                 .filter(Utils::isVirtual)
@@ -227,7 +235,7 @@ public class IrClassGenerator {
                 .map(VtableInfo::signature)
                 .map(LlvmType.Pointer::new)
                 .map(Objects::toString)
-                    .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(", "));
             builder.append(" ").append(vtableString);
         }
 

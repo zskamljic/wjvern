@@ -46,7 +46,7 @@ public class SwitchStates {
         }
         if (state.remainingLabels().isEmpty()) {
             states.pop();
-            while (state.varName().equals(stack.peekFirst())) {
+            while (state.varName().equals(stack.peek())) {
                 stack.pop();
             }
             stack.push(state.varName());

@@ -53,10 +53,6 @@ public class IrMethodGenerator {
         add(new CodeEntry.Alloca(varName, type));
     }
 
-    public void bitcast(String newVar, LlvmType oldType, String source, LlvmType newType) {
-        add(new CodeEntry.Bitcast(newVar, oldType, source, newType));
-    }
-
     public String bitcast(LlvmType oldType, String source, LlvmType newType) {
         incrementIfNeeded(null);
         var newVar = unnamedGenerator.generateNext();
@@ -296,6 +292,9 @@ public class IrMethodGenerator {
         ADD,
         DIV,
         MUL,
-        SUB
+        SUB,
+        ASHR,
+        AND,
+        OR
     }
 }

@@ -22,6 +22,9 @@ public interface CodeEntry {
                 case DIV -> isFloatingPoint ? "fdiv" : "sdiv";
                 case MUL -> isFloatingPoint ? "fmul" : "mul";
                 case SUB -> isFloatingPoint ? "fsub" : "sub";
+                case ASHR -> "ashr";
+                case AND -> "and";
+                case OR -> "or";
             };
 
             return STR."\{newVar} = \{op} \{type} \{operand1}, \{operand2}";

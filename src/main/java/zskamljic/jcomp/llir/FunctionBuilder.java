@@ -11,6 +11,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.FieldRefEntry;
 import java.lang.classfile.instruction.ArrayLoadInstruction;
 import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
@@ -583,7 +584,11 @@ public class FunctionBuilder {
                 generator.binaryOperator(IrMethodGenerator.Operator.MUL, type, loadIfNeeded(generator, types, locals, stack.pop()), operand);
             case DSUB, FSUB, ISUB, LSUB ->
                 generator.binaryOperator(IrMethodGenerator.Operator.SUB, type, loadIfNeeded(generator, types, locals, stack.pop()), operand);
+            case IAND -> generator.binaryOperator(IrMethodGenerator.Operator.AND, type, loadIfNeeded(generator, types, locals, stack.pop()), operand);
+            case ISHR ->
+                generator.binaryOperator(IrMethodGenerator.Operator.ASHR, type, loadIfNeeded(generator, types, locals, stack.pop()), operand);
             case LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, locals, stack.pop()), operand);
+            case LOR -> generator.binaryOperator(IrMethodGenerator.Operator.OR, type, loadIfNeeded(generator, types, locals, stack.pop()), operand);
             default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
         };
 
@@ -679,34 +684,58 @@ public class FunctionBuilder {
     }
 
     private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, Locals locals, FieldInstruction instruction) {
-        if (instruction.opcode() == Opcode.GETFIELD) {
-            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
-
-            var source = loadIfNeeded(generator, types, locals, stack.pop());
-            var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
-            var varName = generator.getElementPointer(
-                parentType, new LlvmType.Pointer(parentType), source,
-                List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1))
-            );
-
-            var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
-            types.put(valueVar, fieldType);
-            stack.push(valueVar);
-        } else if (instruction.opcode() == Opcode.PUTFIELD) {
-            var value = stack.pop();
-            var objectReference = stack.pop();
-
-            var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
-
-            var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
-            var varName = generator.getElementPointer(
-                parentType, new LlvmType.Pointer(parentType), objectReference,
-                List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1))
-            );
-            generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
-        } else {
-            throw new IllegalArgumentException(STR."\{instruction.opcode()} field instruction is not yet supported");
+        switch (instruction.opcode()) {
+            case GETFIELD -> getField(generator, types, locals, stack, instruction.field());
+            case PUTFIELD -> putField(generator, stack, instruction);
+            case GETSTATIC -> getStatic(generator, types, stack, instruction.field());
+            case PUTSTATIC -> putStatic(generator, types, locals, stack, instruction.field());
+            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} field instruction is not yet supported");
         }
+    }
+
+    private void getField(IrMethodGenerator generator, Map<String, LlvmType> types, Locals locals, Deque<String> stack, FieldRefEntry field) {
+        var fieldType = IrTypeMapper.mapType(field.typeSymbol());
+
+        var source = loadIfNeeded(generator, types, locals, stack.pop());
+        var parentType = new LlvmType.Declared(field.owner().name().stringValue());
+        var varName = generator.getElementPointer(
+            parentType, new LlvmType.Pointer(parentType), source,
+            List.of("0", String.valueOf(fieldDefinition.indexOf(field.name().stringValue()) + 1))
+        );
+
+        var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
+        types.put(valueVar, fieldType);
+        stack.push(valueVar);
+    }
+
+    private void putField(IrMethodGenerator generator, Deque<String> stack, FieldInstruction instruction) {
+        var value = stack.pop();
+        var objectReference = stack.pop();
+
+        var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
+
+        var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
+        var varName = generator.getElementPointer(
+            parentType, new LlvmType.Pointer(parentType), objectReference,
+            List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1))
+        );
+        generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
+    }
+
+    private void getStatic(IrMethodGenerator generator, Map<String, LlvmType> types, Deque<String> stack, FieldRefEntry field) {
+        var staticField = Utils.staticVariableName(field);
+        var type = IrTypeMapper.mapType(field.typeSymbol());
+        var loaded = generator.load(type, new LlvmType.Pointer(type), staticField);
+        types.put(loaded, type);
+        stack.push(loaded);
+    }
+
+    private void putStatic(IrMethodGenerator generator, Map<String, LlvmType> types, Locals locals, Deque<String> stack, FieldRefEntry field) {
+        var value = loadIfNeeded(generator, types, locals, stack.pop());
+
+        var type = IrTypeMapper.mapType(field.typeSymbol());
+        var staticField = Utils.staticVariableName(field);
+        generator.store(type, value, new LlvmType.Pointer(type), staticField);
     }
 
     private void handleIncrement(IrMethodGenerator generator, Locals locals, HashMap<String, LlvmType> types, IncrementInstruction instruction) {

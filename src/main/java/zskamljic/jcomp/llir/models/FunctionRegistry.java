@@ -49,7 +49,7 @@ public class FunctionRegistry {
     }
 
     public boolean isNative(String className, MemberRefEntry methodRefEntry) {
-        return methods.get(className)
+        return methods.getOrDefault(className, Set.of())
             .stream()
             // TODO: perhaps also add an annotation to specify functions linked from C?
             .filter(method -> method.flags().has(AccessFlag.NATIVE) && method.flags().has(AccessFlag.STATIC))
@@ -57,7 +57,7 @@ public class FunctionRegistry {
     }
 
     public boolean isNativeVarArg(String className, MemberRefEntry methodRefEntry) {
-        return methods.get(className)
+        return methods.getOrDefault(className, Set.of())
             .stream()
             .filter(method -> method.flags().has(AccessFlag.VARARGS) && method.flags().has(AccessFlag.STATIC))
             .anyMatch(method -> Utils.methodName(className, method).equals(Utils.methodName(methodRefEntry)));
