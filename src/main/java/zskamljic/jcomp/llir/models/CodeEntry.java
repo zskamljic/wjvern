@@ -22,9 +22,11 @@ public interface CodeEntry {
                 case DIV -> isFloatingPoint ? "fdiv" : "sdiv";
                 case MUL -> isFloatingPoint ? "fmul" : "mul";
                 case SUB -> isFloatingPoint ? "fsub" : "sub";
+                case SHL -> "shl";
                 case ASHR -> "ashr";
                 case AND -> "and";
                 case OR -> "or";
+                case XOR -> "xor";
             };
 
             return STR."\{newVar} = \{op} \{type} \{operand1}, \{operand2}";
@@ -120,10 +122,10 @@ public interface CodeEntry {
         }
     }
 
-    record ExtractValue(String varName, String landingPad, int index) implements CodeEntry {
+    record ExtractValue(String varName, String composite, String source, int index) implements CodeEntry {
         @Override
         public String toString() {
-            return STR."\{varName} = extractvalue { ptr, i32 } \{landingPad}, \{index}";
+            return STR."\{varName} = extractvalue \{composite} \{source}, \{index}";
         }
     }
 
@@ -218,6 +220,13 @@ public interface CodeEntry {
         @Override
         public String toString() {
             return STR."\{newName} = load \{targetType}, \{sourceType} \{variableName}";
+        }
+    }
+
+    record Negate(String newName, LlvmType.Primitive type, String variable) implements CodeEntry {
+        @Override
+        public String toString() {
+            return STR."\{newName} = fneg \{type} \{variable}";
         }
     }
 

@@ -7,6 +7,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public sealed interface LlvmType {
+    default boolean isReferenceType() {
+        return false;
+    }
+
     record Array(LlvmType type) implements LlvmType {
         @Override
         public String toString() {
@@ -21,6 +25,11 @@ public sealed interface LlvmType {
                 return type.equals(otherType);
             }
             return false;
+        }
+
+        @Override
+        public boolean isReferenceType() {
+            return true;
         }
     }
 
@@ -39,12 +48,22 @@ public sealed interface LlvmType {
             }
             return false;
         }
+
+        @Override
+        public boolean isReferenceType() {
+            return true;
+        }
     }
 
     record Declared(String type) implements LlvmType {
         @Override
         public String toString() {
             return STR."%\{Utils.escape(type)}";
+        }
+
+        @Override
+        public boolean isReferenceType() {
+            return true;
         }
     }
 

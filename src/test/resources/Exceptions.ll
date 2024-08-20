@@ -1,7 +1,9 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %CustomException = type { ptr, i32 }
 %"java/lang/Throwable" = type opaque
 %java_Array = type { i32, ptr }
+%Exceptions = type { %Exceptions_vtable_type* }
 declare void @"CustomException_<init>(I)V"(%CustomException*, i32)
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"CustomException_getCode()I"(%CustomException*)
@@ -13,10 +15,13 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %Exceptions_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%CustomException_vtable_type = type { i32(%CustomException*)* }
 
-%Exceptions = type { %Exceptions_vtable_type* }
-
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -94,8 +99,8 @@ label4:
   ; Line 6
   %11 = load %CustomException*, %CustomException** %local.0
   %12 = getelementptr inbounds %Exceptions, %Exceptions* %11, i32 0, i32 0
-  %13 = load %Exceptions_vtable_type*, %Exceptions_vtable_type** %12
-  %14 = getelementptr inbounds %Exceptions_vtable_type, %Exceptions_vtable_type* %13, i32 0, i32 0
+  %13 = load %CustomException_vtable_type*, %CustomException_vtable_type** %12
+  %14 = getelementptr inbounds %CustomException_vtable_type, %CustomException_vtable_type* %13, i32 0, i32 0
   %15 = load i32(%CustomException*)*, i32(%CustomException*)** %14
   %16 = call i32 %15(%CustomException* %11)
   %local.1 = alloca ptr

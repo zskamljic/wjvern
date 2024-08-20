@@ -1,5 +1,7 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%ForEach = type { %ForEach_vtable_type* }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -9,10 +11,12 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %ForEach_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-%ForEach = type { %ForEach_vtable_type* }
-
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -53,8 +57,8 @@ define i32 @main() personality ptr @__gxx_personality_v0 {
 label2:
   ; %array entered scope under name %local.0
   ; Line 5
-  %local.1 = alloca ptr
   %5 = load %java_Array*, %java_Array** %local.0
+  %local.1 = alloca ptr
   store %java_Array* %5, ptr %local.1
   %6 = load %java_Array*, %java_Array** %local.1
   %7 = getelementptr inbounds %java_Array, %java_Array* %6, i32 0, i32 0
@@ -68,8 +72,8 @@ label4:
   %9 = load i32, i32* %local.2
   %10 = load i32, i32* %local.3
   %11 = icmp sge i32 %10, %9
-  br i1 %11, label %label5, label %not_label5
-not_label5:
+  br i1 %11, label %label5, label %label6
+label6:
   %12 = load i32, i32* %local.3
   %13 = load %java_Array*, %java_Array** %local.1
   %14 = getelementptr inbounds %java_Array, %java_Array* %13, i32 0, i32 1
@@ -133,25 +137,25 @@ label0:
 label2:
   ; %pattern entered scope under name %local.1
   ; Line 14
-  %16 = alloca %java_Array
-  %17 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 0
-  store i32 1, i32* %17
-  %18 = alloca i32, i32 1
-  %19 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
-  store ptr %18, ptr %19
-  call void @llvm.memset.p0.i32(ptr %18, i8 0, i64 4, i1 false)
-  %20 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
-  %21 = load ptr, ptr %20
-  %22 = getelementptr inbounds i32, ptr %21, i32 0
-  store i32 %local.0, ptr %22
-  %23 = getelementptr inbounds %java_Array, ptr %16, i32 0, i32 1
-  %24 = load ptr, ptr %23
-  %25 = getelementptr inbounds %java_Array, ptr %24, i32 0
-  %26 = load i32, i32* %25
-  %27 = load %java_Array*, %java_Array* %local.1
-  %28 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
+  %16 = load %java_Array*, %java_Array** %local.1
+  %17 = alloca %java_Array
+  %18 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 0
+  store i32 1, i32* %18
+  %19 = alloca i32, i32 1
+  %20 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  store ptr %19, ptr %20
+  call void @llvm.memset.p0.i32(ptr %19, i8 0, i64 4, i1 false)
+  %21 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  %22 = load ptr, ptr %21
+  %23 = getelementptr inbounds i32, ptr %22, i32 0
+  store i32 %local.0, ptr %23
+  %24 = getelementptr inbounds %java_Array, ptr %17, i32 0, i32 1
+  %25 = load ptr, ptr %24
+  %26 = getelementptr inbounds %java_Array, ptr %25, i32 0
+  %27 = load i32, i32* %26
+  %28 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   %29 = load ptr, ptr %28
-  %30 = call i32(i8*,...) @printf(i8* %29, i32 %26)
+  %30 = call i32(i8*,...) @printf(i8* %29, i32 %27)
   ; Line 15
   ret void
 label1:

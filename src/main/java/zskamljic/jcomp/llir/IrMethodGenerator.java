@@ -76,7 +76,7 @@ public class IrMethodGenerator {
     }
 
     public void comment(String comment) {
-        add(new CodeEntry.Comment(comment));
+        add(new CodeEntry.Comment(comment.replaceAll("\n", "\\n")));
     }
 
     public String compare(Condition condition, LlvmType type, String a, String b) {
@@ -128,10 +128,10 @@ public class IrMethodGenerator {
         return returnVar;
     }
 
-    public String extractValue(String landingPad, int index) {
+    public String extractValue(String composite, String source, int index) {
         incrementIfNeeded(null);
         var returnVar = unnamedGenerator.generateNext();
-        codeEntries.add(new CodeEntry.ExtractValue(returnVar, landingPad, index));
+        codeEntries.add(new CodeEntry.ExtractValue(returnVar, composite, source, index));
         return returnVar;
     }
 
@@ -166,6 +166,13 @@ public class IrMethodGenerator {
         incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Load(newName, targetType, sourceType, variable));
+        return newName;
+    }
+
+    public String negate(LlvmType.Primitive type, String variable) {
+        incrementIfNeeded(null);
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.Negate(newName, type, variable));
         return newName;
     }
 
@@ -293,8 +300,10 @@ public class IrMethodGenerator {
         DIV,
         MUL,
         SUB,
+        SHL,
         ASHR,
         AND,
-        OR
+        OR,
+        XOR
     }
 }

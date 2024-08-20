@@ -1,10 +1,12 @@
 %"java/lang/Exception" = type { ptr }
+%"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%CustomException = type { %CustomException_vtable_type*, i32 }
 declare void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*)
 
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
-
-%CustomException = type { %CustomException_vtable_type*, i32 }
 
 define i32 @"CustomException_getCode()I"(%CustomException* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
@@ -18,6 +20,8 @@ label1:
   unreachable
 }
 
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)

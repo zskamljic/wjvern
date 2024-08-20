@@ -45,11 +45,11 @@ class IrCodeTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields"
+        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields", "ReturnArray", "ReferenceFields", "Strings"
     })
     void generatesValid(String fileName) throws IOException {
         var classPath = Path.of("target/test-classes/");
-        var classGenerator = new ClassBuilder(resolver, ClassFile.of().parse(classPath.resolve(STR."\{fileName}.class")), classPath, true);
+        var classGenerator = new ClassBuilder(resolver, ClassFile.of().parse(classPath.resolve(STR."\{fileName}.class")), classPath, false);
 
         if (!Files.exists(BUILD_PATH)) {
             Files.createDirectory(BUILD_PATH);
@@ -60,7 +60,7 @@ class IrCodeTest {
 
         for (var output : generatedFiles.entrySet()) {
             var name = output.getKey();
-            if (name.startsWith("java/lang")) {
+            if (name.startsWith("java/lang") || name.equals("__entrypoint")) {
                 output.getValue().generate();
                 continue;
             }

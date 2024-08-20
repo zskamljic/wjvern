@@ -1,5 +1,7 @@
 package zskamljic.jcomp.llir.models;
 
+import zskamljic.jcomp.llir.Utils;
+
 import java.lang.constant.MethodTypeDesc;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,6 +12,11 @@ import java.util.stream.Stream;
 
 public class Vtable {
     private final Map<String, VtableInfo> vtableEntries = new HashMap<>();
+    private final String className;
+
+    public Vtable(String className) {
+        this.className = className;
+    }
 
     public void addAll(Vtable vtable) {
         vtableEntries.putAll(vtable.vtableEntries);
@@ -31,6 +38,10 @@ public class Vtable {
 
     public Stream<VtableInfo> stream() {
         return vtableEntries.values().stream().sorted(Comparator.comparing(VtableInfo::index));
+    }
+
+    public LlvmType.Declared type() {
+        return new LlvmType.Declared(Utils.vtableTypeName(className));
     }
 
     public List<LlvmType.Declared> requiredTypes() {

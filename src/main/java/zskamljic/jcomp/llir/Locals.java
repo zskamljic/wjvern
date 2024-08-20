@@ -41,8 +41,11 @@ public class Locals {
         var codeName = STR."%\{rawName}";
 
         var type = IrTypeMapper.mapType(variable.typeSymbol());
+        if (!(type instanceof LlvmType.Primitive)) {
+            type = new LlvmType.Pointer(type);
+        }
 
-        if (type instanceof LlvmType.Declared) {
+        if (!parameterChecker.test(STR."local.\{variable.slot()}")) {
             type = new LlvmType.Pointer(type);
         }
 
@@ -67,9 +70,6 @@ public class Locals {
             .filter(v -> currentLabel.equals(v.start()))
             .forEach(v -> {
                 var type = v.type();
-                if (!parameterChecker.test(v.varName().substring(1))) {
-                    type = new LlvmType.Pointer(type);
-                }
                 types.put(v.varName(), type);
                 generator.comment(STR."\{v.codeName()} entered scope under name \{v.varName()}");
                 activeLocals.put(v.slot(), v);

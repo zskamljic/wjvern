@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -30,15 +31,19 @@ public class FunctionRegistry {
         this.classLoader = classLoader;
         this.isUnsupportedFunction = isUnsupportedFunction;
         // TODO: remove when exception compiles
-        vtables.put("java/lang/Exception", new Vtable());
+        vtables.put("java/lang/Exception", new Vtable("java/lang/Exception"));
         methods.put("java/lang/Exception", new HashSet<>());
     }
 
     public List<LlvmType.Declared> getRequiredTypes(String className) {
+        if (!vtables.containsKey(className)) return List.of();
+
         return vtables.get(className).requiredTypes();
     }
 
     public List<VtableInfo> getVirtualFunctions(String className) {
+        if (!vtables.containsKey(className)) return List.of();
+
         return vtables.get(className)
             .stream()
             .toList();
@@ -71,7 +76,7 @@ public class FunctionRegistry {
         var className = current.thisClass().name().stringValue();
         if (vtables.containsKey(className)) return vtables.get(className);
 
-        var vtable = new Vtable();
+        var vtable = new Vtable(className);
         if (current.superclass().isPresent()) {
             var parentClass = classLoader.load(current.superclass().get());
             if (parentClass.isPresent()) {
@@ -105,7 +110,7 @@ public class FunctionRegistry {
                 if (referencedClass.isPresent()) {
                     generateVtable(referencedClass.get());
                 } else {
-                    vtables.put(classEntry.name().stringValue(), new Vtable());
+                    vtables.put(classEntry.name().stringValue(), new Vtable(classEntry.name().stringValue()));
                 }
             } else if (entry instanceof MethodRefEntry method) {
                 var owner = method.owner();
@@ -115,7 +120,7 @@ public class FunctionRegistry {
                 if (referencedClass.isPresent()) {
                     generateVtable(referencedClass.get());
                 } else {
-                    vtables.put(owner.name().stringValue(), new Vtable());
+                    vtables.put(owner.name().stringValue(), new Vtable(owner.name().stringValue()));
                 }
             }
         }

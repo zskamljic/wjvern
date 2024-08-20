@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 class CompileExpectationsTest {
     private static final Path BUILD_PATH = Path.of("integrationBuild");
 
-    @AfterEach
+    //@AfterEach
     void tearDown() throws IOException {
         Files.walkFileTree(BUILD_PATH, new SimpleFileVisitor<>() {
             @Override
@@ -44,10 +44,11 @@ class CompileExpectationsTest {
         "Simple", "StaticFunctions", "NativeMethods", "NativeVarArgMethods", "ConstructorAndInstanceMethods",
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
-        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields"
+        "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields", "ReturnArray",
+        "ReferenceFields", "Strings"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
-        Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString()});
+        Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString(), "-d"});
 
         var process = new ProcessBuilder("./a.out").start();
         try (

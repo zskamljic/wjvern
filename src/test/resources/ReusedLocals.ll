@@ -1,5 +1,7 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%ReusedLocals = type { %ReusedLocals_vtable_type*, i32 }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -9,10 +11,12 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %ReusedLocals_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-%ReusedLocals = type { %ReusedLocals_vtable_type*, i32 }
-
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -64,15 +68,15 @@ label6:
   br label %label0
 label0:
   ; %i entered scope under name %local.1
-  %5 = load %java_Array*, %java_Array* %local.0
+  %5 = load %java_Array*, %java_Array** %local.0
   %6 = getelementptr inbounds %java_Array, %java_Array* %5, i32 0, i32 0
   %7 = load i32, ptr %6
   %8 = load i32, i32* %local.1
   %9 = icmp sge i32 %8, %7
-  br i1 %9, label %label1, label %not_label1
-not_label1:
+  br i1 %9, label %label1, label %label9
+label9:
   ; Line 12
-  %10 = load %java_Array*, %java_Array* %local.0
+  %10 = load %java_Array*, %java_Array** %local.0
   %11 = getelementptr inbounds %java_Array, %java_Array* %10, i32 0, i32 1
   %12 = load ptr, ptr %11
   %13 = load i32, i32* %local.1
@@ -103,23 +107,23 @@ label8:
   br label %label2
 label2:
   ; %i entered scope under name %local.2
-  %22 = load %java_Array*, %java_Array* %local.1
+  %22 = load %java_Array*, %java_Array** %local.1
   %23 = getelementptr inbounds %java_Array, %java_Array* %22, i32 0, i32 0
   %24 = load i32, ptr %23
   %25 = load i32, i32* %local.2
   %26 = icmp sge i32 %25, %24
-  br i1 %26, label %label3, label %not_label3
-not_label3:
+  br i1 %26, label %label3, label %label10
+label10:
   ; Line 18
-  %27 = alloca %ReusedLocals
-  %28 = load i32, i32* %local.2
-  call void @"ReusedLocals_<init>(I)V"(%ReusedLocals* %27, i32 %28)
-  %29 = load %java_Array*, %java_Array* %local.1
-  %30 = getelementptr inbounds %java_Array, %java_Array* %29, i32 0, i32 1
+  %27 = load %java_Array*, %java_Array** %local.1
+  %28 = alloca %ReusedLocals
+  %29 = load i32, i32* %local.2
+  call void @"ReusedLocals_<init>(I)V"(%ReusedLocals* %28, i32 %29)
+  %30 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
   %31 = load ptr, ptr %30
   %32 = load i32, i32* %local.2
   %33 = getelementptr inbounds %ReusedLocals, ptr %31, i32 %32
-  store %ReusedLocals* %27, ptr %33
+  store %ReusedLocals* %28, ptr %33
   ; Line 17
   %34 = load i32, i32* %local.2
   %35 = add i32 %34, 1
@@ -132,19 +136,19 @@ label3:
   br label %label4
 label4:
   ; %i entered scope under name %local.2
-  %36 = load %java_Array*, %java_Array* %local.1
+  %36 = load %java_Array*, %java_Array** %local.1
   %37 = getelementptr inbounds %java_Array, %java_Array* %36, i32 0, i32 0
   %38 = load i32, ptr %37
   %39 = load i32, i32* %local.2
   %40 = icmp sge i32 %39, %38
-  br i1 %40, label %label5, label %not_label5
-not_label5:
+  br i1 %40, label %label5, label %label11
+label11:
   ; Line 22
-  %41 = load i32, i32* %local.2
-  %42 = load %java_Array*, %java_Array* %local.1
-  %43 = getelementptr inbounds %java_Array, %java_Array* %42, i32 0, i32 1
+  %41 = load %java_Array*, %java_Array** %local.1
+  %42 = load i32, i32* %local.2
+  %43 = getelementptr inbounds %java_Array, %java_Array* %41, i32 0, i32 1
   %44 = load ptr, ptr %43
-  %45 = getelementptr inbounds %ReusedLocals, ptr %44, i32 %41
+  %45 = getelementptr inbounds %ReusedLocals, ptr %44, i32 %42
   %46 = load %ReusedLocals*, ptr %45
   %47 = getelementptr inbounds %ReusedLocals, %ReusedLocals* %46, i32 0, i32 1
   %48 = load i32, i32* %47
@@ -197,25 +201,25 @@ label0:
 label2:
   ; %pattern entered scope under name %local.1
   ; Line 29
-  %16 = alloca %java_Array
-  %17 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 0
-  store i32 1, i32* %17
-  %18 = alloca i32, i32 1
-  %19 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
-  store ptr %18, ptr %19
-  call void @llvm.memset.p0.i32(ptr %18, i8 0, i64 4, i1 false)
-  %20 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
-  %21 = load ptr, ptr %20
-  %22 = getelementptr inbounds i32, ptr %21, i32 0
-  store i32 %local.0, ptr %22
-  %23 = getelementptr inbounds %java_Array, ptr %16, i32 0, i32 1
-  %24 = load ptr, ptr %23
-  %25 = getelementptr inbounds %java_Array, ptr %24, i32 0
-  %26 = load i32, i32* %25
-  %27 = load %java_Array*, %java_Array* %local.1
-  %28 = getelementptr inbounds %java_Array, %java_Array* %27, i32 0, i32 1
+  %16 = load %java_Array*, %java_Array** %local.1
+  %17 = alloca %java_Array
+  %18 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 0
+  store i32 1, i32* %18
+  %19 = alloca i32, i32 1
+  %20 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  store ptr %19, ptr %20
+  call void @llvm.memset.p0.i32(ptr %19, i8 0, i64 4, i1 false)
+  %21 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  %22 = load ptr, ptr %21
+  %23 = getelementptr inbounds i32, ptr %22, i32 0
+  store i32 %local.0, ptr %23
+  %24 = getelementptr inbounds %java_Array, ptr %17, i32 0, i32 1
+  %25 = load ptr, ptr %24
+  %26 = getelementptr inbounds %java_Array, ptr %25, i32 0
+  %27 = load i32, i32* %26
+  %28 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   %29 = load ptr, ptr %28
-  %30 = call i32(i8*,...) @printf(i8* %29, i32 %26)
+  %30 = call i32(i8*,...) @printf(i8* %29, i32 %27)
   ; Line 30
   ret void
 label1:

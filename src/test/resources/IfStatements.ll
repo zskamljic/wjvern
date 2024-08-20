@@ -1,5 +1,7 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -9,10 +11,12 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %IfStatements_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-%IfStatements = type { %IfStatements_vtable_type*, i32, i1 }
-
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -47,21 +51,23 @@ label0:
   ; Line 6
   %0 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
   %1 = load i1, i1* %0
-  br i1 %1, label %label2, label %not_label2
-not_label2:
+  %2 = sext i1 %1 to i32
+  %3 = icmp ne i32 %2, 0
+  br i1 %3, label %label2, label %label3
+label3:
   ; Line 7
-  %2 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
-  store i1 1, i1* %2
+  %4 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
+  store i1 1, i1* %4
   ; Line 8
-  %3 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
-  store i32 1, i32* %3
-  br label %label3
+  %5 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
+  store i32 1, i32* %5
+  br label %label4
 label2:
   ; Line 10
-  %4 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
-  store i32 2, i32* %4
-  br label %label3
-label3:
+  %6 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
+  store i32 2, i32* %6
+  br label %label4
+label4:
   ; Line 12
   ret void
 label1:

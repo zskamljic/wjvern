@@ -28,11 +28,11 @@ public class Utils {
     }
 
     public static String staticVariableName(FieldRefEntry field) {
-        return STR."@\{field.owner().name()}_\{field.name()}";
+        return STR."@\{escape(STR."\{field.owner().name()}_\{field.name()}")}";
     }
 
     public static String staticVariableName(FieldModel field) {
-        return STR."@\{field.parent().orElseThrow().thisClass().name()}_\{field.fieldName()}";
+        return STR."@\{escape(STR."\{field.parent().orElseThrow().thisClass().name()}_\{field.fieldName()}")}";
     }
 
     public static boolean isVirtual(MethodModel method) {
@@ -47,5 +47,15 @@ public class Utils {
             type = type.componentType();
         }
         return type;
+    }
+
+    public static boolean isSupportedClass(String className) {
+        return className.equals("java/lang/Object") ||
+            className.equals("java/lang/String") ||
+            className.equals("java/lang/Void");
+    }
+
+    public static String vtableTypeName(String className) {
+        return Utils.escape(STR."\{className}_vtable_type");
     }
 }

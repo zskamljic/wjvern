@@ -1,5 +1,7 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%ReturnReference = type { %ReturnReference_vtable_type* }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -10,8 +12,8 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %ReturnReference_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%ReturnReference*)* }
-
-%ReturnReference = type { %ReturnReference_vtable_type* }
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 
 define i32 @"ReturnReference_returnValue()I"(%ReturnReference* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
@@ -23,6 +25,8 @@ label1:
   unreachable
 }
 
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -61,7 +65,7 @@ define void @createInstance(ptr sret(%ReturnReference) %0) personality ptr @__gx
 define i32 @main() personality ptr @__gxx_personality_v0 {
   ; Line 11
   %1 = alloca %ReturnReference
-  call void @createInstance(ptr sret(%ReturnReference) %1)
+  call void @createInstance(ptr sret(%ReturnReference*) %1)
   %local.0 = alloca ptr
   store %ReturnReference* %1, ptr %local.0
   br label %label0

@@ -1,5 +1,7 @@
 %"java/lang/Object" = type { ptr }
+%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
+%Comparisons = type { %Comparisons_vtable_type* }
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -9,10 +11,12 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %Comparisons_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-%Comparisons = type { %Comparisons_vtable_type* }
-
+%"java/util/stream/IntStream" = type opaque
+%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
@@ -56,21 +60,25 @@ label0:
 label2:
   ; %b entered scope under name %local.1
   ; Line 5
-  %3 = icmp ne ptr %local.0, %local.0
-  br i1 %3, label %label3, label %not_label3
-not_label3:
+  %3 = load %Comparisons*, %Comparisons** %local.0
+  %4 = load %Comparisons*, %Comparisons** %local.0
+  %5 = icmp ne ptr %3, %4
+  br i1 %5, label %label3, label %label4
+label4:
   ; Line 6
   call void @printOk(i32 0)
   br label %label3
 label3:
   ; Line 8
-  %4 = icmp eq ptr %local.0, %local.1
-  br i1 %4, label %label4, label %not_label4
-not_label4:
+  %6 = load %Comparisons*, %Comparisons** %local.0
+  %7 = load %Comparisons*, %Comparisons** %local.1
+  %8 = icmp eq ptr %6, %7
+  br i1 %8, label %label5, label %label6
+label6:
   ; Line 9
   call void @printOk(i32 1)
-  br label %label4
-label4:
+  br label %label5
+label5:
   ; Line 11
   call void @compare(i32 1)
   ; Line 12
@@ -86,8 +94,8 @@ label4:
   ; Line 17
   call void @compareNull(%Comparisons* null)
   ; Line 18
-  %5 = load %Comparisons*, %Comparisons** %local.0
-  call void @compareNull(%Comparisons* %5)
+  %9 = load %Comparisons*, %Comparisons** %local.0
+  call void @compareNull(%Comparisons* %9)
   ; Line 19
   ret i32 0
 label1:
@@ -101,36 +109,36 @@ label0:
   ; %value entered scope under name %local.0
   ; Line 23
   %0 = icmp ne i32 %local.0, 1
-  br i1 %0, label %label2, label %not_label2
-not_label2:
+  br i1 %0, label %label2, label %label3
+label3:
   ; Line 24
   call void @printOk(i32 2)
   br label %label2
 label2:
   ; Line 26
   %1 = icmp eq i32 %local.0, 2
-  br i1 %1, label %label3, label %not_label3
-not_label3:
+  br i1 %1, label %label4, label %label5
+label5:
   ; Line 27
   call void @printOk(i32 3)
-  br label %label3
-label3:
-  ; Line 29
-  %2 = icmp sge i32 %local.0, 2
-  br i1 %2, label %label4, label %not_label4
-not_label4:
-  ; Line 30
-  call void @printOk(i32 4)
   br label %label4
 label4:
+  ; Line 29
+  %2 = icmp sge i32 %local.0, 2
+  br i1 %2, label %label6, label %label7
+label7:
+  ; Line 30
+  call void @printOk(i32 4)
+  br label %label6
+label6:
   ; Line 32
   %3 = icmp sle i32 2, %local.0
-  br i1 %3, label %label5, label %not_label5
-not_label5:
+  br i1 %3, label %label8, label %label9
+label9:
   ; Line 33
   call void @printOk(i32 5)
-  br label %label5
-label5:
+  br label %label8
+label8:
   ; Line 35
   ret void
 label1:
@@ -143,44 +151,44 @@ label0:
   ; %value entered scope under name %local.0
   ; Line 38
   %0 = icmp ne i32 %local.0, 0
-  br i1 %0, label %label2, label %not_label2
-not_label2:
+  br i1 %0, label %label2, label %label3
+label3:
   ; Line 39
   call void @printOk(i32 6)
   br label %label2
 label2:
   ; Line 41
   %1 = icmp eq i32 %local.0, 0
-  br i1 %1, label %label3, label %not_label3
-not_label3:
+  br i1 %1, label %label4, label %label5
+label5:
   ; Line 42
   call void @printOk(i32 7)
-  br label %label3
-label3:
-  ; Line 44
-  %2 = icmp sge i32 %local.0, 0
-  br i1 %2, label %label4, label %not_label4
-not_label4:
-  ; Line 45
-  call void @printOk(i32 8)
   br label %label4
 label4:
-  ; Line 47
-  %3 = icmp slt i32 %local.0, 0
-  br i1 %3, label %label5, label %not_label5
-not_label5:
-  ; Line 48
-  call void @printOk(i32 9)
-  br label %label5
-label5:
-  ; Line 50
-  %4 = icmp sgt i32 %local.0, 0
-  br i1 %4, label %label6, label %not_label6
-not_label6:
-  ; Line 51
-  call void @printOk(i32 10)
+  ; Line 44
+  %2 = icmp sge i32 %local.0, 0
+  br i1 %2, label %label6, label %label7
+label7:
+  ; Line 45
+  call void @printOk(i32 8)
   br label %label6
 label6:
+  ; Line 47
+  %3 = icmp slt i32 %local.0, 0
+  br i1 %3, label %label8, label %label9
+label9:
+  ; Line 48
+  call void @printOk(i32 9)
+  br label %label8
+label8:
+  ; Line 50
+  %4 = icmp sgt i32 %local.0, 0
+  br i1 %4, label %label10, label %label11
+label11:
+  ; Line 51
+  call void @printOk(i32 10)
+  br label %label10
+label10:
   ; Line 53
   ret void
 label1:
@@ -210,8 +218,8 @@ label6:
 label2:
   %3 = load i32, i32* %0
   %4 = icmp ne i32 %3, 0
-  br i1 %4, label %label7, label %not_label7
-not_label7:
+  br i1 %4, label %label7, label %label8
+label8:
   ; Line 57
   call void @printOk(i32 11)
   br label %label7
@@ -219,53 +227,53 @@ label7:
   ; Line 59
   %5 = alloca i32
   %6 = icmp slt i64 %local.0, 0
-  br i1 %6, label %label9, label %label10
-label9:
-  store i32 -1, i32* %5
-  br label %label8
+  br i1 %6, label %label10, label %label11
 label10:
-  %7 = icmp sgt i64 %local.0, 0
-  br i1 %7, label %label11, label %label12
+  store i32 -1, i32* %5
+  br label %label9
 label11:
-  store i32 1, i32* %5
-  br label %label8
+  %7 = icmp sgt i64 %local.0, 0
+  br i1 %7, label %label12, label %label13
 label12:
+  store i32 1, i32* %5
+  br label %label9
+label13:
   store i32 0, i32* %5
-  br label %label8
-label8:
+  br label %label9
+label9:
   %8 = load i32, i32* %5
   %9 = icmp sle i32 %8, 0
-  br i1 %9, label %label13, label %not_label13
-not_label13:
+  br i1 %9, label %label14, label %label15
+label15:
   ; Line 60
   call void @printOk(i32 12)
-  br label %label13
-label13:
+  br label %label14
+label14:
   ; Line 62
   %10 = alloca i32
   %11 = icmp slt i64 %local.0, 0
-  br i1 %11, label %label15, label %label16
-label15:
-  store i32 -1, i32* %10
-  br label %label14
-label16:
-  %12 = icmp sgt i64 %local.0, 0
-  br i1 %12, label %label17, label %label18
+  br i1 %11, label %label17, label %label18
 label17:
-  store i32 1, i32* %10
-  br label %label14
+  store i32 -1, i32* %10
+  br label %label16
 label18:
+  %12 = icmp sgt i64 %local.0, 0
+  br i1 %12, label %label19, label %label20
+label19:
+  store i32 1, i32* %10
+  br label %label16
+label20:
   store i32 0, i32* %10
-  br label %label14
-label14:
+  br label %label16
+label16:
   %13 = load i32, i32* %10
   %14 = icmp sge i32 %13, 0
-  br i1 %14, label %label19, label %not_label19
-not_label19:
+  br i1 %14, label %label21, label %label22
+label22:
   ; Line 63
   call void @printOk(i32 13)
-  br label %label19
-label19:
+  br label %label21
+label21:
   ; Line 65
   ret void
 label1:
@@ -278,20 +286,20 @@ label0:
   ; %o entered scope under name %local.0
   ; Line 68
   %0 = icmp ne ptr %local.0, null
-  br i1 %0, label %label2, label %not_label2
-not_label2:
+  br i1 %0, label %label2, label %label3
+label3:
   ; Line 69
   call void @printOk(i32 14)
   br label %label2
 label2:
   ; Line 71
   %1 = icmp eq ptr %local.0, null
-  br i1 %1, label %label3, label %not_label3
-not_label3:
+  br i1 %1, label %label4, label %label5
+label5:
   ; Line 72
   call void @printOk(i32 15)
-  br label %label3
-label3:
+  br label %label4
+label4:
   ; Line 74
   ret void
 label1:
