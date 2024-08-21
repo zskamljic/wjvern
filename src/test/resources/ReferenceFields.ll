@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ReferenceFields_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 6
   %1 = alloca %ReferenceFields
   call void @"ReferenceFields_<init>()V"(%ReferenceFields* %1)
@@ -78,7 +78,7 @@ label0:
   %18 = load ptr, ptr %17
   %19 = getelementptr inbounds i32, ptr %18, i32 0
   %20 = load i32, ptr %19
-  call void @printInt(i32 %20)
+  call void @"ReferenceFields_printInt(I)V"(i32 %20)
   ; Line 9
   %21 = load %ReferenceFields*, %ReferenceFields** %local.0
   %22 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %21, i32 0, i32 1
@@ -87,7 +87,7 @@ label0:
   %25 = load ptr, ptr %24
   %26 = getelementptr inbounds i32, ptr %25, i32 1
   %27 = load i32, ptr %26
-  call void @printInt(i32 %27)
+  call void @"ReferenceFields_printInt(I)V"(i32 %27)
   ; Line 11
   %28 = load %ReferenceFields*, %ReferenceFields** %local.0
   %29 = alloca %ReferenceFields
@@ -125,7 +125,7 @@ label0:
   %51 = load ptr, ptr %50
   %52 = getelementptr inbounds i32, ptr %51, i32 0
   %53 = load i32, ptr %52
-  call void @printInt(i32 %53)
+  call void @"ReferenceFields_printInt(I)V"(i32 %53)
   ; Line 14
   %54 = load %ReferenceFields*, %ReferenceFields** %local.0
   %55 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %54, i32 0, i32 2
@@ -136,7 +136,7 @@ label0:
   %60 = load ptr, ptr %59
   %61 = getelementptr inbounds i32, ptr %60, i32 1
   %62 = load i32, ptr %61
-  call void @printInt(i32 %62)
+  call void @"ReferenceFields_printInt(I)V"(i32 %62)
   ; Line 16
   ret i32 0
 label1:
@@ -144,7 +144,7 @@ label1:
   unreachable
 }
 
-define void @printInt(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ReferenceFields_printInt(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %i entered scope under name %local.0
   ; Line 20

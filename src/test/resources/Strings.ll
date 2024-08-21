@@ -62,7 +62,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Strings_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %local.0 = alloca ptr
   store ptr @string.7, ptr %local.0
@@ -82,7 +82,7 @@ label2:
   %3 = load %java_Array*, %java_Array** %local.1
   %4 = getelementptr inbounds %java_Array, %java_Array* %3, i32 0, i32 0
   %5 = load i32, ptr %4
-  call void @printInt(i32 %5)
+  call void @"Strings_printInt(I)V"(i32 %5)
   ; Line 6
   %6 = load %java_Array*, %java_Array** %local.1
   %7 = getelementptr inbounds %java_Array, %java_Array* %6, i32 0, i32 1
@@ -95,7 +95,7 @@ label2:
   %13 = getelementptr inbounds %"java/lang/String_vtable_type", %"java/lang/String_vtable_type"* %12, i32 0, i32 3
   %14 = load i32(%"java/lang/String"*)*, i32(%"java/lang/String"*)** %13
   %15 = call i32 %14(%"java/lang/String"* %10)
-  call void @printInt(i32 %15)
+  call void @"Strings_printInt(I)V"(i32 %15)
   ; Line 8
   %16 = load %"java/lang/String"*, %"java/lang/String"** %local.0
   %17 = alloca %java_Array
@@ -111,7 +111,7 @@ label1:
   unreachable
 }
 
-define void @printInt(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Strings_printInt(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %i entered scope under name %local.0
   ; Line 13

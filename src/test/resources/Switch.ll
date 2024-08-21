@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @switchFunc(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define i32 @"Switch_switchFunc(I)I"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 3
@@ -78,8 +78,8 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Switch_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 13
-  %1 = call i32 @switchFunc(i32 3)
+  %1 = call i32 @"Switch_switchFunc(I)I"(i32 3)
   ret i32 %1
 }

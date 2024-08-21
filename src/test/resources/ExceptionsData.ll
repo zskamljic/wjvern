@@ -64,14 +64,14 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ExceptionsData_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
-  call void @nested()
+  call void @"ExceptionsData_nested()V"()
   ; Line 4
   ret i32 0
 }
 
-define void @nested() personality ptr @__gxx_personality_v0 {
+define void @"ExceptionsData_nested()V"() personality ptr @__gxx_personality_v0 {
   %1 = alloca ptr
   br label %label0
 label5:
@@ -92,7 +92,7 @@ label6:
   unreachable
 label0:
   ; Line 9
-  invoke void @throwing() to label %label8 unwind label %label5
+  invoke void @"ExceptionsData_throwing()V"() to label %label8 unwind label %label5
 label8:
   br label %label1
 label1:
@@ -195,7 +195,7 @@ label4:
   ret void
 }
 
-define void @throwing() personality ptr @__gxx_personality_v0 {
+define void @"ExceptionsData_throwing()V"() personality ptr @__gxx_personality_v0 {
   ; Line 16
   %1 = alloca %CustomException
   call void @"CustomException_<init>(I)V"(%CustomException* %1, i32 5)

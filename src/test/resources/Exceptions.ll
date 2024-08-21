@@ -65,7 +65,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Exceptions_main()I"() personality ptr @__gxx_personality_v0 {
   %1 = alloca ptr
   br label %label0
 label5:
@@ -108,7 +108,7 @@ label4:
   br label %label2
 label2:
   ; Line 8
-  call void @print()
+  call void @"Exceptions_print()V"()
   ; Line 6
   %17 = load i32, i32* %local.1
   ret i32 %17
@@ -119,14 +119,14 @@ label3:
   ; Line 8
   %local.2 = alloca ptr
   store ptr %19, ptr %local.2
-  call void @print()
+  call void @"Exceptions_print()V"()
   ; Line 9
   %20 = load ptr, ptr %local.2
   call void @__cxa_throw(ptr %20, ptr null, ptr null)
   unreachable
 }
 
-define void @print() personality ptr @__gxx_personality_v0 {
+define void @"Exceptions_print()V"() personality ptr @__gxx_personality_v0 {
   ; Line 13
   %1 = alloca %java_Array
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0

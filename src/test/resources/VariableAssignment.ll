@@ -52,7 +52,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"VariableAssignment_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 7
   %1 = alloca %VariableAssignment
   call void @"VariableAssignment_<init>()V"(%VariableAssignment* %1)

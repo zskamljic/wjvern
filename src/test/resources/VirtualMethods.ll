@@ -106,7 +106,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"VirtualMethods_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 9
   %1 = alloca %VirtualMethods
   call void @"VirtualMethods_<init>()V"(%VirtualMethods* %1)

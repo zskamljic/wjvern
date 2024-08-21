@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"BasicMath_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %local.0 = alloca ptr
   store float 1.0, ptr %local.0

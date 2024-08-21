@@ -48,7 +48,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ReusedLocals_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 9
   %1 = alloca %java_Array
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
@@ -152,7 +152,7 @@ label11:
   %46 = load %ReusedLocals*, ptr %45
   %47 = getelementptr inbounds %ReusedLocals, %ReusedLocals* %46, i32 0, i32 1
   %48 = load i32, i32* %47
-  call void @print(i32 %48)
+  call void @"ReusedLocals_print(I)V"(i32 %48)
   ; Line 21
   %49 = load i32, i32* %local.2
   %50 = add i32 %49, 1
@@ -168,7 +168,7 @@ label7:
   unreachable
 }
 
-define void @print(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ReusedLocals_print(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %number entered scope under name %local.0
   ; Line 28

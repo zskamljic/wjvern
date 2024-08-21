@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"NativeMethods_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %1 = alloca %java_Array
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0

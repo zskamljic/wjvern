@@ -42,16 +42,16 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ReturnArray_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %1 = alloca %java_Array
-  call void @returnArray(ptr sret(%java_Array*) %1)
+  call void @"ReturnArray_returnArray()[I"(ptr sret(%java_Array*) %1)
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
   %3 = load i32, ptr %2
   ret i32 %3
 }
 
-define void @returnArray(ptr sret(%java_Array) %0) personality ptr @__gxx_personality_v0 {
+define void @"ReturnArray_returnArray()[I"(ptr sret(%java_Array) %0) personality ptr @__gxx_personality_v0 {
   ; Line 7
   %2 = alloca %java_Array
   %3 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 0

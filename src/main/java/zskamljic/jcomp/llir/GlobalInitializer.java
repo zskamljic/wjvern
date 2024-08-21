@@ -5,7 +5,6 @@ import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
 
 import java.lang.classfile.constantpool.StringEntry;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,8 +52,13 @@ public class GlobalInitializer {
         generatedInits.add(STR."@\"\{classGenerator.getClassName()}_var_init\"");
     }
 
-    public void generateEntryPoint(Map<String, IrClassGenerator> generated, Function<LlvmType.Declared, AggregateType> definitionMapper, FunctionRegistry functionRegistry) {
-        if (generatedInits.isEmpty()) return;
+    public void generateEntryPoint(
+        String className,
+        Map<String, IrClassGenerator> generated,
+        Function<LlvmType.Declared, AggregateType> definitionMapper,
+        FunctionRegistry functionRegistry
+    ) {
+        if (generated.containsKey("__entrypoint")) return;
 
         var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, functionRegistry);
         generated.put("__entrypoint", generator);
@@ -71,6 +75,14 @@ public class GlobalInitializer {
             initCode.append("  ").append("call void ").append(string).append("()\n");
         }
         initCode.append("  ret void\n}");
+
+        generator.injectCode("""
+            declare i32 @"%1$s_main()I"()
+            
+            define i32 @main(i32 %%0, ptr %%1) {
+                %%3 = call i32 @"%1$s_main()I"()
+                ret i32 %%3
+            }""".formatted(className));
 
         generator.injectCode("declare i32 @__gxx_personality_v0(...)");
         generator.injectCode(initCode.toString());

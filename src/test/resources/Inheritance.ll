@@ -75,7 +75,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Inheritance_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 27
   %1 = alloca %Inheritance
   call void @"Inheritance_<init>()V"(%Inheritance* %1)

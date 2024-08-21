@@ -173,7 +173,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ConstructorAndInstanceMethods_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 11
   %1 = alloca %ConstructorAndInstanceMethods
   call void @"ConstructorAndInstanceMethods_<init>()V"(%ConstructorAndInstanceMethods* %1)

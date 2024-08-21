@@ -49,7 +49,7 @@ public class ClassBuilder {
         var globalInitializer = new GlobalInitializer();
         generate(generated, functionRegistry, globalInitializer);
 
-        globalInitializer.generateEntryPoint(generated, c -> generateType(c, generated), functionRegistry);
+        globalInitializer.generateEntryPoint(classModel.thisClass().name().stringValue(), generated, c -> generateType(c, generated), functionRegistry);
 
         return generated;
     }
@@ -226,7 +226,7 @@ public class ClassBuilder {
                 "nonSyncContentEquals", "encodeUTF8_UTF16", "decodeASCII", "getBytesUTF8NoRepl", "isASCII", "indexOfNonWhitespace",
                 "offsetByCodePoints", "contentEquals", "isBlank", "lambda$stripIndent$3", "lambda$indent$2", "equalsIgnoreCase",
                 "splitWithDelimiters", "endsWith", "subSequence", "lastIndexOfNonWhitespace", "matches", "replace", "concat", "strip", "stripLeading",
-                "lambda$indent$1", "stripTrailing", "toCharArray", "trim", "<clinit>", "coder"// java/lang/String
+                "lambda$indent$1", "stripTrailing", "toCharArray", "trim", "<clinit>", "coder", "encode8859_1"// java/lang/String
             ).contains(method.methodName().stringValue()) ||
             method.parent().filter(p -> p.thisClass().name().equalsString("java/lang/String")).isPresent() &&
                 (method.methodName().equalsString("<init>")) &&

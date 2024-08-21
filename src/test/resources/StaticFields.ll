@@ -44,7 +44,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"StaticFields_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 5
   %1 = load i32, i32* @StaticFields_VALUE
   %2 = add i32 %1, 1

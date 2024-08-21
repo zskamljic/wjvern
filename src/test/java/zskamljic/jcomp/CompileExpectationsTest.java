@@ -1,43 +1,21 @@
 package zskamljic.jcomp;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 class CompileExpectationsTest {
-    private static final Path BUILD_PATH = Path.of("integrationBuild");
-
-    //@AfterEach
-    void tearDown() throws IOException {
-        Files.walkFileTree(BUILD_PATH, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-        Files.deleteIfExists(BUILD_PATH);
-        Files.deleteIfExists(Path.of("a.out"));
-    }
+    @TempDir
+    private Path tempDir;
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -48,7 +26,7 @@ class CompileExpectationsTest {
         "ReferenceFields", "Strings"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
-        Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", BUILD_PATH.toString(), "-d"});
+        Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", tempDir.toString(), "-d"});
 
         var process = new ProcessBuilder("./a.out").start();
         try (

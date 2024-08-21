@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Simple_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   ret i32 0
 }

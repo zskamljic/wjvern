@@ -48,7 +48,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ObjectArrays_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 9
   %1 = alloca %java_Array
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
@@ -109,7 +109,7 @@ label12:
   %26 = load ptr, ptr %25
   %27 = getelementptr inbounds i32, ptr %26, i32 %24
   %28 = load i32, ptr %27
-  call void @print(i32 %28)
+  call void @"ObjectArrays_print(I)V"(i32 %28)
   ; Line 15
   %29 = load i32, i32* %local.1
   %30 = add i32 %29, 1
@@ -132,7 +132,7 @@ label10:
   %35 = load %java_Array*, %java_Array** %local.1
   %36 = getelementptr inbounds %java_Array, %java_Array* %35, i32 0, i32 0
   %37 = load i32, ptr %36
-  call void @print(i32 %37)
+  call void @"ObjectArrays_print(I)V"(i32 %37)
   ; Line 22
   %local.2 = alloca ptr
   store i32 0, ptr %local.2
@@ -184,7 +184,7 @@ label14:
   %62 = load %ObjectArrays*, ptr %61
   %63 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %62, i32 0, i32 1
   %64 = load i32, i32* %63
-  call void @print(i32 %64)
+  call void @"ObjectArrays_print(I)V"(i32 %64)
   ; Line 26
   %65 = load i32, i32* %local.2
   %66 = add i32 %65, 1
@@ -200,7 +200,7 @@ label9:
   unreachable
 }
 
-define void @print(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ObjectArrays_print(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %number entered scope under name %local.0
   ; Line 33

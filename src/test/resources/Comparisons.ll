@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Comparisons_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %1 = alloca %Comparisons
   call void @"Comparisons_<init>()V"(%Comparisons* %1)
@@ -66,7 +66,7 @@ label2:
   br i1 %5, label %label3, label %label4
 label4:
   ; Line 6
-  call void @printOk(i32 0)
+  call void @"Comparisons_printOk(I)V"(i32 0)
   br label %label3
 label3:
   ; Line 8
@@ -76,26 +76,26 @@ label3:
   br i1 %8, label %label5, label %label6
 label6:
   ; Line 9
-  call void @printOk(i32 1)
+  call void @"Comparisons_printOk(I)V"(i32 1)
   br label %label5
 label5:
   ; Line 11
-  call void @compare(i32 1)
+  call void @"Comparisons_compare(I)V"(i32 1)
   ; Line 12
-  call void @compareZero(i32 0)
+  call void @"Comparisons_compareZero(I)V"(i32 0)
   ; Line 13
-  call void @compareZero(i32 1)
+  call void @"Comparisons_compareZero(I)V"(i32 1)
   ; Line 14
-  call void @compareLong(i64 0)
+  call void @"Comparisons_compareLong(J)V"(i64 0)
   ; Line 15
-  call void @compareLong(i64 1)
+  call void @"Comparisons_compareLong(J)V"(i64 1)
   ; Line 16
-  call void @compareLong(i64 -1)
+  call void @"Comparisons_compareLong(J)V"(i64 -1)
   ; Line 17
-  call void @compareNull(%Comparisons* null)
+  call void @"Comparisons_compareNull(LComparisons;)V"(%Comparisons* null)
   ; Line 18
   %9 = load %Comparisons*, %Comparisons** %local.0
-  call void @compareNull(%Comparisons* %9)
+  call void @"Comparisons_compareNull(LComparisons;)V"(%Comparisons* %9)
   ; Line 19
   ret i32 0
 label1:
@@ -104,7 +104,7 @@ label1:
   unreachable
 }
 
-define void @compare(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compare(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 23
@@ -112,7 +112,7 @@ label0:
   br i1 %0, label %label2, label %label3
 label3:
   ; Line 24
-  call void @printOk(i32 2)
+  call void @"Comparisons_printOk(I)V"(i32 2)
   br label %label2
 label2:
   ; Line 26
@@ -120,7 +120,7 @@ label2:
   br i1 %1, label %label4, label %label5
 label5:
   ; Line 27
-  call void @printOk(i32 3)
+  call void @"Comparisons_printOk(I)V"(i32 3)
   br label %label4
 label4:
   ; Line 29
@@ -128,7 +128,7 @@ label4:
   br i1 %2, label %label6, label %label7
 label7:
   ; Line 30
-  call void @printOk(i32 4)
+  call void @"Comparisons_printOk(I)V"(i32 4)
   br label %label6
 label6:
   ; Line 32
@@ -136,7 +136,7 @@ label6:
   br i1 %3, label %label8, label %label9
 label9:
   ; Line 33
-  call void @printOk(i32 5)
+  call void @"Comparisons_printOk(I)V"(i32 5)
   br label %label8
 label8:
   ; Line 35
@@ -146,7 +146,7 @@ label1:
   unreachable
 }
 
-define void @compareZero(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareZero(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 38
@@ -154,7 +154,7 @@ label0:
   br i1 %0, label %label2, label %label3
 label3:
   ; Line 39
-  call void @printOk(i32 6)
+  call void @"Comparisons_printOk(I)V"(i32 6)
   br label %label2
 label2:
   ; Line 41
@@ -162,7 +162,7 @@ label2:
   br i1 %1, label %label4, label %label5
 label5:
   ; Line 42
-  call void @printOk(i32 7)
+  call void @"Comparisons_printOk(I)V"(i32 7)
   br label %label4
 label4:
   ; Line 44
@@ -170,7 +170,7 @@ label4:
   br i1 %2, label %label6, label %label7
 label7:
   ; Line 45
-  call void @printOk(i32 8)
+  call void @"Comparisons_printOk(I)V"(i32 8)
   br label %label6
 label6:
   ; Line 47
@@ -178,7 +178,7 @@ label6:
   br i1 %3, label %label8, label %label9
 label9:
   ; Line 48
-  call void @printOk(i32 9)
+  call void @"Comparisons_printOk(I)V"(i32 9)
   br label %label8
 label8:
   ; Line 50
@@ -186,7 +186,7 @@ label8:
   br i1 %4, label %label10, label %label11
 label11:
   ; Line 51
-  call void @printOk(i32 10)
+  call void @"Comparisons_printOk(I)V"(i32 10)
   br label %label10
 label10:
   ; Line 53
@@ -196,7 +196,7 @@ label1:
   unreachable
 }
 
-define void @compareLong(i64 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareLong(J)V"(i64 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %l entered scope under name %local.0
   ; Line 56
@@ -221,7 +221,7 @@ label2:
   br i1 %4, label %label7, label %label8
 label8:
   ; Line 57
-  call void @printOk(i32 11)
+  call void @"Comparisons_printOk(I)V"(i32 11)
   br label %label7
 label7:
   ; Line 59
@@ -246,7 +246,7 @@ label9:
   br i1 %9, label %label14, label %label15
 label15:
   ; Line 60
-  call void @printOk(i32 12)
+  call void @"Comparisons_printOk(I)V"(i32 12)
   br label %label14
 label14:
   ; Line 62
@@ -271,7 +271,7 @@ label16:
   br i1 %14, label %label21, label %label22
 label22:
   ; Line 63
-  call void @printOk(i32 13)
+  call void @"Comparisons_printOk(I)V"(i32 13)
   br label %label21
 label21:
   ; Line 65
@@ -281,7 +281,7 @@ label1:
   unreachable
 }
 
-define void @compareNull(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareNull(LComparisons;)V"(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %o entered scope under name %local.0
   ; Line 68
@@ -289,7 +289,7 @@ label0:
   br i1 %0, label %label2, label %label3
 label3:
   ; Line 69
-  call void @printOk(i32 14)
+  call void @"Comparisons_printOk(I)V"(i32 14)
   br label %label2
 label2:
   ; Line 71
@@ -297,7 +297,7 @@ label2:
   br i1 %1, label %label4, label %label5
 label5:
   ; Line 72
-  call void @printOk(i32 15)
+  call void @"Comparisons_printOk(I)V"(i32 15)
   br label %label4
 label4:
   ; Line 74
@@ -307,7 +307,7 @@ label1:
   unreachable
 }
 
-define void @printOk(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_printOk(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %count entered scope under name %local.0
   ; Line 77

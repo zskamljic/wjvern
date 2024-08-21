@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ForEach_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %1 = alloca %java_Array
   %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
@@ -87,7 +87,7 @@ label0:
   ; %i entered scope under name %local.4
   ; Line 6
   %18 = load i32, i32* %local.4
-  call void @print(i32 %18)
+  call void @"ForEach_print(I)V"(i32 %18)
   br label %label1
 label1:
   ; %i exited scope under name %local.4
@@ -104,7 +104,7 @@ label3:
   unreachable
 }
 
-define void @print(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ForEach_print(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %number entered scope under name %local.0
   ; Line 13

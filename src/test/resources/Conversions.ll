@@ -42,7 +42,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Conversions_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
   %local.0 = alloca ptr
   store double 1.0, ptr %local.0
@@ -60,7 +60,7 @@ label2:
   ; Line 5
   %3 = load float, float* %local.2
   %4 = fpext float %3 to double
-  call void @printDouble(double %4)
+  call void @"Conversions_printDouble(D)V"(double %4)
   ; Line 6
   %5 = load double, double* %local.0
   %6 = fptosi double %5 to i32
@@ -71,7 +71,7 @@ label3:
   ; %d2i entered scope under name %local.3
   ; Line 7
   %7 = load i32, i32* %local.3
-  call void @printInt(i32 %7)
+  call void @"Conversions_printInt(I)V"(i32 %7)
   ; Line 8
   %8 = load double, double* %local.0
   %9 = fptosi double %8 to i64
@@ -82,7 +82,7 @@ label4:
   ; %d2l entered scope under name %local.4
   ; Line 9
   %10 = load i64, i64* %local.4
-  call void @printLong(i64 %10)
+  call void @"Conversions_printLong(J)V"(i64 %10)
   ; Line 11
   %11 = load float, float* %local.2
   %12 = fpext float %11 to double
@@ -93,7 +93,7 @@ label5:
   ; %f2d entered scope under name %local.6
   ; Line 12
   %13 = load double, double* %local.6
-  call void @printDouble(double %13)
+  call void @"Conversions_printDouble(D)V"(double %13)
   ; Line 13
   %14 = load float, float* %local.2
   %15 = fptosi float %14 to i32
@@ -104,7 +104,7 @@ label6:
   ; %f2i entered scope under name %local.8
   ; Line 14
   %16 = load i32, i32* %local.8
-  call void @printInt(i32 %16)
+  call void @"Conversions_printInt(I)V"(i32 %16)
   ; Line 15
   %17 = load float, float* %local.2
   %18 = fptosi float %17 to i64
@@ -115,7 +115,7 @@ label7:
   ; %f2l entered scope under name %local.9
   ; Line 16
   %19 = load i64, i64* %local.9
-  call void @printLong(i64 %19)
+  call void @"Conversions_printLong(J)V"(i64 %19)
   ; Line 18
   %20 = load i32, i32* %local.3
   %21 = trunc i32 %20 to i8
@@ -126,7 +126,7 @@ label8:
   ; %i2b entered scope under name %local.11
   ; Line 19
   %22 = load i8, i8* %local.11
-  call void @printInt(i8 %22)
+  call void @"Conversions_printInt(I)V"(i8 %22)
   ; Line 20
   %23 = load i32, i32* %local.3
   %24 = trunc i32 %23 to i16
@@ -137,7 +137,7 @@ label9:
   ; %i2c entered scope under name %local.12
   ; Line 21
   %25 = load i16, i16* %local.12
-  call void @printInt(i16 %25)
+  call void @"Conversions_printInt(I)V"(i16 %25)
   ; Line 22
   %26 = load i32, i32* %local.3
   %27 = sitofp i32 %26 to double
@@ -148,7 +148,7 @@ label10:
   ; %i2d entered scope under name %local.13
   ; Line 23
   %28 = load double, double* %local.13
-  call void @printDouble(double %28)
+  call void @"Conversions_printDouble(D)V"(double %28)
   ; Line 24
   %29 = load i32, i32* %local.3
   %30 = sitofp i32 %29 to float
@@ -160,7 +160,7 @@ label11:
   ; Line 25
   %31 = load float, float* %local.15
   %32 = fpext float %31 to double
-  call void @printDouble(double %32)
+  call void @"Conversions_printDouble(D)V"(double %32)
   ; Line 26
   %33 = load i32, i32* %local.3
   %34 = sext i32 %33 to i64
@@ -171,7 +171,7 @@ label12:
   ; %i2l entered scope under name %local.16
   ; Line 27
   %35 = load i64, i64* %local.16
-  call void @printLong(i64 %35)
+  call void @"Conversions_printLong(J)V"(i64 %35)
   ; Line 28
   %36 = load i32, i32* %local.3
   %37 = trunc i32 %36 to i16
@@ -182,7 +182,7 @@ label13:
   ; %i2s entered scope under name %local.18
   ; Line 29
   %38 = load i16, i16* %local.18
-  call void @printInt(i16 %38)
+  call void @"Conversions_printInt(I)V"(i16 %38)
   ; Line 31
   %39 = load i64, i64* %local.4
   %40 = sitofp i64 %39 to double
@@ -193,7 +193,7 @@ label14:
   ; %l2d entered scope under name %local.19
   ; Line 32
   %41 = load double, double* %local.19
-  call void @printDouble(double %41)
+  call void @"Conversions_printDouble(D)V"(double %41)
   ; Line 33
   %42 = load i64, i64* %local.4
   %43 = sitofp i64 %42 to float
@@ -205,7 +205,7 @@ label15:
   ; Line 34
   %44 = load float, float* %local.21
   %45 = fpext float %44 to double
-  call void @printDouble(double %45)
+  call void @"Conversions_printDouble(D)V"(double %45)
   ; Line 35
   %46 = load i64, i64* %local.4
   %47 = trunc i64 %46 to i32
@@ -216,7 +216,7 @@ label16:
   ; %l2i entered scope under name %local.22
   ; Line 36
   %48 = load i32, i32* %local.22
-  call void @printInt(i32 %48)
+  call void @"Conversions_printInt(I)V"(i32 %48)
   ; Line 38
   ret i32 0
 label1:
@@ -239,7 +239,7 @@ label1:
   unreachable
 }
 
-define void @printInt(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Conversions_printInt(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 42
@@ -299,7 +299,7 @@ label1:
   unreachable
 }
 
-define void @printLong(i64 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Conversions_printLong(J)V"(i64 %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 47
@@ -363,7 +363,7 @@ label1:
   unreachable
 }
 
-define void @printDouble(double %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Conversions_printDouble(D)V"(double %local.0) personality ptr @__gxx_personality_v0 {
 label0:
   ; %value entered scope under name %local.0
   ; Line 52

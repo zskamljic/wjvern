@@ -53,7 +53,7 @@ label1:
   unreachable
 }
 
-define void @createInstance(ptr sret(%ReturnReference) %0) personality ptr @__gxx_personality_v0 {
+define void @"ReturnReference_createInstance()LReturnReference;"(ptr sret(%ReturnReference) %0) personality ptr @__gxx_personality_v0 {
   ; Line 7
   %2 = alloca %ReturnReference
   call void @"ReturnReference_<init>()V"(%ReturnReference* %2)
@@ -62,10 +62,10 @@ define void @createInstance(ptr sret(%ReturnReference) %0) personality ptr @__gx
   ret void
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"ReturnReference_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 11
   %1 = alloca %ReturnReference
-  call void @createInstance(ptr sret(%ReturnReference*) %1)
+  call void @"ReturnReference_createInstance()LReturnReference;"(ptr sret(%ReturnReference*) %1)
   %local.0 = alloca ptr
   store %ReturnReference* %1, ptr %local.0
   br label %label0

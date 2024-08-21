@@ -54,7 +54,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"Parameters_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 7
   %1 = alloca %Parameters
   call void @"Parameters_<init>()V"(%Parameters* %1)

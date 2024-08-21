@@ -66,7 +66,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"FunctionOverloading_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 11
   %1 = alloca %FunctionOverloading
   call void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %1)

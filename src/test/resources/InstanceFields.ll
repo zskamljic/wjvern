@@ -52,7 +52,7 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"InstanceFields_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 13
   %1 = alloca %InstanceFields
   call void @"InstanceFields_<init>()V"(%InstanceFields* %1)

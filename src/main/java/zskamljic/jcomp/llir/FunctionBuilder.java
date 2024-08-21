@@ -75,7 +75,8 @@ public class FunctionBuilder {
 
     public String generate() {
         var name = method.methodName().stringValue();
-        if (!method.flags().has(AccessFlag.STATIC)) {
+        // TODO: use other system of flagging native methods, for example annotations
+        if (!method.flags().has(AccessFlag.STATIC) || !method.flags().has(AccessFlag.NATIVE)) {
             name = Utils.methodName(parent, method);
         }
 
@@ -875,7 +876,13 @@ public class FunctionBuilder {
         var functionName = switch (invocation.opcode()) {
             case INVOKESPECIAL -> directCall(invocation);
             case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, parameters);
-            case INVOKESTATIC -> invocation.method().name().stringValue();
+            case INVOKESTATIC -> {
+                if (functionRegistry.isNative(invocation.owner().name().stringValue(), invocation.method())) {
+                    yield invocation.method().name().stringValue();
+                } else {
+                    yield directCall(invocation);
+                }
+            }
             default -> throw new IllegalArgumentException(STR."\{invocation.opcode()} invocation not yet supported");
         };
         String returnVar;

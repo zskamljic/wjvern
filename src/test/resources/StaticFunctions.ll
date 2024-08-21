@@ -42,13 +42,13 @@ label1:
   unreachable
 }
 
-define i32 @main() personality ptr @__gxx_personality_v0 {
+define i32 @"StaticFunctions_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 3
-  %1 = call i32 @returnOne()
+  %1 = call i32 @"StaticFunctions_returnOne()I"()
   ret i32 %1
 }
 
-define i32 @returnOne() personality ptr @__gxx_personality_v0 {
+define i32 @"StaticFunctions_returnOne()I"() personality ptr @__gxx_personality_v0 {
   ; Line 7
   ret i32 1
 }
