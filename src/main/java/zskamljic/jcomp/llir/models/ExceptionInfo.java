@@ -12,7 +12,7 @@ public record ExceptionInfo(
     public static ExceptionInfo create(String tryStart, String tryEnd, String catchStart, LlvmType type) {
         LlvmType.Global typeInfo;
         if (type instanceof LlvmType.Declared(var name)) {
-            typeInfo = new LlvmType.Global(Utils.escape(STR."P\{name}_type_info"));
+            typeInfo = new LlvmType.Global(Utils.escape("P" + name + "_type_info"));
         } else {
             typeInfo = null;
         }

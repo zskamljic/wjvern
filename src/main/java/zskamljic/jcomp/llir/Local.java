@@ -10,6 +10,6 @@ public record Local(
     String end
 ) {
     public String varName() {
-        return STR."%local.\{slot}";
+        return "%local." + slot;
     }
 }

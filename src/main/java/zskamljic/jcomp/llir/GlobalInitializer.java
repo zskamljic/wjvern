@@ -26,30 +26,35 @@ public class GlobalInitializer {
         if (!"java/lang/String".equals(classGenerator.getClassName())) {
             initBuilder.append("declare void @\"java/lang/String_<init>([BB)V\"(ptr, ptr, i8) personality ptr @__gxx_personality_v0\n");
         }
-        initBuilder.append(STR."define void @\"\{classGenerator.getClassName()}_var_init\"() personality ptr @__gxx_personality_v0 {\n");
+        initBuilder.append("define void @\"").append(classGenerator.getClassName()).append("_var_init\"() personality ptr @__gxx_personality_v0 {\n");
 
         int locals = 1;
         int labels = 0;
         var exitLabel = "handlerLabel";
         for (var string : initializers.get(classGenerator)) {
-            var nextLabel = STR."label.\{labels++}";
+            var nextLabel = "label." + labels++;
             // TODO: use proper type when invoking the constructor
-            initBuilder.append(STR."  invoke void @\"java/lang/String_<init>([BB)V\"(ptr @string.\{string.index()}, %java_Array* @string.array.\{string.index()}, i8 0) to label %\{nextLabel} unwind label %\{exitLabel}\n")
+            initBuilder.append("  invoke void @\"java/lang/String_<init>([BB)V\"(ptr @string.")
+                .append(string.index())
+                .append(", %java_Array* @string.array.")
+                .append(string.index()).append(", i8 0) to label %")
+                .append(nextLabel).append(" unwind label %")
+                .append(exitLabel).append("\n")
                 .append(nextLabel).append(":\n");
         }
         initBuilder.append("  ret void\n")
             .append(exitLabel).append(":\n")
             .append("  %").append(locals++).append(" = landingpad { ptr, i32 } cleanup\n")
-            .append("  %").append(locals++).append(STR." = extractvalue { ptr, i32 } %\{locals - 2}, 0\n")
-            .append("  %").append(locals++).append(STR." = extractvalue { ptr, i32 } %\{locals - 3}, 1\n")
-            .append("  %").append(locals++).append(STR." = insertvalue { ptr, i32 } poison, ptr %\{locals - 3}, 0\n")
-            .append("  %").append(locals++).append(STR." = insertvalue { ptr, i32 } %\{locals - 2}, i32 %\{locals - 3}, 1\n")
+            .append("  %").append(locals++).append(" = extractvalue { ptr, i32 } %").append(locals - 2).append(", 0\n")
+            .append("  %").append(locals++).append(" = extractvalue { ptr, i32 } %").append(locals - 3).append(", 1\n")
+            .append("  %").append(locals++).append(" = insertvalue { ptr, i32 } poison, ptr %").append(locals - 3).append(", 0\n")
+            .append("  %").append(locals++).append(" = insertvalue { ptr, i32 } %").append(locals - 2).append(", i32 %").append(locals - 3).append(", 1\n")
             .append("  resume { ptr, i32 } %").append(locals - 1).append("\n");
 
         initBuilder.append("}");
 
         classGenerator.injectCode(initBuilder.toString());
-        generatedInits.add(STR."@\"\{classGenerator.getClassName()}_var_init\"");
+        generatedInits.add("@\"" + classGenerator.getClassName() + "_var_init\"");
     }
 
     public void generateEntryPoint(
@@ -70,7 +75,7 @@ public class GlobalInitializer {
         initCode.append("define internal void @__cxx_global_var_init() section \".text.startup\" personality ptr @__gxx_personality_v0 {\n");
         for (var string : generatedInits) {
             // TODO: exception handling
-            generator.injectCode(STR."declare void \{string}()");
+            generator.injectCode("declare void " + string + "()");
 
             initCode.append("  ").append("call void ").append(string).append("()\n");
         }

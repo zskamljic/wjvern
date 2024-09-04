@@ -26,7 +26,7 @@ public class Locals {
 
     public Local get(int slot) {
         return activeLocals.computeIfAbsent(slot, s -> {
-            var name = STR."%local.\{s}";
+            var name = "%local." + s;
             var local = new Local(name, LlvmType.Primitive.POINTER, s, null, null);
             if (!types.containsKey(name)) {
                 generator.alloca(name, LlvmType.Primitive.POINTER);
@@ -38,14 +38,14 @@ public class Locals {
 
     public void register(LocalVariable variable) {
         var rawName = variable.name().stringValue();
-        var codeName = STR."%\{rawName}";
+        var codeName = "%" + rawName;
 
         var type = IrTypeMapper.mapType(variable.typeSymbol());
         if (!(type instanceof LlvmType.Primitive)) {
             type = new LlvmType.Pointer(type);
         }
 
-        if (!parameterChecker.test(STR."local.\{variable.slot()}")) {
+        if (!parameterChecker.test("local." + variable.slot())) {
             type = new LlvmType.Pointer(type);
         }
 
@@ -62,7 +62,7 @@ public class Locals {
         activeLocals.values().removeIf(l -> {
             var removable = currentLabel.equals(l.end());
             if (removable) {
-                generator.comment(STR."\{l.codeName()} exited scope under name \{l.varName()}");
+                generator.comment(l.codeName() + " exited scope under name " + l.varName());
             }
             return removable;
         });
@@ -71,7 +71,7 @@ public class Locals {
             .forEach(v -> {
                 var type = v.type();
                 types.put(v.varName(), type);
-                generator.comment(STR."\{v.codeName()} entered scope under name \{v.varName()}");
+                generator.comment(v.codeName()+" entered scope under name "+v.varName());
                 activeLocals.put(v.slot(), v);
             });
     }

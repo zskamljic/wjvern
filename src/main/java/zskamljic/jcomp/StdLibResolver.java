@@ -25,7 +25,7 @@ public class StdLibResolver {
 
     public ClassModel resolve(String className) {
         var targetFile = output.resolve("classes")
-            .resolve(STR."\{className}.class");
+            .resolve(className + ".class");
 
         if (!Files.exists(targetFile)) {
             extractModule();
@@ -55,6 +55,6 @@ public class StdLibResolver {
         if (!Files.isDirectory(output)) {
             extractModule();
         }
-        return Files.exists(output.resolve("classes").resolve(STR."\{className}.class"));
+        return Files.exists(output.resolve("classes").resolve(className + ".class"));
     }
 }

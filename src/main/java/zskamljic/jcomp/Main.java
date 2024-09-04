@@ -59,7 +59,7 @@ public class Main {
                 }
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println(STR."Unable to parse class file \{options.inputClass}: \{e.getMessage()}");
+            System.err.println("Unable to parse class file " + options.inputClass + ": " + e.getMessage());
         }
     }
 
@@ -77,8 +77,8 @@ public class Main {
                     .replaceAll("^lib", "")
                     .replaceAll("\\.(so|a)$", ""));
             }
-            libs.forEach(l -> items.add(STR."-l\{l}"));
-            paths.forEach(p -> items.add(STR."-L\{p}"));
+            libs.forEach(l -> items.add("-l" + l));
+            paths.forEach(p -> items.add("-L" + p));
         }
 
         return new ProcessBuilder(items.toArray(new String[0]));
@@ -89,7 +89,7 @@ public class Main {
         files.entrySet()
             .stream()
             .map(e -> {
-                var fileName = STR."\{e.getKey()}.ll";
+                var fileName = e.getKey() + ".ll";
                 try {
                     var filePath = buildDir.resolve(fileName);
                     if (!Files.exists(filePath.getParent())) {
@@ -107,8 +107,8 @@ public class Main {
 
         Stream.of("stock_native.ll")
             .forEach(name -> {
-                try (var input = Main.class.getResourceAsStream(STR."/\{name}")) {
-                    if (input == null) throw new IllegalStateException(STR."Unable to load \{name}");
+                try (var input = Main.class.getResourceAsStream("/" + name)) {
+                    if (input == null) throw new IllegalStateException("Unable to load " + name);
 
                     var output = buildDir.resolve(name);
                     try (var outputStream = Files.newOutputStream(output)) {
@@ -116,7 +116,7 @@ public class Main {
                     }
                     command.add(output.toString());
                 } catch (IOException e) {
-                    throw new IllegalStateException(STR."Unable to load \{name}");
+                    throw new IllegalStateException("Unable to load " + name);
                 }
             });
 

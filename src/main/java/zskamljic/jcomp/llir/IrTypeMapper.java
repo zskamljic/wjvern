@@ -23,7 +23,7 @@ public class IrTypeMapper {
             case "int" -> LlvmType.Primitive.INT;
             case "long" -> LlvmType.Primitive.LONG;
             case "void" -> LlvmType.Primitive.VOID;
-            default -> throw new IllegalArgumentException(STR."\{classDesc} type not supported yet");
+            default -> throw new IllegalArgumentException(classDesc + " type not supported yet");
         };
     }
 

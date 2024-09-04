@@ -275,9 +275,9 @@ public class IrMethodGenerator {
                 var name = p.name();
                 var type = p.type();
                 if (p.isReturn()) {
-                    return STR."ptr sret(\{type}) \{name}";
+                    return "ptr sret(" + type + ") " + name;
                 } else {
-                    return STR."\{type} %\{name}";
+                    return type + " %" + name;
                 }
             })
             .map(Object::toString)

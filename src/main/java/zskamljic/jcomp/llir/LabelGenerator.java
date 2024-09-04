@@ -14,6 +14,6 @@ public class LabelGenerator {
     }
 
     public String nextLabel() {
-        return STR."label\{index++}";
+        return "label" + index++;
     }
 }

@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -92,7 +91,7 @@ public class FunctionRegistry {
                 var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
                 var parameterList = generateParameterList(className, method.methodTypeSymbol());
                 var functionSignature = new LlvmType.Function(returnType, parameterList);
-                var functionName = STR."@\{Utils.methodName(className, method)}";
+                var functionName = "@" + Utils.methodName(className, method);
                 vtable.put(
                     method.methodName().stringValue(),
                     method.methodTypeSymbol(),

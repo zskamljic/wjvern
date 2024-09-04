@@ -14,25 +14,25 @@ public class Utils {
 
     public static String escape(String name) {
         if (!name.contains("\"") && (name.contains("/") || name.contains("<") || name.contains("("))) {
-            return STR."\"\{name}\"";
+            return "\"" + name + "\"";
         }
         return name;
     }
 
     public static String methodName(String parent, MethodModel method) {
-        return escape(STR."\{parent}_\{method.methodName()}\{method.methodTypeSymbol().descriptorString()}");
+        return escape(parent + "_" + method.methodName() + method.methodTypeSymbol().descriptorString());
     }
 
     public static String methodName(MemberRefEntry method) {
-        return escape(STR."\{method.owner().name()}_\{method.name()}\{method.type()}");
+        return escape(method.owner().name() + "_" + method.name() + method.type());
     }
 
     public static String staticVariableName(FieldRefEntry field) {
-        return STR."@\{escape(STR."\{field.owner().name()}_\{field.name()}")}";
+        return "@" + escape(field.owner().name() + "_" + field.name());
     }
 
     public static String staticVariableName(FieldModel field) {
-        return STR."@\{escape(STR."\{field.parent().orElseThrow().thisClass().name()}_\{field.fieldName()}")}";
+        return "@" + escape(field.parent().orElseThrow().thisClass().name() + "_" + field.fieldName());
     }
 
     public static boolean isVirtual(MethodModel method) {
@@ -56,6 +56,6 @@ public class Utils {
     }
 
     public static String vtableTypeName(String className) {
-        return Utils.escape(STR."\{className}_vtable_type");
+        return Utils.escape(className + "_vtable_type");
     }
 }

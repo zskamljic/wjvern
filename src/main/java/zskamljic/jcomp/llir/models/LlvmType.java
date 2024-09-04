@@ -58,7 +58,7 @@ public sealed interface LlvmType {
     record Declared(String type) implements LlvmType {
         @Override
         public String toString() {
-            return STR."%\{Utils.escape(type)}";
+            return "%" + Utils.escape(type);
         }
 
         @Override
@@ -70,28 +70,28 @@ public sealed interface LlvmType {
     record Function(LlvmType returnType, List<LlvmType> parameters) implements LlvmType {
         @Override
         public String toString() {
-            return STR."\{returnType}(\{parameters.stream().map(Objects::toString).collect(Collectors.joining(", "))})";
+            return returnType + "(" + parameters.stream().map(Objects::toString).collect(Collectors.joining(", ")) + ")";
         }
     }
 
     record Global(String name) implements LlvmType {
         @Override
         public String toString() {
-            return STR."@\{name}";
+            return "@" + name;
         }
     }
 
     record NativeVarArgReturn(LlvmType returnType, List<LlvmType> parameter) implements LlvmType {
         @Override
         public String toString() {
-            return STR."\{returnType}(\{parameter.stream().map(String::valueOf).collect(Collectors.joining(","))},...)";
+            return returnType + "(" + parameter.stream().map(String::valueOf).collect(Collectors.joining(",")) + ",...)";
         }
     }
 
     record Pointer(LlvmType type) implements LlvmType {
         @Override
         public String toString() {
-            return STR."\{type.toString()}*";
+            return type.toString() + "*";
         }
     }
 

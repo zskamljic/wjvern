@@ -4,6 +4,6 @@ public class UnnamedGenerator {
     private int count = 0;
 
     public String generateNext() {
-        return STR."%\{count++}";
+        return "%" + count++;
     }
 }

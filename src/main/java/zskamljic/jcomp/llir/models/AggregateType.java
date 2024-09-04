@@ -27,7 +27,7 @@ public sealed interface AggregateType {
     record Opaque(LlvmType.Declared type) implements AggregateType {
         @Override
         public String toString() {
-            return STR."\{type} = type opaque";
+            return type+" = type opaque";
         }
 
         @Override

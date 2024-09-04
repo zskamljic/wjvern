@@ -122,7 +122,7 @@ public class FunctionBuilder {
             if (paramType.isReferenceType()) {
                 paramType = new LlvmType.Pointer(paramType);
             }
-            codeGenerator.addParameter(STR."local.\{i}", paramType);
+            codeGenerator.addParameter("local." + i, paramType);
         }
 
         generateCode(codeGenerator);
@@ -163,7 +163,7 @@ public class FunctionBuilder {
                 }
                 case Label label ->
                     currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, switchStates, label);
-                case LineNumber l -> generator.comment(STR."Line \{l.line()}");
+                case LineNumber l -> generator.comment("Line " + l.line());
                 case LoadInstruction l -> handleLoad(generator, stack, types, locals, l);
                 case LocalVariable v -> locals.register(v);
                 case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n);
@@ -175,11 +175,11 @@ public class FunctionBuilder {
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
                 case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, switchStates, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
-                default -> System.out.println(STR."\{method.methodName()}: \{element}: not handled");
+                default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
         }
         if (debug && !stack.isEmpty()) {
-            System.out.println(STR."Remaining on stack in function \{parent}.\{method.methodName()}\{method.methodTypeSymbol().descriptorString()}: ");
+            System.out.println("Remaining on stack in function " + parent + "." + method.methodName() + method.methodTypeSymbol().descriptorString() + ": ");
             while (!stack.isEmpty()) {
                 System.out.println(stack.pop());
             }
@@ -224,9 +224,9 @@ public class FunctionBuilder {
     private void addInitVtable(IrMethodGenerator generator) {
         var parentClass = new LlvmType.Declared(parent);
         var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%local.0", List.of("0", "0"));
-        var vtableType = new LlvmType.Pointer(new LlvmType.Declared(STR."\{parent}_vtable_type"));
+        var vtableType = new LlvmType.Pointer(new LlvmType.Declared(parent + "_vtable_type"));
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
-        generator.store(vtableType, STR."@\{Utils.escape(STR."\{parent}_vtable_data")}", vtableTypePointer, vtablePointer);
+        generator.store(vtableType, "@" + Utils.escape(parent + "_vtable_data"), vtableTypePointer, vtablePointer);
     }
 
     private void handleArrayStore(
@@ -251,7 +251,7 @@ public class FunctionBuilder {
             }
             case LlvmType.SizedArray array -> componentType = array.type();
             default -> {
-                System.err.println(STR."Unknown array type: \{arrayType}");
+                System.err.println("Unknown array type: " + arrayType);
                 componentType = LlvmType.Primitive.POINTER;
             }
         }
@@ -284,7 +284,7 @@ public class FunctionBuilder {
             default -> {
                 var instructionType = IrTypeMapper.mapType(instruction.typeKind());
                 if (instructionType == LlvmType.Primitive.POINTER) {
-                    throw new IllegalStateException(STR."Invalid reference type \{reference}: \{types.get(reference)}");
+                    throw new IllegalStateException("Invalid reference type " + reference + ": " + types.get(reference));
                 }
                 yield instructionType;
             }
@@ -497,7 +497,7 @@ public class FunctionBuilder {
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
             }
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} jump not supported yet");
+            default -> throw new IllegalArgumentException(instruction.opcode() + " jump not supported yet");
         }
     }
 
@@ -556,7 +556,7 @@ public class FunctionBuilder {
         }
 
         arrayLength = castIfNeeded(generator, types.get(arrayLength), LlvmType.Primitive.LONG, arrayLength);
-        generator.call(LlvmType.Primitive.VOID, STR."llvm.memset.p0.\{type}", List.of(
+        generator.call(LlvmType.Primitive.VOID, "llvm.memset.p0." + type, List.of(
             new Parameter(content, LlvmType.Primitive.POINTER),
             new Parameter("0", LlvmType.Primitive.BYTE),
             new Parameter(arrayLength, LlvmType.Primitive.LONG),
@@ -618,7 +618,7 @@ public class FunctionBuilder {
             case ISHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
             case IXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
             case LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} is not supported yet");
+            default -> throw new IllegalArgumentException(instruction.opcode() + " is not supported yet");
         };
 
         if (!types.containsKey(resultVar)) {
@@ -697,12 +697,12 @@ public class FunctionBuilder {
             case LDC, LDC_W, LDC2_W -> {
                 var constant = ((ConstantInstruction.LoadConstantInstruction) instruction).constantEntry();
                 if (constant instanceof StringEntry stringEntry) {
-                    stack.push(STR."@string.\{stringEntry.index()}");
+                    stack.push("@string." + stringEntry.index());
                 } else {
                     stack.push(constant.constantValue().toString());
                 }
             }
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} constant is not supported yet");
+            default -> throw new IllegalArgumentException(instruction.opcode() + " constant is not supported yet");
         }
     }
 
@@ -719,7 +719,7 @@ public class FunctionBuilder {
             case I2D, I2F, L2F, L2D -> generator.signedToFloatingPoint(sourceType, source, targetType);
             case I2B, I2C, I2S, L2I -> generator.signedTruncate(sourceType, source, targetType);
             case I2L -> generator.signedExtend(sourceType, source, targetType);
-            default -> throw new UnsupportedOperationException(STR."Conversion for \{c.opcode()} is not yet supported");
+            default -> throw new UnsupportedOperationException("Conversion for " + c.opcode() + " is not yet supported");
         };
         types.put(result, targetType);
         stack.push(result);
@@ -744,7 +744,7 @@ public class FunctionBuilder {
             case PUTFIELD -> putField(generator, types, stack, instruction);
             case GETSTATIC -> getStatic(generator, types, stack, instruction.field());
             case PUTSTATIC -> putStatic(generator, types, stack, instruction.field());
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} field instruction is not yet supported");
+            default -> throw new IllegalArgumentException(instruction.opcode() + " field instruction is not yet supported");
         }
     }
 
@@ -883,7 +883,7 @@ public class FunctionBuilder {
                     yield directCall(invocation);
                 }
             }
-            default -> throw new IllegalArgumentException(STR."\{invocation.opcode()} invocation not yet supported");
+            default -> throw new IllegalArgumentException(invocation.opcode() + " invocation not yet supported");
         };
         String returnVar;
         if (exceptions.anyActive()) {
@@ -958,7 +958,7 @@ public class FunctionBuilder {
         var vtablePointer = generator.getElementPointer(parentType, new LlvmType.Pointer(parentType), parameters.getFirst().name(), List.of("0", "0"));
 
         // Get data from vtable pointer
-        var vtableType = new LlvmType.Declared(Utils.escape(STR."\{ownerClass}_vtable_type"));
+        var vtableType = new LlvmType.Declared(Utils.escape(ownerClass + "_vtable_type"));
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
         var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
 
@@ -1083,7 +1083,7 @@ public class FunctionBuilder {
                     yield generator.signedExtend(original, value, requiredType);
                 }
             }
-            default -> throw new IllegalStateException(STR."Unexpected value: \{originalType}");
+            default -> throw new IllegalStateException("Unexpected value: " + originalType);
         };
     }
 
@@ -1101,7 +1101,7 @@ public class FunctionBuilder {
                 }
                 stack.push(first);
             }
-            default -> throw new IllegalArgumentException(STR."\{instruction.opcode()} stack instruction not supported yet");
+            default -> throw new IllegalArgumentException(instruction.opcode() + " stack instruction not supported yet");
         }
     }
 
@@ -1155,7 +1155,7 @@ public class FunctionBuilder {
             generator.unreachable();
             return;
         }
-        var descriptorType = new LlvmType.Global(Utils.escape(STR."P\{typeName}_type_info"));
+        var descriptorType = new LlvmType.Global(Utils.escape("P" + typeName + "_type_info"));
 
         var variable = generator.call(LlvmType.Primitive.POINTER, "__cxa_allocate_exception", List.of(new Parameter("8", LlvmType.Primitive.LONG)));
         generator.store(exceptionType, exception, LlvmType.Primitive.POINTER, variable);

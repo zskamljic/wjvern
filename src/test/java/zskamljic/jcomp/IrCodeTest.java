@@ -26,7 +26,7 @@ class IrCodeTest {
     })
     void generatesValid(String fileName) throws IOException {
         var classPath = Path.of("target/test-classes/");
-        var classGenerator = new ClassBuilder(resolver, ClassFile.of().parse(classPath.resolve(STR."\{fileName}.class")), classPath, false);
+        var classGenerator = new ClassBuilder(resolver, ClassFile.of().parse(classPath.resolve(fileName+".class")), classPath, false);
 
         var generatedFiles = classGenerator.generate();
         assertFalse(generatedFiles.isEmpty());
@@ -39,8 +39,8 @@ class IrCodeTest {
             }
 
             var value = output.getValue();
-            try (var expectedInput = getClass().getResourceAsStream(STR."/\{name}.ll")) {
-                assertNotNull(expectedInput, STR."\{name}.ll was not found.");
+            try (var expectedInput = getClass().getResourceAsStream("/"+name+".ll")) {
+                assertNotNull(expectedInput, name+".ll was not found.");
 
                 var expected = new String(expectedInput.readAllBytes(), StandardCharsets.UTF_8);
                 assertEquals(expected, value.generate());

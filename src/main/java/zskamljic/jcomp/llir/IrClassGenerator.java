@@ -145,7 +145,7 @@ public class IrClassGenerator {
         var parameterString = String.join(", ", parameters);
 
         var name = Utils.methodName(method);
-        var declaration = STR."declare \{type} @\{name}(\{parameterString})";
+        var declaration = "declare " + type + " @" + name + "(" + parameterString + ")";
         methodDependencies.add(declaration);
     }
 
@@ -242,13 +242,12 @@ public class IrClassGenerator {
 
         var defaultValues = stringType.fields()
             .stream()
-            .map(f -> f.isReferenceType() || f instanceof LlvmType.Pointer || f == LlvmType.Primitive.POINTER ? "ptr null" : STR."\{f} 0")
+            .map(f -> f.isReferenceType() || f instanceof LlvmType.Pointer || f == LlvmType.Primitive.POINTER ? "ptr null" : f + " 0")
             .collect(Collectors.joining(", "));
 
-        return STR."""
-            @string.value.\{entry.index()} = private unnamed_addr constant [\{entry.length()} x i8] c"\{entry.content()}"
-            @string.array.\{entry.index()} = private unnamed_addr constant %java_Array { i32 \{entry.length()}, ptr @string.value.\{entry.index()} }
-            @string.\{entry.index()} = private global \{stringType.type()} { \{defaultValues} }""";
+        return "@string.value." + entry.index() + " = private unnamed_addr constant [" + entry.length() + " x i8] c\"" + entry.content() + "\"\n" +
+            "@string.array." + entry.index() + " = private unnamed_addr constant %java_Array { i32 " + entry.length() + ", ptr @string.value." + entry.index() + " }\n" +
+            "@string." + entry.index() + " = private global " + stringType.type() + " { " + defaultValues + " }";
     }
 
     private void generateStatics(StringBuilder builder) {
@@ -340,14 +339,14 @@ public class IrClassGenerator {
     }
 
     private void generateVtableData(StringBuilder builder, LlvmType vtableType) {
-        var vtableTypeData = new LlvmType.Global(Utils.escape(STR."\{className}_vtable_data"));
+        var vtableTypeData = new LlvmType.Global(Utils.escape(className + "_vtable_data"));
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
         var virtualFunctions = functionRegistry.getVirtualFunctions(className);
         if (!virtualFunctions.isEmpty()) {
             var mappings = virtualFunctions.stream()
-                .map(vi -> STR."\{vi.signature()}* \{vi.functionName()}")
+                .map(vi -> vi.signature() + "* " + vi.functionName())
                 .collect(Collectors.joining(",\n  "));
             builder.append(" ".repeat(2))
                 .append(mappings)
@@ -386,7 +385,7 @@ public class IrClassGenerator {
         var isVarArg = method.flags().has(AccessFlag.VARARGS);
         var symbol = method.methodTypeSymbol();
         if (!method.flags().has(AccessFlag.STATIC)) {
-            parameters.add(STR."%\{Utils.escape(parent)}*");
+            parameters.add("%" + Utils.escape(parent) + "*");
         }
         for (int i = 0; i < symbol.parameterCount(); i++) {
             var parameter = symbol.parameterType(i);
@@ -422,12 +421,12 @@ public class IrClassGenerator {
     public Optional<String> getExceptionDefinition() {
         if (!isException) return Optional.empty();
 
-        var typeInfoString = STR."\{className}_type_string";
-        var typeString = STR."\{className.length()}\{className}\\00";
-        var pTypeInfoString = STR."P\{typeInfoString}";
-        var pTypeString = STR."P\{className.length()}\{className}\\00";
-        var typeInfo = STR."\{className}_type_info";
-        var pTypeInfo = STR."P\{className}_type_info";
+        var typeInfoString = className + "_type_string";
+        var typeString = className.length() + className + "\\00";
+        var pTypeInfoString = "P" + typeInfoString;
+        var pTypeString = "P" + className.length() + className + "\\00";
+        var typeInfo = className + "_type_info";
+        var pTypeInfo = "P" + className + "_type_info";
 
         var type = """
             @%s = constant [%d x i8] c"%s"

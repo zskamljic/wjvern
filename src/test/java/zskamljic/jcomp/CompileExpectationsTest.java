@@ -26,11 +26,11 @@ class CompileExpectationsTest {
         "ReferenceFields", "Strings"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
-        Main.main(new String[]{STR."target/test-classes/\{fileName}.class", "-o", tempDir.toString(), "-d"});
+        Main.main(new String[]{"target/test-classes/" + fileName + ".class", "-o", tempDir.toString(), "-d"});
 
         var process = new ProcessBuilder("./a.out").start();
         try (
-            var expectedOutput = getClass().getResourceAsStream(STR."/\{fileName}.out");
+            var expectedOutput = getClass().getResourceAsStream("/" + fileName + ".out");
             var actualReader = process.inputReader()
         ) {
             assertNotNull(expectedOutput);
@@ -53,10 +53,10 @@ class CompileExpectationsTest {
                         if (line != null) output.append(line).append("\n");
                     } while (line != null);
                 }
-                fail(STR."""
-                        Output code mismatch, expected \{expectedCode}, got \{actualCode}
-                        Output:
-                        \{output}""");
+                fail("""
+                    Output code mismatch, expected %d, got %d
+                    Output:
+                    %s""".formatted(expectedCode, actualCode, output));
             }
 
             String expected;
@@ -66,7 +66,7 @@ class CompileExpectationsTest {
                 expected = expectedReader.readLine();
                 actual = actualReader.readLine();
 
-                assertEquals(expected, actual, STR."Line \{line}");
+                assertEquals(expected, actual, "Line " + line);
                 line++;
             } while (expected != null && actual != null);
         }

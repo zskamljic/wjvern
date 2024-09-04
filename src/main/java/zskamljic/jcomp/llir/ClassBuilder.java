@@ -292,14 +292,14 @@ public class ClassBuilder {
                         var superClass = resolver.resolve(entry.name().stringValue());
                         classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
                     } else {
-                        System.err.println(STR."Class \{entry.name()} not supported");
+                        System.err.println("Class " + entry.name() + " not supported");
                         return;
                     }
                 }
             }
         } else {
             var targetClass = loadClass(name)
-                .orElseThrow(() -> new IllegalArgumentException(STR."Class \{name} not found."));
+                .orElseThrow(() -> new IllegalArgumentException("Class " + name + " not found."));
             classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 
@@ -326,13 +326,13 @@ public class ClassBuilder {
             if (Utils.isSupportedClass(className)) {
                 return Optional.of(resolver.resolve(className));
             } else {
-                System.err.println(STR."Class \{className} not supported");
+                System.err.println("Class " + className + " not supported");
                 return Optional.empty();
             }
         } else {
-            var targetPath = classPath.resolve(STR."\{className}.class");
+            var targetPath = classPath.resolve(className + ".class");
             if (!Files.exists(targetPath)) {
-                System.err.println(STR."Class not found: \{targetPath}");
+                System.err.println("Class not found: " + targetPath);
                 return Optional.empty();
             }
             return Optional.of(ClassFile.of().parse(targetPath));
