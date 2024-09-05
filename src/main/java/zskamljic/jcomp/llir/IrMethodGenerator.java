@@ -3,6 +3,7 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.llir.models.CodeEntry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
+import zskamljic.jcomp.llir.models.PhiEntry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -173,6 +174,13 @@ public class IrMethodGenerator {
         incrementIfNeeded(null);
         var newName = unnamedGenerator.generateNext();
         codeEntries.add(new CodeEntry.Negate(newName, type, variable));
+        return newName;
+    }
+
+    public String phi(LlvmType type, List<PhiEntry> values) {
+        incrementIfNeeded(null);
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.Phi(newName, type, values));
         return newName;
     }
 

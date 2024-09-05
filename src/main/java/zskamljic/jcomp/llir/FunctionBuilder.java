@@ -36,14 +36,13 @@ import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class FunctionBuilder {
     private static final LlvmType.Declared ARRAY_TYPE = new LlvmType.Declared("java_Array");
@@ -135,12 +134,11 @@ public class FunctionBuilder {
         if (optionalCode.isEmpty()) return;
 
         var code = optionalCode.get();
-        var stack = new ArrayDeque<String>();
         var types = new HashMap<String, LlvmType>();
+        var stack = new VarStack(generator, types);
         var exceptionState = new ExceptionState();
         var labelGenerator = new LabelGenerator();
         var locals = new Locals(generator, types, labelGenerator, generator::hasParameter);
-        var switchStates = new SwitchStates(generator, types);
         String currentLabel = null;
         for (var element : code) {
             if (debug && !(element instanceof Label)) {
@@ -149,7 +147,7 @@ public class FunctionBuilder {
             switch (element) {
                 case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, as);
                 case ArrayLoadInstruction al -> handleArrayLoad(generator, stack, types, al);
-                case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, switchStates, currentLabel, b);
+                case BranchInstruction b -> handleBranch(generator, stack, types, labelGenerator, currentLabel, b);
                 case ConstantInstruction c -> handleConstant(stack, c);
                 case ConvertInstruction c -> handleConvertInstruction(generator, stack, types, c);
                 case ExceptionCatch e -> handleExceptionCatch(generator, labelGenerator, exceptionState, e);
@@ -161,8 +159,7 @@ public class FunctionBuilder {
                         addInitVtable(generator);
                     }
                 }
-                case Label label ->
-                    currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, switchStates, label);
+                case Label label -> currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, label);
                 case LineNumber l -> generator.comment("Line " + l.line());
                 case LoadInstruction l -> handleLoad(generator, stack, types, locals, l);
                 case LocalVariable v -> locals.register(v);
@@ -173,7 +170,7 @@ public class FunctionBuilder {
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, types, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
-                case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, switchStates, s);
+                case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
@@ -230,7 +227,7 @@ public class FunctionBuilder {
     }
 
     private void handleArrayStore(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, ArrayStoreInstruction instruction
     ) {
         var value = stack.pop();
         var index = stack.pop();
@@ -268,7 +265,7 @@ public class FunctionBuilder {
     }
 
     private void handleArrayLoad(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ArrayLoadInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, ArrayLoadInstruction instruction
     ) {
         var index = loadIfNeeded(generator, types, stack.pop());
         var reference = loadIfNeeded(generator, types, stack.pop());
@@ -301,17 +298,17 @@ public class FunctionBuilder {
 
     private void handleBranch(
         IrMethodGenerator generator,
-        Deque<String> stack,
+        VarStack stack,
         Map<String, LlvmType> types,
         LabelGenerator labelGenerator,
-        SwitchStates switchStates,
         String currentLabel,
         BranchInstruction instruction
     ) {
         switch (instruction.opcode()) {
             case GOTO -> {
-                switchStates.changedLabel(currentLabel, stack);
-                generator.branchLabel(labelGenerator.getLabel(instruction.target()));
+                var nextLabel = labelGenerator.getLabel(instruction.target());
+                stack.endLabel(currentLabel, nextLabel);
+                generator.branchLabel(nextLabel);
             }
             case IF_ACMPEQ -> {
                 var b = stack.pop();
@@ -320,8 +317,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifTrue);
             }
             case IF_ACMPNE -> {
                 var b = stack.pop();
@@ -330,8 +329,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPEQ -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -342,8 +343,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPNE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -354,8 +357,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPLE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -366,8 +371,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPLT -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -378,8 +385,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPGE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -390,8 +399,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IF_ICMPGT -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -402,8 +413,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, a, b);
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFLE -> {
                 var value = stack.pop();
@@ -413,8 +426,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFLT -> {
                 var value = stack.pop();
@@ -424,8 +439,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFGE -> {
                 var value = stack.pop();
@@ -435,8 +452,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFGT -> {
                 var value = stack.pop();
@@ -446,8 +465,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, value, "0");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFEQ -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -461,8 +482,10 @@ public class FunctionBuilder {
                 }
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFNE -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -476,8 +499,10 @@ public class FunctionBuilder {
                 }
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFNONNULL -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -485,8 +510,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, value, "null");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             case IFNULL -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -494,8 +521,10 @@ public class FunctionBuilder {
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, value, "null");
                 var ifTrue = labelGenerator.getLabel(instruction.target());
                 var ifFalse = labelGenerator.nextLabel();
+                stack.startBranch(ifTrue, ifFalse);
                 generator.branchBool(varName, ifTrue, ifFalse);
                 generator.label(ifFalse);
+                stack.enteredLabel(ifFalse);
             }
             default -> throw new IllegalArgumentException(instruction.opcode() + " jump not supported yet");
         }
@@ -516,7 +545,7 @@ public class FunctionBuilder {
     }
 
     private void handleCreateNewObject(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewObjectInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, NewObjectInstruction instruction
     ) {
         var varName = generator.alloca(new LlvmType.Declared(instruction.className().name().stringValue()));
         types.put(varName, new LlvmType.Pointer(new LlvmType.Declared(instruction.className().name().stringValue())));
@@ -524,7 +553,7 @@ public class FunctionBuilder {
     }
 
     private void handleCreatePrimitiveArray(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, NewPrimitiveArrayInstruction instruction
     ) {
         var type = IrTypeMapper.mapType(instruction.typeKind());
         var sizeVariable = stack.peekFirst();
@@ -565,13 +594,13 @@ public class FunctionBuilder {
     }
 
     private void handleCreateRefArray(
-        IrMethodGenerator generator, ArrayDeque<String> stack, HashMap<String, LlvmType> types, NewReferenceArrayInstruction instruction
+        IrMethodGenerator generator, VarStack stack, HashMap<String, LlvmType> types, NewReferenceArrayInstruction instruction
     ) {
         var type = IrTypeMapper.mapType(instruction.componentType().asSymbol());
         handleCreateArray(generator, stack, types, type);
     }
 
-    private String handleCreateArray(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, LlvmType type) {
+    private String handleCreateArray(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LlvmType type) {
         var size = stack.pop();
         LlvmType arrayType;
         if (size.matches("\\d+")) {
@@ -593,7 +622,7 @@ public class FunctionBuilder {
     }
 
     private void handleOperatorInstruction(
-        IrMethodGenerator generator, Deque<String> stack, LabelGenerator labelGenerator, Map<String, LlvmType> types, OperatorInstruction instruction
+        IrMethodGenerator generator, VarStack stack, LabelGenerator labelGenerator, Map<String, LlvmType> types, OperatorInstruction instruction
     ) {
         var operand = loadIfNeeded(generator, types, stack.pop());
 
@@ -629,7 +658,7 @@ public class FunctionBuilder {
 
     private String handleBinaryOperator(
         IrMethodGenerator generator,
-        Deque<String> stack,
+        VarStack stack,
         Map<String, LlvmType> types,
         LlvmType.Primitive type,
         String operand,
@@ -680,7 +709,7 @@ public class FunctionBuilder {
         generator.label(resultFalse);
     }
 
-    private void handleConstant(Deque<String> stack, ConstantInstruction instruction) {
+    private void handleConstant(VarStack stack, ConstantInstruction instruction) {
         switch (instruction.opcode()) {
             case ACONST_NULL -> stack.push("null");
             case BIPUSH, SIPUSH -> stack.push(instruction.constantValue().toString());
@@ -706,7 +735,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleConvertInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ConvertInstruction c) {
+    private void handleConvertInstruction(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, ConvertInstruction c) {
         var source = loadIfNeeded(generator, types, stack.pop());
 
         var sourceType = (LlvmType.Primitive) types.getOrDefault(source, IrTypeMapper.mapType(c.fromType()));
@@ -738,7 +767,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleFieldInstruction(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, FieldInstruction instruction) {
+    private void handleFieldInstruction(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, FieldInstruction instruction) {
         switch (instruction.opcode()) {
             case GETFIELD -> getField(generator, types, stack, instruction.field());
             case PUTFIELD -> putField(generator, types, stack, instruction);
@@ -748,7 +777,7 @@ public class FunctionBuilder {
         }
     }
 
-    private void getField(IrMethodGenerator generator, Map<String, LlvmType> types, Deque<String> stack, FieldRefEntry field) {
+    private void getField(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldRefEntry field) {
         var fieldType = IrTypeMapper.mapType(field.typeSymbol());
         if (fieldType.isReferenceType()) {
             fieldType = new LlvmType.Pointer(fieldType);
@@ -766,7 +795,7 @@ public class FunctionBuilder {
         stack.push(valueVar);
     }
 
-    private void putField(IrMethodGenerator generator, Map<String, LlvmType> types, Deque<String> stack, FieldInstruction instruction) {
+    private void putField(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldInstruction instruction) {
         var value = loadIfNeeded(generator, types, stack.pop());
         var objectReference = stack.pop();
 
@@ -783,7 +812,7 @@ public class FunctionBuilder {
         generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
     }
 
-    private void getStatic(IrMethodGenerator generator, Map<String, LlvmType> types, Deque<String> stack, FieldRefEntry field) {
+    private void getStatic(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldRefEntry field) {
         var staticField = Utils.staticVariableName(field);
         var type = IrTypeMapper.mapType(field.typeSymbol());
         var loaded = generator.load(type, new LlvmType.Pointer(type), staticField);
@@ -791,7 +820,7 @@ public class FunctionBuilder {
         stack.push(loaded);
     }
 
-    private void putStatic(IrMethodGenerator generator, Map<String, LlvmType> types, Deque<String> stack, FieldRefEntry field) {
+    private void putStatic(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldRefEntry field) {
         var value = loadIfNeeded(generator, types, stack.pop());
 
         var type = IrTypeMapper.mapType(field.typeSymbol());
@@ -816,7 +845,7 @@ public class FunctionBuilder {
 
     private void handleInvoke(
         IrMethodGenerator generator,
-        Deque<String> stack,
+        VarStack stack,
         Map<String, LlvmType> types,
         LabelGenerator labelGenerator,
         ExceptionState exceptions,
@@ -910,7 +939,7 @@ public class FunctionBuilder {
         };
     }
 
-    private static int prepareVarArgParameters(IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, int parameterCount) {
+    private static int prepareVarArgParameters(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, int parameterCount) {
         var parameter = stack.pop();
         if (!(types.get(parameter) instanceof LlvmType.Pointer(LlvmType.SizedArray array))) return parameterCount;
 
@@ -984,7 +1013,7 @@ public class FunctionBuilder {
     }
 
     private void handleLoad(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, Locals locals, LoadInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, Locals locals, LoadInstruction instruction
     ) {
         var local = locals.get(instruction.slot());
         String varName;
@@ -1003,8 +1032,7 @@ public class FunctionBuilder {
         ExceptionState exceptions,
         String currentLabel,
         Locals locals,
-        Deque<String> stack,
-        SwitchStates switchStates,
+        VarStack stack,
         Label label
     ) {
         var nextLabel = labelGenerator.getLabel(label);
@@ -1017,9 +1045,9 @@ public class FunctionBuilder {
         if (exceptions.isCatching(currentLabel)) {
             generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
         }
-        switchStates.changedLabel(currentLabel, stack);
         generator.label(nextLabel);
         locals.enteredLabel(nextLabel);
+        stack.enteredLabel(nextLabel);
         var exceptionVariable = exceptions.getExceptionVariable();
         if (exceptions.isCatching(nextLabel)) {
             var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exceptionVariable);
@@ -1031,7 +1059,7 @@ public class FunctionBuilder {
     }
 
     private void handleReturn(
-        IrMethodGenerator generator, Deque<String> stack, Map<String, LlvmType> types, ReturnInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, ReturnInstruction instruction
     ) {
         if (instruction.opcode() == Opcode.RETURN) {
             generator.returnVoid();
@@ -1087,7 +1115,7 @@ public class FunctionBuilder {
         };
     }
 
-    private void handleStackInstruction(Deque<String> stack, Map<String, LlvmType> types, StackInstruction instruction) {
+    private void handleStackInstruction(VarStack stack, Map<String, LlvmType> types, StackInstruction instruction) {
         switch (instruction.opcode()) {
             case POP -> stack.pop();
             case DUP -> stack.push(stack.peekFirst());
@@ -1106,7 +1134,7 @@ public class FunctionBuilder {
     }
 
     private void handleStoreInstruction(
-        IrMethodGenerator generator, Deque<String> stack, Locals locals, Map<String, LlvmType> types, StoreInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Locals locals, Map<String, LlvmType> types, StoreInstruction instruction
     ) {
         var reference = stack.pop();
         var index = instruction.slot();
@@ -1123,9 +1151,8 @@ public class FunctionBuilder {
     }
 
     private void handleSwitch(
-        IrMethodGenerator generator, Deque<String> stack, LabelGenerator labelGenerator, SwitchStates switchStates, TableSwitchInstruction instruction
+        IrMethodGenerator generator, VarStack stack, LabelGenerator labelGenerator, TableSwitchInstruction instruction
     ) {
-        var switchVar = generator.alloca(LlvmType.Primitive.POINTER);
         var cases = instruction.cases()
             .stream()
             .map(c -> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
@@ -1136,11 +1163,12 @@ public class FunctionBuilder {
             defaultCase,
             cases
         );
-        switchStates.add(switchVar, defaultCase, cases.stream().map(Map.Entry::getValue).toList());
+        var allCases = Stream.concat(Stream.of(defaultCase), cases.stream().map(Map.Entry::getValue)).toArray(String[]::new);
+        stack.startBranch(allCases);
     }
 
     private void handleThrowInstruction(
-        IrMethodGenerator generator, LabelGenerator labelGenerator, HashMap<String, LlvmType> types, ExceptionState exceptions, Deque<String> stack
+        IrMethodGenerator generator, LabelGenerator labelGenerator, HashMap<String, LlvmType> types, ExceptionState exceptions, VarStack stack
     ) {
         var exception = stack.pop();
 

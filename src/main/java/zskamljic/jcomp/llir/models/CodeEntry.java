@@ -101,13 +101,15 @@ public interface CodeEntry {
         }
     }
 
-    record Compare(String varName, IrMethodGenerator.Condition condition, LlvmType type, String a, String b) implements CodeEntry {
+    record Compare(String varName, IrMethodGenerator.Condition condition, LlvmType type, String a,
+                   String b) implements CodeEntry {
         @Override
         public String toString() {
             var comparisonType = switch (type) {
                 case LlvmType.Primitive p when !p.isFloatingPoint() -> "icmp";
                 case LlvmType.Primitive.POINTER -> "icmp";
-                default -> throw new IllegalArgumentException("Comparison between types of " + type + " not yet supported ");
+                default ->
+                    throw new IllegalArgumentException("Comparison between types of " + type + " not yet supported ");
             };
             var cond = switch (condition) {
                 case EQUAL -> "eq";
@@ -136,14 +138,16 @@ public interface CodeEntry {
         }
     }
 
-    record FloatingPointToSignedInt(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+    record FloatingPointToSignedInt(String newName, LlvmType.Primitive source, String varName,
+                                    LlvmType.Primitive target) implements CodeEntry {
         @Override
         public String toString() {
             return newName + " = fptosi " + source + " " + varName + " to " + target;
         }
     }
 
-    record FloatingPointTruncate(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+    record FloatingPointTruncate(String newName, LlvmType.Primitive source, String varName,
+                                 LlvmType.Primitive target) implements CodeEntry {
         @Override
         public String toString() {
             return newName + " = fptrunc " + source + " " + varName + " to " + target;
@@ -232,6 +236,15 @@ public interface CodeEntry {
         }
     }
 
+    record Phi(String newName, LlvmType type, List<PhiEntry> alternatives) implements CodeEntry {
+        @Override
+        public String toString() {
+            return newName + " = phi " + type + " " + alternatives.stream()
+                .map(a -> "[" + a.variable() + ", %" + a.label() + "]")
+                .collect(Collectors.joining(", "));
+        }
+    }
+
     record Return(LlvmType type, String variable) implements CodeEntry {
         @Override
         public String toString() {
@@ -242,21 +255,24 @@ public interface CodeEntry {
         }
     }
 
-    record SignedExtend(String newName, LlvmType originalType, String source, LlvmType targetType) implements CodeEntry {
+    record SignedExtend(String newName, LlvmType originalType, String source,
+                        LlvmType targetType) implements CodeEntry {
         @Override
         public String toString() {
             return newName + " = sext " + originalType + " " + source + " to " + targetType;
         }
     }
 
-    record SignedToFloatingPoint(String newName, LlvmType source, String varName, LlvmType target) implements CodeEntry {
+    record SignedToFloatingPoint(String newName, LlvmType source, String varName,
+                                 LlvmType target) implements CodeEntry {
         @Override
         public String toString() {
             return newName + " = sitofp " + source + " " + varName + " to " + target;
         }
     }
 
-    record SignedTruncate(String newName, LlvmType.Primitive source, String varName, LlvmType.Primitive target) implements CodeEntry {
+    record SignedTruncate(String newName, LlvmType.Primitive source, String varName,
+                          LlvmType.Primitive target) implements CodeEntry {
         @Override
         public String toString() {
             return newName + " = trunc " + source + " " + varName + " to " + target;

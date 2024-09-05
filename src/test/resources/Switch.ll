@@ -46,33 +46,26 @@ define i32 @"Switch_switchFunc(I)I"(i32 %local.0) personality ptr @__gxx_persona
 label0:
   ; %value entered scope under name %local.0
   ; Line 3
-  %0 = alloca ptr
   switch i32 %local.0, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
 label2:
   ; Line 4
-  store i64 5, ptr %0
   br label %label7
 label3:
   ; Line 5
-  store i64 4, ptr %0
   br label %label7
 label4:
   ; Line 6
-  store i64 3, ptr %0
   br label %label7
 label5:
   ; Line 7
-  store i64 2, ptr %0
   br label %label7
 label6:
   ; Line 8
-  store i64 1, ptr %0
   br label %label7
 label7:
+  %0 = phi i32 [3, %label4], [2, %label5], [1, %label6], [5, %label2], [4, %label3]
   ; Line 3
-  %1 = load i64, i64* %0
-  %2 = trunc i64 %1 to i32
-  ret i32 %2
+  ret i32 %0
 label1:
   ; %value exited scope under name %local.0
   unreachable
