@@ -22,38 +22,28 @@ class FunctionBuilderTest {
             .orElseThrow();
 
         var functionRegistry = new FunctionRegistry(ignored -> Optional.empty(), ignored -> false);
-        var functionBuilder = new FunctionBuilder(coderMethod, List.of("coder"), functionRegistry, true);
+        var functionBuilder = new FunctionBuilder(coderMethod, List.of("coder"), functionRegistry, false);
 
         var generated = functionBuilder.generate();
 
         assertEquals("""
             define i8 @"java/lang/String_coder()B"(%"java/lang/String"* %local.0) personality ptr @__gxx_personality_v0 {
-              ; LocalVariable[name=this, slot=0, type=Ljava/lang/String;]
-              br label %label0
             label0:
               ; %this entered scope under name %local.0
-              ; LineNumber[line=4862]
-              ; Line 4862
-              ; Field[OP=GETSTATIC, field=java/lang/String.COMPACT_STRINGS:Z]
-              %1 = load i1, i1* @"java/lang/String_COMPACT_STRINGS"
-              ; Branch[OP=IFEQ]
-              %2 = sext i1 %1 to i32
-              %3 = icmp eq i32 %2, 0
-              br i1 %3, label %label2, label %label3
+              ; Line 4911
+              %0 = load i1, i1* @"java/lang/String_COMPACT_STRINGS"
+              %1 = sext i1 %0 to i32
+              %2 = icmp eq i32 %1, 0
+              br i1 %2, label %label2, label %label3
             label3:
-              ; Load[OP=ALOAD_0, slot=0]
-              ; Field[OP=GETFIELD, field=java/lang/String.coder:B]
-              %4 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %local.0, i32 0, i32 1
-              %5 = load i8, i8* %4
-              ; Branch[OP=GOTO]
+              %3 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %local.0, i32 0, i32 1
+              %4 = load i8, i8* %3
               br label %label4
             label2:
-              ; UnboundIntrinsicConstantInstruction[op=ICONST_1]
               br label %label4
             label4:
-              %6 = phi i8 [1, %label2], [%5, %label3]
-              ; Return[OP=IRETURN]
-              ret i8 %6
+              %5 = phi i8 [1, %label2], [%4, %label3]
+              ret i8 %5
             label1:
               ; %this exited scope under name %local.0
               unreachable

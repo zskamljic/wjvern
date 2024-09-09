@@ -8,6 +8,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,12 +25,21 @@ class CompileExpectationsTest {
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
         "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields", "ReturnArray",
-        "ReferenceFields", "Strings"
+        "ReferenceFields", "Strings", "StandardMain"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{"target/test-classes/" + fileName + ".class", "-o", tempDir.toString(), "-d"});
 
-        var process = new ProcessBuilder("./a.out").start();
+        var command = new ArrayList<String>();
+        command.add("./a.out");
+        try (var inputs = getClass().getResourceAsStream("/" + fileName + ".in")) {
+            if (inputs != null) {
+                var reader = new BufferedReader(new InputStreamReader(inputs));
+                var commandLine = reader.readLine();
+                command.addAll(Arrays.asList(commandLine.split(" ")));
+            }
+        }
+        var process = new ProcessBuilder(command.toArray(new String[0])).start();
         try (
             var expectedOutput = getClass().getResourceAsStream("/" + fileName + ".out");
             var actualReader = process.inputReader()

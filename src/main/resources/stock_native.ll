@@ -22,6 +22,11 @@ define void @"java/lang/String_getBytes()[B"(ptr sret(%java_Array*) %local.0, %"
     ret void
 }
 
-define i8 @"java/lang/String_coder()B"(%"java/lang/String"* %this) {
-    ret i8 0
+; TODO: remove below once System.exit compiles
+
+declare void @exit(i32);
+
+define void @"java/lang/System_exit(I)V"(i32 %code) {
+    call void @exit(i32 %code)
+    ret void
 }

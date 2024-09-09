@@ -315,24 +315,14 @@ public class FunctionBuilder {
                 var a = stack.pop();
 
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifTrue);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ACMPNE -> {
                 var b = stack.pop();
                 var a = stack.pop();
 
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPEQ -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -341,12 +331,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPNE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -355,12 +340,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPLE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -369,12 +349,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPLT -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -383,12 +358,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPGE -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -397,12 +367,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IF_ICMPGT -> {
                 var b = loadIfNeeded(generator, types, stack.pop());
@@ -411,12 +376,7 @@ public class FunctionBuilder {
                 a = castIfNeeded(generator, types.get(a), LlvmType.Primitive.INT, a);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, a, b);
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFLE -> {
                 var value = stack.pop();
@@ -424,12 +384,7 @@ public class FunctionBuilder {
                 value = castIfNeeded(generator, types.get(value), LlvmType.Primitive.INT, value);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS_EQUAL, LlvmType.Primitive.INT, value, "0");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFLT -> {
                 var value = stack.pop();
@@ -437,12 +392,7 @@ public class FunctionBuilder {
                 value = castIfNeeded(generator, types.get(value), LlvmType.Primitive.INT, value);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.LESS, LlvmType.Primitive.INT, value, "0");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFGE -> {
                 var value = stack.pop();
@@ -450,12 +400,7 @@ public class FunctionBuilder {
                 value = castIfNeeded(generator, types.get(value), LlvmType.Primitive.INT, value);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER_EQUAL, LlvmType.Primitive.INT, value, "0");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFGT -> {
                 var value = stack.pop();
@@ -463,12 +408,7 @@ public class FunctionBuilder {
                 value = castIfNeeded(generator, types.get(value), LlvmType.Primitive.INT, value);
 
                 var varName = generator.compare(IrMethodGenerator.Condition.GREATER, LlvmType.Primitive.INT, value, "0");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFEQ -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -480,12 +420,7 @@ public class FunctionBuilder {
                 } else {
                     varName = value;
                 }
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFNE -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
@@ -497,37 +432,37 @@ public class FunctionBuilder {
                 } else {
                     varName = value;
                 }
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFNONNULL -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
 
                 var varName = generator.compare(IrMethodGenerator.Condition.NOT_EQUAL, LlvmType.Primitive.POINTER, value, "null");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             case IFNULL -> {
                 var value = loadIfNeeded(generator, types, stack.pop());
 
                 var varName = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.POINTER, value, "null");
-                var ifTrue = labelGenerator.getLabel(instruction.target());
-                var ifFalse = labelGenerator.nextLabel();
-                stack.startBranch(ifTrue, ifFalse);
-                generator.branchBool(varName, ifTrue, ifFalse);
-                generator.label(ifFalse);
-                stack.enteredLabel(ifFalse);
+                createBranch(generator, stack, labelGenerator, instruction, varName);
             }
             default -> throw new IllegalArgumentException(instruction.opcode() + " jump not supported yet");
         }
+    }
+
+    private static void createBranch(
+        IrMethodGenerator generator,
+        VarStack stack,
+        LabelGenerator labelGenerator,
+        BranchInstruction instruction,
+        String varName
+    ) {
+        var ifTrue = labelGenerator.getLabel(instruction.target());
+        var ifFalse = labelGenerator.nextLabel();
+        stack.startBranch(ifTrue, ifFalse);
+        generator.branchBool(varName, ifTrue, ifFalse);
+        generator.label(ifFalse);
+        stack.enteredLabel(ifFalse);
     }
 
     private String loadIfNeeded(IrMethodGenerator generator, Map<String, LlvmType> types, String value) {

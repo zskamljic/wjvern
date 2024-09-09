@@ -1,5 +1,6 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.Blacklist;
 import zskamljic.jcomp.StdLibResolver;
 import zskamljic.jcomp.llir.models.AggregateType;
 import zskamljic.jcomp.llir.models.FunctionRegistry;
@@ -16,9 +17,7 @@ import java.lang.classfile.constantpool.MemberRefEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
-import java.lang.classfile.instruction.LookupSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
-import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.nio.file.Files;
@@ -28,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class ClassBuilder {
     private final ClassModel classModel;
@@ -55,7 +53,7 @@ public class ClassBuilder {
     }
 
     private FunctionRegistry generateFunctionRegistry() throws IOException {
-        var registry = new FunctionRegistry(this::loadClass, this::isUnsupportedFunction);
+        var registry = new FunctionRegistry(this::loadClass, Blacklist::isUnsupportedFunction);
         registry.walk(classModel);
 
         // TODO: when toString is enabled this will no longer be needed
@@ -122,7 +120,7 @@ public class ClassBuilder {
 
         var hasThrow = false;
         for (var method : classModel.methods()) {
-            if (isUnsupportedFunction(method)) {
+            if (Blacklist.isUnsupportedFunction(method)) {
                 continue;
             }
             hasThrow = hasThrow || method.code()
@@ -152,10 +150,6 @@ public class ClassBuilder {
                 @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr""");
 
             thrownExceptions.forEach(classGenerator::injectCode);
-        }
-
-        if (className.equals("java/lang/String")) {
-            classGenerator.injectCode("declare i8 @\"java/lang/String_coder()B\"(ptr)");
         }
 
         // TODO: when toString is enabled this will no longer be needed
@@ -208,45 +202,6 @@ public class ClassBuilder {
         return generator.getSimpleType();
     }
 
-    private boolean isUnsupportedFunction(MethodModel method) {
-        return method.code()
-            .stream()
-            .flatMap(CompoundElement::elementStream)
-            .anyMatch(e -> e instanceof InvokeInstruction i && i.opcode() == Opcode.INVOKEINTERFACE ||
-                e instanceof TypeCheckInstruction ||
-                e instanceof LookupSwitchInstruction) ||
-            Set.of(
-                "wait", "toString", "getClass", "clone", // java/lang/Object
-                "value", "compareTo", "resolveConstantDesc", "join", "getBytes", "bytesCompatible", "copyToSegmentRaw", "regionMatches", "startsWith",
-                "replaceFirst", "replaceAll", "split", "toLowerCase", "toUpperCase", "lines", "chars", "codePoints", "formatted", "repeat",
-                "describeConstable", "newStringUTF8NoRepl", "safeTrim", "lookupCharset", "encode", "getBytesNoRepl1", "decodeUTF8_UTF16",
-                "decodeWithDecoder", "malformed3", "malformed4", "throwMalformed", "throwUnmappable", "indexOf", "lastIndexOf", "format", "valueOf",
-                "copyValueOf", "repeatCopyRest", "checkIndex", "checkOffset", "checkBoundsOffCount", "checkBoundsBeginEnd", "valueOfCodePoint",
-                "lambda$indent$0", "charAt", "getChars", "substring", "rangeCheck", "codePointCount", "codePointAt", "codePointBefore",
-                "nonSyncContentEquals", "encodeUTF8_UTF16", "decodeASCII", "getBytesUTF8NoRepl", "isASCII", "indexOfNonWhitespace",
-                "offsetByCodePoints", "contentEquals", "isBlank", "lambda$stripIndent$3", "lambda$indent$2", "equalsIgnoreCase",
-                "splitWithDelimiters", "endsWith", "subSequence", "lastIndexOfNonWhitespace", "matches", "replace", "concat", "strip", "stripLeading",
-                "lambda$indent$1", "stripTrailing", "toCharArray", "trim", "<clinit>", "coder", "encode8859_1"// java/lang/String
-            ).contains(method.methodName().stringValue()) ||
-            method.parent().filter(p -> p.thisClass().name().equalsString("java/lang/String")).isPresent() &&
-                (method.methodName().equalsString("<init>")) &&
-                (method.methodType().equalsString("([BIII)V") || // String constructor with mutable parameters
-                    method.methodType().equalsString("([BIILjava/lang/String;)V") ||
-                    method.methodType().equalsString("([BLjava/lang/String;)V") ||
-                    method.methodType().equalsString("(Ljava/lang/AbstractStringBuilder;Ljava/lang/Void;)V") ||
-                    method.methodType().equalsString("([BII)V") ||
-                    method.methodType().equalsString("([III)V") ||
-                    method.methodType().equalsString("([BI)V") ||
-                    method.methodType().equalsString("([C)V") ||
-                    method.methodType().equalsString("([CII)V") ||
-                    method.methodType().equalsString("(Ljava/lang/StringBuffer;)V") ||
-                    method.methodType().equalsString("([CIILjava/lang/Void;)V") ||
-                    method.methodType().equalsString("(Ljava/lang/StringBuilder;)V") ||
-                    method.methodType().equalsString("([B)V")) ||
-            method.parent().filter(p -> p.thisClass().name().equalsString("java/lang/String")).isPresent() &&
-                method.methodName().equalsString("hashCode");
-    }
-
     private void generateSuperClass(
         ClassEntry entry,
         IrClassGenerator classGenerator,
@@ -272,29 +227,22 @@ public class ClassBuilder {
 
         ClassBuilder classBuilder;
         if (resolver.contains(name)) {
-            switch (name) {
-                case "java/lang/Object" -> {
+            if (name.equals("java/lang/Exception")) {
+                var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), functionRegistry);
+                generator.injectCode("""
+                    define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
+                      ret void
+                    }""");
+                generator.setException();
+                generatedClasses.put("java/lang/Exception", generator);
+                return;
+            } else {
+                if (Utils.isSupportedClass(name)) {
                     var superClass = resolver.resolve(entry.name().stringValue());
                     classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
-                }
-                case "java/lang/Exception" -> {
-                    var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), functionRegistry);
-                    generator.injectCode("""
-                        define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
-                          ret void
-                        }""");
-                    generator.setException();
-                    generatedClasses.put("java/lang/Exception", generator);
+                } else {
+                    System.err.println("Class " + entry.name() + " not supported");
                     return;
-                }
-                default -> {
-                    if (Utils.isSupportedClass(name)) {
-                        var superClass = resolver.resolve(entry.name().stringValue());
-                        classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
-                    } else {
-                        System.err.println("Class " + entry.name() + " not supported");
-                        return;
-                    }
                 }
             }
         } else {

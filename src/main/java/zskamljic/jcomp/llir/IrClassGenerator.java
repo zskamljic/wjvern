@@ -124,6 +124,10 @@ public class IrClassGenerator {
         }
     }
 
+    public List<MethodModel> getMethods() {
+        return methods;
+    }
+
     public void addMethodDependency(MethodRefEntry method) {
         addMethodDependency(method, false);
     }
@@ -131,22 +135,7 @@ public class IrClassGenerator {
     public void addMethodDependency(MethodRefEntry method, boolean isStatic) {
         if (method.owner().name().stringValue().equals(className)) return;
 
-        var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
-        List<String> parameters = method.typeSymbol()
-            .parameterList()
-            .stream()
-            .map(IrTypeMapper::mapType)
-            .map(Objects::toString)
-            .collect(Collectors.toCollection(ArrayList::new));
-        if (!isStatic) {
-            parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
-        }
-
-        var parameterString = String.join(", ", parameters);
-
-        var name = Utils.methodName(method);
-        var declaration = "declare " + type + " @" + name + "(" + parameterString + ")";
-        methodDependencies.add(declaration);
+        methodDependencies.add(Utils.methodDefinition(method, isStatic));
     }
 
     private boolean hasMatchingLeadParams(MethodModel left, MethodModel right) {

@@ -4,12 +4,15 @@ import zskamljic.jcomp.llir.models.AggregateType;
 import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
 
+import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.StringEntry;
+import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class GlobalInitializer {
     private final Map<IrClassGenerator, List<StringEntry>> initializers = new HashMap<>();
@@ -67,9 +70,15 @@ public class GlobalInitializer {
 
         var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, functionRegistry);
         generated.put("__entrypoint", generator);
+
+        var stringDefinition = definitionMapper.apply(new LlvmType.Declared("java/lang/String"));
+        generator.injectCode(stringDefinition.toString());
+
         generator.injectCode("""
             %0 = type { i32, ptr, ptr }
-            @llvm.global_ctors = appending global [1 x %0] [%0 { i32 65535, ptr @__cxx_global_var_init, ptr null }]""");
+            @llvm.global_ctors = appending global [1 x %0] [%0 { i32 65535, ptr @__cxx_global_var_init, ptr null }]
+            
+            @"java/lang/String_COMPACT_STRINGS" = external global i1"""); // TODO: remove once string clinit is enabled and working
 
         var initCode = new StringBuilder();
         initCode.append("define internal void @__cxx_global_var_init() section \".text.startup\" personality ptr @__gxx_personality_v0 {\n");
@@ -79,17 +88,98 @@ public class GlobalInitializer {
 
             initCode.append("  ").append("call void ").append(string).append("()\n");
         }
-        initCode.append("  ret void\n}");
+        generator.injectCode("declare void @\"java/lang/String_<init>([BB)V\"(ptr, ptr, i8) personality ptr @__gxx_personality_v0");
+        generator.injectCode("declare i64 @strlen(ptr)"); // TODO: use size based on platform
+        initCode.append("""
+              store i1 1, i1* @"java/lang/String_COMPACT_STRINGS"
+              ret void
+            }
+            """);
 
-        generator.injectCode("""
-            declare i32 @"%1$s_main()I"()
-            
-            define i32 @main(i32 %%0, ptr %%1) {
-                %%3 = call i32 @"%1$s_main()I"()
-                ret i32 %%3
-            }""".formatted(className));
+        generateMain(className, generated, generator);
 
         generator.injectCode("declare i32 @__gxx_personality_v0(...)");
         generator.injectCode(initCode.toString());
+    }
+
+    private void generateMain(String className, Map<String, IrClassGenerator> generated, IrClassGenerator generator) {
+        var mainMethod = generated.get(className)
+            .getMethods()
+            .stream()
+            .filter(m -> m.methodName().equalsString("main"))
+            .filter(m -> m.methodTypeSymbol().parameterCount() < 2)
+            .filter(m -> m.methodTypeSymbol()
+                .parameterList()
+                .stream()
+                .noneMatch(Predicate.not(c -> "[Ljava/lang/String;".equals(c.descriptorString()))))
+            .min(this::tieredMains)
+            .orElseThrow(() -> new IllegalArgumentException("No main method found"));
+
+        var mainBuilder = new StringBuilder()
+            .append(Utils.methodDefinition(className, mainMethod)).append("\n\n")
+            .append("define i32 @main(i32 %0, ptr %1) {\n");
+
+        String returnValue;
+        if (mainMethod.methodTypeSymbol().parameterCount() > 0) {
+            mainBuilder.append("""
+                  %3 = sub i32 %0, 1
+                  %4 = alloca %java_Array
+                  %5 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 0
+                  store i32 %3, i32* %5
+                  %6 = alloca %"java/lang/String", i32 %3
+                  %7 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+                  store ptr %6, ptr %7
+                
+                  %8 = alloca i32
+                  store i32 0, i32* %8
+                  br label %condition
+                
+                condition:
+                  %9 = load i32, i32* %8
+                  %10 = icmp slt i32 %9, %3
+                  br i1 %10, label %next, label %end
+                
+                next:
+                  %11 = add i32 %9, 1
+                  %12 = getelementptr inbounds ptr, ptr %1, i32 %11
+                  %13 = load ptr, ptr %12
+                  %14 = call i64 @strlen(ptr %13)
+                  %15 = trunc i64 %14 to i32
+                  %16 = alloca %java_Array
+                  %17 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 0
+                  store i32 %15, i32* %17
+                  %18 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
+                  store ptr %13, ptr %18
+                  %19 = alloca %"java/lang/String"
+                  call void @"java/lang/String_<init>([BB)V"(%"java/lang/String"* %19, %java_Array* %16, i8 0)
+                  %20 = getelementptr inbounds %"java/lang/String", ptr %6, i32 %9
+                  store %"java/lang/String"* %19, ptr %20
+                  br label %increment
+                
+                increment:
+                  %21 = add nsw i32 %9, 1
+                  store i32 %21, i32* %8
+                  br label %condition
+                
+                end:
+                """);
+
+            mainBuilder.append("  call void @").append(Utils.methodName(className, mainMethod)).append("(%java_Array* %4)\n");
+
+            returnValue = "0";
+        } else {
+            mainBuilder.append("  %3 = call i32 @").append(Utils.methodName(className, mainMethod)).append("()\n");
+            returnValue = "%3";
+        }
+
+        mainBuilder.append("  ret i32 ").append(returnValue).append("\n}");
+        generator.injectCode(mainBuilder.toString());
+    }
+
+    private int tieredMains(MethodModel left, MethodModel right) {
+        if (left.flags().has(AccessFlag.STATIC) && !right.flags().has(AccessFlag.STATIC)) return -1;
+        if (right.flags().has(AccessFlag.STATIC) && !left.flags().has(AccessFlag.STATIC)) return 1;
+
+        return Integer.compare(right.methodTypeSymbol().parameterCount(), left.methodTypeSymbol().parameterCount());
     }
 }

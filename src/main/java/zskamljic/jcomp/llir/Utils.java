@@ -1,12 +1,19 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.llir.models.LlvmType;
+
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.FieldRefEntry;
 import java.lang.classfile.constantpool.MemberRefEntry;
+import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Utils {
     private Utils() {
@@ -57,5 +64,41 @@ public class Utils {
 
     public static String vtableTypeName(String className) {
         return Utils.escape(className + "_vtable_type");
+    }
+
+    public static String methodDefinition(MethodRefEntry method, boolean isStatic) {
+        var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
+        List<String> parameters = method.typeSymbol()
+            .parameterList()
+            .stream()
+            .map(IrTypeMapper::mapType)
+            .map(Objects::toString)
+            .collect(Collectors.toCollection(ArrayList::new));
+        if (!isStatic) {
+            parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
+        }
+
+        var parameterString = String.join(", ", parameters);
+
+        var name = Utils.methodName(method);
+        return "declare " + type + " @" + name + "(" + parameterString + ")";
+    }
+
+    public static String methodDefinition(String owner, MethodModel method) {
+        var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
+        List<String> parameters = method.methodTypeSymbol()
+            .parameterList()
+            .stream()
+            .map(IrTypeMapper::mapType)
+            .map(Objects::toString)
+            .collect(Collectors.toCollection(ArrayList::new));
+        if (!method.flags().has(AccessFlag.STATIC)) {
+            parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(owner))).toString());
+        }
+
+        var parameterString = String.join(", ", parameters);
+
+        var name = Utils.methodName(owner, method);
+        return "declare " + type + " @" + name + "(" + parameterString + ")";
     }
 }
