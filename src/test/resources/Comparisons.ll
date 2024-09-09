@@ -29,13 +29,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Comparisons_<init>()V"(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_<init>()V"(%Comparisons* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Comparisons**
+  store %Comparisons* %param.0, %Comparisons** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %Comparisons, %Comparisons* %local.0, i32 0, i32 0
-  store %Comparisons_vtable_type* @Comparisons_vtable_data, %Comparisons_vtable_type** %0
+  %1 = load %Comparisons*, %Comparisons** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %Comparisons*, %Comparisons** %local.0
+  %3 = getelementptr inbounds %Comparisons, %Comparisons* %2, i32 0, i32 0
+  store %Comparisons_vtable_type* @Comparisons_vtable_data, %Comparisons_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0
@@ -104,36 +109,43 @@ label1:
   unreachable
 }
 
-define void @"Comparisons_compare(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compare(I)V"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
 label0:
   ; %value entered scope under name %local.0
   ; Line 23
-  %0 = icmp ne i32 %local.0, 1
-  br i1 %0, label %label2, label %label3
+  %1 = load i32, i32* %local.0
+  %2 = icmp ne i32 %1, 1
+  br i1 %2, label %label2, label %label3
 label3:
   ; Line 24
   call void @"Comparisons_printOk(I)V"(i32 2)
   br label %label2
 label2:
   ; Line 26
-  %1 = icmp eq i32 %local.0, 2
-  br i1 %1, label %label4, label %label5
+  %3 = load i32, i32* %local.0
+  %4 = icmp eq i32 %3, 2
+  br i1 %4, label %label4, label %label5
 label5:
   ; Line 27
   call void @"Comparisons_printOk(I)V"(i32 3)
   br label %label4
 label4:
   ; Line 29
-  %2 = icmp sge i32 %local.0, 2
-  br i1 %2, label %label6, label %label7
+  %5 = load i32, i32* %local.0
+  %6 = icmp sge i32 %5, 2
+  br i1 %6, label %label6, label %label7
 label7:
   ; Line 30
   call void @"Comparisons_printOk(I)V"(i32 4)
   br label %label6
 label6:
   ; Line 32
-  %3 = icmp sle i32 2, %local.0
-  br i1 %3, label %label8, label %label9
+  %7 = load i32, i32* %local.0
+  %8 = icmp sle i32 2, %7
+  br i1 %8, label %label8, label %label9
 label9:
   ; Line 33
   call void @"Comparisons_printOk(I)V"(i32 5)
@@ -146,44 +158,52 @@ label1:
   unreachable
 }
 
-define void @"Comparisons_compareZero(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareZero(I)V"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
 label0:
   ; %value entered scope under name %local.0
   ; Line 38
-  %0 = icmp ne i32 %local.0, 0
-  br i1 %0, label %label2, label %label3
+  %1 = load i32, i32* %local.0
+  %2 = icmp ne i32 %1, 0
+  br i1 %2, label %label2, label %label3
 label3:
   ; Line 39
   call void @"Comparisons_printOk(I)V"(i32 6)
   br label %label2
 label2:
   ; Line 41
-  %1 = icmp eq i32 %local.0, 0
-  br i1 %1, label %label4, label %label5
+  %3 = load i32, i32* %local.0
+  %4 = icmp eq i32 %3, 0
+  br i1 %4, label %label4, label %label5
 label5:
   ; Line 42
   call void @"Comparisons_printOk(I)V"(i32 7)
   br label %label4
 label4:
   ; Line 44
-  %2 = icmp sge i32 %local.0, 0
-  br i1 %2, label %label6, label %label7
+  %5 = load i32, i32* %local.0
+  %6 = icmp sge i32 %5, 0
+  br i1 %6, label %label6, label %label7
 label7:
   ; Line 45
   call void @"Comparisons_printOk(I)V"(i32 8)
   br label %label6
 label6:
   ; Line 47
-  %3 = icmp slt i32 %local.0, 0
-  br i1 %3, label %label8, label %label9
+  %7 = load i32, i32* %local.0
+  %8 = icmp slt i32 %7, 0
+  br i1 %8, label %label8, label %label9
 label9:
   ; Line 48
   call void @"Comparisons_printOk(I)V"(i32 9)
   br label %label8
 label8:
   ; Line 50
-  %4 = icmp sgt i32 %local.0, 0
-  br i1 %4, label %label10, label %label11
+  %9 = load i32, i32* %local.0
+  %10 = icmp sgt i32 %9, 0
+  br i1 %10, label %label10, label %label11
 label11:
   ; Line 51
   call void @"Comparisons_printOk(I)V"(i32 10)
@@ -196,79 +216,85 @@ label1:
   unreachable
 }
 
-define void @"Comparisons_compareLong(J)V"(i64 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareLong(J)V"(i64 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i64*
+  store i64 %param.0, i64* %local.0
+  br label %label0
 label0:
   ; %l entered scope under name %local.0
   ; Line 56
-  %0 = alloca i32
-  %1 = icmp slt i64 %local.0, 0
-  br i1 %1, label %label3, label %label4
+  %1 = load i64, i64* %local.0
+  %2 = alloca i32
+  %3 = icmp slt i64 %1, 0
+  br i1 %3, label %label3, label %label4
 label3:
-  store i32 -1, i32* %0
+  store i32 -1, i32* %2
   br label %label2
 label4:
-  %2 = icmp sgt i64 %local.0, 0
-  br i1 %2, label %label5, label %label6
+  %4 = icmp sgt i64 %1, 0
+  br i1 %4, label %label5, label %label6
 label5:
-  store i32 1, i32* %0
+  store i32 1, i32* %2
   br label %label2
 label6:
-  store i32 0, i32* %0
+  store i32 0, i32* %2
   br label %label2
 label2:
-  %3 = load i32, i32* %0
-  %4 = icmp ne i32 %3, 0
-  br i1 %4, label %label7, label %label8
+  %5 = load i32, i32* %2
+  %6 = icmp ne i32 %5, 0
+  br i1 %6, label %label7, label %label8
 label8:
   ; Line 57
   call void @"Comparisons_printOk(I)V"(i32 11)
   br label %label7
 label7:
   ; Line 59
-  %5 = alloca i32
-  %6 = icmp slt i64 %local.0, 0
-  br i1 %6, label %label10, label %label11
+  %7 = load i64, i64* %local.0
+  %8 = alloca i32
+  %9 = icmp slt i64 %7, 0
+  br i1 %9, label %label10, label %label11
 label10:
-  store i32 -1, i32* %5
+  store i32 -1, i32* %8
   br label %label9
 label11:
-  %7 = icmp sgt i64 %local.0, 0
-  br i1 %7, label %label12, label %label13
+  %10 = icmp sgt i64 %7, 0
+  br i1 %10, label %label12, label %label13
 label12:
-  store i32 1, i32* %5
+  store i32 1, i32* %8
   br label %label9
 label13:
-  store i32 0, i32* %5
+  store i32 0, i32* %8
   br label %label9
 label9:
-  %8 = load i32, i32* %5
-  %9 = icmp sle i32 %8, 0
-  br i1 %9, label %label14, label %label15
+  %11 = load i32, i32* %8
+  %12 = icmp sle i32 %11, 0
+  br i1 %12, label %label14, label %label15
 label15:
   ; Line 60
   call void @"Comparisons_printOk(I)V"(i32 12)
   br label %label14
 label14:
   ; Line 62
-  %10 = alloca i32
-  %11 = icmp slt i64 %local.0, 0
-  br i1 %11, label %label17, label %label18
+  %13 = load i64, i64* %local.0
+  %14 = alloca i32
+  %15 = icmp slt i64 %13, 0
+  br i1 %15, label %label17, label %label18
 label17:
-  store i32 -1, i32* %10
+  store i32 -1, i32* %14
   br label %label16
 label18:
-  %12 = icmp sgt i64 %local.0, 0
-  br i1 %12, label %label19, label %label20
+  %16 = icmp sgt i64 %13, 0
+  br i1 %16, label %label19, label %label20
 label19:
-  store i32 1, i32* %10
+  store i32 1, i32* %14
   br label %label16
 label20:
-  store i32 0, i32* %10
+  store i32 0, i32* %14
   br label %label16
 label16:
-  %13 = load i32, i32* %10
-  %14 = icmp sge i32 %13, 0
-  br i1 %14, label %label21, label %label22
+  %17 = load i32, i32* %14
+  %18 = icmp sge i32 %17, 0
+  br i1 %18, label %label21, label %label22
 label22:
   ; Line 63
   call void @"Comparisons_printOk(I)V"(i32 13)
@@ -281,20 +307,25 @@ label1:
   unreachable
 }
 
-define void @"Comparisons_compareNull(LComparisons;)V"(%Comparisons* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_compareNull(LComparisons;)V"(%Comparisons* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Comparisons**
+  store %Comparisons* %param.0, %Comparisons** %local.0
+  br label %label0
 label0:
   ; %o entered scope under name %local.0
   ; Line 68
-  %0 = icmp ne ptr %local.0, null
-  br i1 %0, label %label2, label %label3
+  %1 = load %Comparisons*, %Comparisons** %local.0
+  %2 = icmp ne ptr %1, null
+  br i1 %2, label %label2, label %label3
 label3:
   ; Line 69
   call void @"Comparisons_printOk(I)V"(i32 14)
   br label %label2
 label2:
   ; Line 71
-  %1 = icmp eq ptr %local.0, null
-  br i1 %1, label %label4, label %label5
+  %3 = load %Comparisons*, %Comparisons** %local.0
+  %4 = icmp eq ptr %3, null
+  br i1 %4, label %label4, label %label5
 label5:
   ; Line 72
   call void @"Comparisons_printOk(I)V"(i32 15)
@@ -307,49 +338,53 @@ label1:
   unreachable
 }
 
-define void @"Comparisons_printOk(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Comparisons_printOk(I)V"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
 label0:
   ; %count entered scope under name %local.0
   ; Line 77
-  %0 = add i32 48, %local.0
-  %1 = trunc i32 %0 to i8
+  %1 = load i32, i32* %local.0
+  %2 = add i32 48, %1
+  %3 = trunc i32 %2 to i8
   %local.1 = alloca ptr
-  store i8 %1, ptr %local.1
+  store i8 %3, ptr %local.1
   br label %label2
 label2:
   ; %c entered scope under name %local.1
   ; Line 78
-  %2 = alloca %java_Array
-  %3 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 0
-  store i32 5, i32* %3
-  %4 = alloca i8, i32 5
-  %5 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  store ptr %4, ptr %5
-  call void @llvm.memset.p0.i8(ptr %4, i8 0, i64 5, i1 false)
-  %6 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %7 = load ptr, ptr %6
-  %8 = getelementptr inbounds i8, ptr %7, i32 0
-  store i8 79, ptr %8
-  %9 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %10 = load ptr, ptr %9
-  %11 = getelementptr inbounds i8, ptr %10, i32 1
-  store i8 75, ptr %11
-  %12 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %13 = load ptr, ptr %12
-  %14 = getelementptr inbounds i8, ptr %13, i32 2
-  store i8 35, ptr %14
-  %15 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %16 = load ptr, ptr %15
-  %17 = getelementptr inbounds i8, ptr %16, i32 3
-  %18 = load i8, i8* %local.1
-  store i8 %18, ptr %17
-  %19 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %20 = load ptr, ptr %19
-  %21 = getelementptr inbounds i8, ptr %20, i32 4
-  store i8 0, ptr %21
-  %22 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 1
-  %23 = load ptr, ptr %22
-  %24 = call i32 @puts(i8* %23)
+  %4 = alloca %java_Array
+  %5 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 0
+  store i32 5, i32* %5
+  %6 = alloca i8, i32 5
+  %7 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  store ptr %6, ptr %7
+  call void @llvm.memset.p0.i8(ptr %6, i8 0, i64 5, i1 false)
+  %8 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %9 = load ptr, ptr %8
+  %10 = getelementptr inbounds i8, ptr %9, i32 0
+  store i8 79, ptr %10
+  %11 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %12 = load ptr, ptr %11
+  %13 = getelementptr inbounds i8, ptr %12, i32 1
+  store i8 75, ptr %13
+  %14 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %15 = load ptr, ptr %14
+  %16 = getelementptr inbounds i8, ptr %15, i32 2
+  store i8 35, ptr %16
+  %17 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %18 = load ptr, ptr %17
+  %19 = getelementptr inbounds i8, ptr %18, i32 3
+  %20 = load i8, i8* %local.1
+  store i8 %20, ptr %19
+  %21 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %22 = load ptr, ptr %21
+  %23 = getelementptr inbounds i8, ptr %22, i32 4
+  store i8 0, ptr %23
+  %24 = getelementptr inbounds %java_Array, %java_Array* %4, i32 0, i32 1
+  %25 = load ptr, ptr %24
+  %26 = call i32 @puts(i8* %25)
   ; Line 79
   ret void
 label1:

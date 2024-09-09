@@ -15,7 +15,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %FunctionOverloading_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%FunctionOverloading*)*, i32(%FunctionOverloading*, i32)* }
 
-define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %local.0) personality ptr @__gxx_personality_v0 {
+define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %FunctionOverloading**
+  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 3
@@ -25,12 +28,18 @@ label1:
   unreachable
 }
 
-define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
+define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %FunctionOverloading**
+  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
+  %local.1 = alloca i32*
+  store i32 %param.1, i32* %local.1
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; %a entered scope under name %local.1
   ; Line 7
-  ret i32 %local.1
+  %1 = load i32, i32* %local.1
+  ret i32 %1
 label1:
   ; %this exited scope under name %local.0
   ; %a exited scope under name %local.1
@@ -53,13 +62,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i32(%FunctionOverloading*, i32)* @"FunctionOverloading_doSomething(I)I"
 }
 
-define void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"FunctionOverloading_<init>()V"(%FunctionOverloading* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %FunctionOverloading**
+  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %local.0, i32 0, i32 0
-  store %FunctionOverloading_vtable_type* @FunctionOverloading_vtable_data, %FunctionOverloading_vtable_type** %0
+  %1 = load %FunctionOverloading*, %FunctionOverloading** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %FunctionOverloading*, %FunctionOverloading** %local.0
+  %3 = getelementptr inbounds %FunctionOverloading, %FunctionOverloading* %2, i32 0, i32 0
+  store %FunctionOverloading_vtable_type* @FunctionOverloading_vtable_data, %FunctionOverloading_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

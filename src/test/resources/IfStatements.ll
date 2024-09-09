@@ -29,43 +29,56 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"IfStatements_<init>()V"(%IfStatements* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_<init>()V"(%IfStatements* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %IfStatements**
+  store %IfStatements* %param.0, %IfStatements** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 0
-  store %IfStatements_vtable_type* @IfStatements_vtable_data, %IfStatements_vtable_type** %0
+  %1 = load %IfStatements*, %IfStatements** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %IfStatements*, %IfStatements** %local.0
+  %3 = getelementptr inbounds %IfStatements, %IfStatements* %2, i32 0, i32 0
+  store %IfStatements_vtable_type* @IfStatements_vtable_data, %IfStatements_vtable_type** %3
   ; Line 3
-  %1 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
-  store i1 0, i1* %1
+  %4 = load %IfStatements*, %IfStatements** %local.0
+  %5 = getelementptr inbounds %IfStatements, %IfStatements* %4, i32 0, i32 2
+  store i1 0, i1* %5
   ret void
 label1:
   ; %this exited scope under name %local.0
   unreachable
 }
 
-define void @"IfStatements_doSomething()V"(%IfStatements* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"IfStatements_doSomething()V"(%IfStatements* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %IfStatements**
+  store %IfStatements* %param.0, %IfStatements** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 6
-  %0 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
-  %1 = load i1, i1* %0
-  %2 = sext i1 %1 to i32
-  %3 = icmp ne i32 %2, 0
-  br i1 %3, label %label2, label %label3
+  %1 = load %IfStatements*, %IfStatements** %local.0
+  %2 = getelementptr inbounds %IfStatements, %IfStatements* %1, i32 0, i32 2
+  %3 = load i1, i1* %2
+  %4 = sext i1 %3 to i32
+  %5 = icmp ne i32 %4, 0
+  br i1 %5, label %label2, label %label3
 label3:
   ; Line 7
-  %4 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 2
-  store i1 1, i1* %4
+  %6 = load %IfStatements*, %IfStatements** %local.0
+  %7 = getelementptr inbounds %IfStatements, %IfStatements* %6, i32 0, i32 2
+  store i1 1, i1* %7
   ; Line 8
-  %5 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
-  store i32 1, i32* %5
+  %8 = load %IfStatements*, %IfStatements** %local.0
+  %9 = getelementptr inbounds %IfStatements, %IfStatements* %8, i32 0, i32 1
+  store i32 1, i32* %9
   br label %label4
 label2:
   ; Line 10
-  %6 = getelementptr inbounds %IfStatements, %IfStatements* %local.0, i32 0, i32 1
-  store i32 2, i32* %6
+  %10 = load %IfStatements*, %IfStatements** %local.0
+  %11 = getelementptr inbounds %IfStatements, %IfStatements* %10, i32 0, i32 1
+  store i32 2, i32* %11
   br label %label4
 label4:
   ; Line 12

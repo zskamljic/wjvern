@@ -246,8 +246,10 @@ public class ClassBuilder {
                 }
             }
         } else {
-            var targetClass = loadClass(name)
-                .orElseThrow(() -> new IllegalArgumentException("Class " + name + " not found."));
+            var optionalTargetClass = loadClass(name);
+            if (optionalTargetClass.isEmpty() && name.startsWith("sun")) return;
+
+            var targetClass = optionalTargetClass.orElseThrow(() -> new IllegalArgumentException("Class " + name + " not found."));
             classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 

@@ -29,13 +29,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"NativeVarArgMethods_<init>()V"(%NativeVarArgMethods* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"NativeVarArgMethods_<init>()V"(%NativeVarArgMethods* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %NativeVarArgMethods**
+  store %NativeVarArgMethods* %param.0, %NativeVarArgMethods** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %NativeVarArgMethods, %NativeVarArgMethods* %local.0, i32 0, i32 0
-  store %NativeVarArgMethods_vtable_type* @NativeVarArgMethods_vtable_data, %NativeVarArgMethods_vtable_type** %0
+  %1 = load %NativeVarArgMethods*, %NativeVarArgMethods** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %NativeVarArgMethods*, %NativeVarArgMethods** %local.0
+  %3 = getelementptr inbounds %NativeVarArgMethods, %NativeVarArgMethods* %2, i32 0, i32 0
+  store %NativeVarArgMethods_vtable_type* @NativeVarArgMethods_vtable_data, %NativeVarArgMethods_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

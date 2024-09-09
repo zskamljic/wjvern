@@ -51,13 +51,18 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ExceptionsData_<init>()V"(%ExceptionsData* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ExceptionsData_<init>()V"(%ExceptionsData* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ExceptionsData**
+  store %ExceptionsData* %param.0, %ExceptionsData** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %local.0, i32 0, i32 0
-  store %ExceptionsData_vtable_type* @ExceptionsData_vtable_data, %ExceptionsData_vtable_type** %0
+  %1 = load %ExceptionsData*, %ExceptionsData** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %ExceptionsData*, %ExceptionsData** %local.0
+  %3 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %2, i32 0, i32 0
+  store %ExceptionsData_vtable_type* @ExceptionsData_vtable_data, %ExceptionsData_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

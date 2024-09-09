@@ -29,17 +29,26 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ObjectArrays_<init>(I)V"(%ObjectArrays* %local.0, i32 %local.1) personality ptr @__gxx_personality_v0 {
+define void @"ObjectArrays_<init>(I)V"(%ObjectArrays* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ObjectArrays**
+  store %ObjectArrays* %param.0, %ObjectArrays** %local.0
+  %local.1 = alloca i32*
+  store i32 %param.1, i32* %local.1
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; %x entered scope under name %local.1
   ; Line 4
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %local.0, i32 0, i32 0
-  store %ObjectArrays_vtable_type* @ObjectArrays_vtable_data, %ObjectArrays_vtable_type** %0
+  %1 = load %ObjectArrays*, %ObjectArrays** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %ObjectArrays*, %ObjectArrays** %local.0
+  %3 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %2, i32 0, i32 0
+  store %ObjectArrays_vtable_type* @ObjectArrays_vtable_data, %ObjectArrays_vtable_type** %3
   ; Line 5
-  %1 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %local.0, i32 0, i32 1
-  store i32 %local.1, i32* %1
+  %4 = load %ObjectArrays*, %ObjectArrays** %local.0
+  %5 = load i32, i32* %local.1
+  %6 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %4, i32 0, i32 1
+  store i32 %5, i32* %6
   ; Line 6
   ret void
 label1:
@@ -200,58 +209,62 @@ label9:
   unreachable
 }
 
-define void @"ObjectArrays_print(I)V"(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ObjectArrays_print(I)V"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
 label0:
   ; %number entered scope under name %local.0
   ; Line 33
-  %0 = alloca %java_Array
-  %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
-  store i32 4, i32* %1
-  %2 = alloca i8, i32 4
-  %3 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
-  store ptr %2, ptr %3
-  call void @llvm.memset.p0.i8(ptr %2, i8 0, i64 4, i1 false)
-  %4 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
-  %5 = load ptr, ptr %4
-  %6 = getelementptr inbounds i8, ptr %5, i32 0
-  store i8 37, ptr %6
-  %7 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
-  %8 = load ptr, ptr %7
-  %9 = getelementptr inbounds i8, ptr %8, i32 1
-  store i8 100, ptr %9
-  %10 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
-  %11 = load ptr, ptr %10
-  %12 = getelementptr inbounds i8, ptr %11, i32 2
-  store i8 10, ptr %12
-  %13 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 1
-  %14 = load ptr, ptr %13
-  %15 = getelementptr inbounds i8, ptr %14, i32 3
-  store i8 0, ptr %15
+  %1 = alloca %java_Array
+  %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
+  store i32 4, i32* %2
+  %3 = alloca i8, i32 4
+  %4 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  store ptr %3, ptr %4
+  call void @llvm.memset.p0.i8(ptr %3, i8 0, i64 4, i1 false)
+  %5 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %6 = load ptr, ptr %5
+  %7 = getelementptr inbounds i8, ptr %6, i32 0
+  store i8 37, ptr %7
+  %8 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %9 = load ptr, ptr %8
+  %10 = getelementptr inbounds i8, ptr %9, i32 1
+  store i8 100, ptr %10
+  %11 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %12 = load ptr, ptr %11
+  %13 = getelementptr inbounds i8, ptr %12, i32 2
+  store i8 10, ptr %13
+  %14 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 1
+  %15 = load ptr, ptr %14
+  %16 = getelementptr inbounds i8, ptr %15, i32 3
+  store i8 0, ptr %16
   %local.1 = alloca ptr
-  store %java_Array* %0, ptr %local.1
+  store %java_Array* %1, ptr %local.1
   br label %label2
 label2:
   ; %pattern entered scope under name %local.1
   ; Line 34
-  %16 = load %java_Array*, %java_Array** %local.1
-  %17 = alloca %java_Array
-  %18 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 0
-  store i32 1, i32* %18
-  %19 = alloca i32, i32 1
-  %20 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
-  store ptr %19, ptr %20
-  call void @llvm.memset.p0.i32(ptr %19, i8 0, i64 4, i1 false)
-  %21 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
-  %22 = load ptr, ptr %21
-  %23 = getelementptr inbounds i32, ptr %22, i32 0
-  store i32 %local.0, ptr %23
-  %24 = getelementptr inbounds %java_Array, ptr %17, i32 0, i32 1
-  %25 = load ptr, ptr %24
-  %26 = getelementptr inbounds %java_Array, ptr %25, i32 0
-  %27 = load i32, i32* %26
-  %28 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
-  %29 = load ptr, ptr %28
-  %30 = call i32(i8*,...) @printf(i8* %29, i32 %27)
+  %17 = load %java_Array*, %java_Array** %local.1
+  %18 = alloca %java_Array
+  %19 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 0
+  store i32 1, i32* %19
+  %20 = alloca i32, i32 1
+  %21 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 1
+  store ptr %20, ptr %21
+  call void @llvm.memset.p0.i32(ptr %20, i8 0, i64 4, i1 false)
+  %22 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 1
+  %23 = load ptr, ptr %22
+  %24 = getelementptr inbounds i32, ptr %23, i32 0
+  %25 = load i32, i32* %local.0
+  store i32 %25, ptr %24
+  %26 = getelementptr inbounds %java_Array, ptr %18, i32 0, i32 1
+  %27 = load ptr, ptr %26
+  %28 = getelementptr inbounds %java_Array, ptr %27, i32 0
+  %29 = load i32, i32* %28
+  %30 = getelementptr inbounds %java_Array, %java_Array* %17, i32 0, i32 1
+  %31 = load ptr, ptr %30
+  %32 = call i32(i8*,...) @printf(i8* %31, i32 %29)
   ; Line 35
   ret void
 label1:

@@ -29,13 +29,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"ReturnArray_<init>()V"(%ReturnArray* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ReturnArray_<init>()V"(%ReturnArray* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ReturnArray**
+  store %ReturnArray* %param.0, %ReturnArray** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %ReturnArray, %ReturnArray* %local.0, i32 0, i32 0
-  store %ReturnArray_vtable_type* @ReturnArray_vtable_data, %ReturnArray_vtable_type** %0
+  %1 = load %ReturnArray*, %ReturnArray** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %ReturnArray*, %ReturnArray** %local.0
+  %3 = getelementptr inbounds %ReturnArray, %ReturnArray* %2, i32 0, i32 0
+  store %ReturnArray_vtable_type* @ReturnArray_vtable_data, %ReturnArray_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

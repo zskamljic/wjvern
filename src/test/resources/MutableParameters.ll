@@ -1,7 +1,9 @@
 %"java/lang/Object" = type { ptr }
 %"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/System" = type opaque
 %java_Array = type { i32, ptr }
-%Parameters = type { %Parameters_vtable_type* }
+%MutableParameters = type { %MutableParameters_vtable_type* }
+declare void @"java/lang/System_exit(I)V"(i32)
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -12,8 +14,8 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
-%Parameters_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
+%MutableParameters_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
@@ -23,62 +25,63 @@ declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
-@Parameters_vtable_data = global %Parameters_vtable_type {
+@MutableParameters_vtable_data = global %MutableParameters_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Parameters_<init>()V"(%Parameters* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %Parameters**
-  store %Parameters* %param.0, %Parameters** %local.0
+define void @"MutableParameters_<init>()V"(%MutableParameters* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %MutableParameters**
+  store %MutableParameters* %param.0, %MutableParameters** %local.0
   br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  %1 = load %Parameters*, %Parameters** %local.0
+  %1 = load %MutableParameters*, %MutableParameters** %local.0
   call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
-  %2 = load %Parameters*, %Parameters** %local.0
-  %3 = getelementptr inbounds %Parameters, %Parameters* %2, i32 0, i32 0
-  store %Parameters_vtable_type* @Parameters_vtable_data, %Parameters_vtable_type** %3
+  %2 = load %MutableParameters*, %MutableParameters** %local.0
+  %3 = getelementptr inbounds %MutableParameters, %MutableParameters* %2, i32 0, i32 0
+  store %MutableParameters_vtable_type* @MutableParameters_vtable_data, %MutableParameters_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0
   unreachable
 }
 
-define i32 @"Parameters_something(I)I"(%Parameters* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %Parameters**
-  store %Parameters* %param.0, %Parameters** %local.0
-  %local.1 = alloca i32*
-  store i32 %param.1, i32* %local.1
+define void @"MutableParameters_main([Ljava/lang/String;)V"(%java_Array* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %java_Array**
+  store %java_Array* %param.0, %java_Array** %local.0
   br label %label0
 label0:
-  ; %this entered scope under name %local.0
-  ; %a entered scope under name %local.1
+  ; %args entered scope under name %local.0
   ; Line 3
-  %1 = load i32, i32* %local.1
-  ret i32 %1
+  %1 = load %java_Array*, %java_Array** %local.0
+  %2 = getelementptr inbounds %java_Array, %java_Array* %1, i32 0, i32 0
+  %3 = load i32, ptr %2
+  %4 = call i32 @"MutableParameters_mutateParams(I)I"(i32 %3)
+  call void @"java/lang/System_exit(I)V"(i32 %4)
+  ; Line 4
+  ret void
 label1:
-  ; %this exited scope under name %local.0
-  ; %a exited scope under name %local.1
+  ; %args exited scope under name %local.0
   unreachable
 }
 
-define i32 @"Parameters_main()I"() personality ptr @__gxx_personality_v0 {
-  ; Line 7
-  %1 = alloca %Parameters
-  call void @"Parameters_<init>()V"(%Parameters* %1)
-  %local.0 = alloca ptr
-  store %Parameters* %1, ptr %local.0
+define i32 @"MutableParameters_mutateParams(I)I"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
   br label %label0
 label0:
-  ; %instance entered scope under name %local.0
+  ; %a entered scope under name %local.0
+  ; Line 7
+  %1 = load i32, i32* %local.0
+  %2 = add i32 %1, 1
+  store i32 %2, i32* %local.0
   ; Line 8
-  %2 = load %Parameters*, %Parameters** %local.0
-  %3 = call i32 @"Parameters_something(I)I"(%Parameters* %2, i32 5)
+  %3 = load i32, i32* %local.0
   ret i32 %3
 label1:
-  ; %instance exited scope under name %local.0
+  ; %a exited scope under name %local.0
   unreachable
 }

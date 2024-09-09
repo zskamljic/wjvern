@@ -45,9 +45,11 @@ public class Locals {
             type = new LlvmType.Pointer(type);
         }
 
-        if (!parameterChecker.test("local." + variable.slot())) {
-            type = new LlvmType.Pointer(type);
+        if (parameterChecker.test("param." + variable.slot())) {
+            generator.alloca("%local." + variable.slot(), new LlvmType.Pointer(type));
+            generator.store(type, "%param." + variable.slot(), new LlvmType.Pointer(type), "%local." + variable.slot());
         }
+        type = new LlvmType.Pointer(type);
 
         variables.add(new Local(
             codeName,
@@ -71,7 +73,7 @@ public class Locals {
             .forEach(v -> {
                 var type = v.type();
                 types.put(v.varName(), type);
-                generator.comment(v.codeName()+" entered scope under name "+v.varName());
+                generator.comment(v.codeName() + " entered scope under name " + v.varName());
                 activeLocals.put(v.slot(), v);
             });
     }

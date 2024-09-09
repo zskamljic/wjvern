@@ -29,24 +29,33 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"Switch_<init>()V"(%Switch* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Switch_<init>()V"(%Switch* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Switch**
+  store %Switch* %param.0, %Switch** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %Switch, %Switch* %local.0, i32 0, i32 0
-  store %Switch_vtable_type* @Switch_vtable_data, %Switch_vtable_type** %0
+  %1 = load %Switch*, %Switch** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %Switch*, %Switch** %local.0
+  %3 = getelementptr inbounds %Switch, %Switch* %2, i32 0, i32 0
+  store %Switch_vtable_type* @Switch_vtable_data, %Switch_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0
   unreachable
 }
 
-define i32 @"Switch_switchFunc(I)I"(i32 %local.0) personality ptr @__gxx_personality_v0 {
+define i32 @"Switch_switchFunc(I)I"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
 label0:
   ; %value entered scope under name %local.0
   ; Line 3
-  switch i32 %local.0, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
+  %1 = load i32, i32* %local.0
+  switch i32 %1, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
 label2:
   ; Line 4
   br label %label7
@@ -63,9 +72,9 @@ label6:
   ; Line 8
   br label %label7
 label7:
-  %0 = phi i32 [3, %label4], [2, %label5], [1, %label6], [5, %label2], [4, %label3]
+  %2 = phi i32 [3, %label4], [2, %label5], [1, %label6], [5, %label2], [4, %label3]
   ; Line 3
-  ret i32 %0
+  ret i32 %2
 label1:
   ; %value exited scope under name %local.0
   unreachable

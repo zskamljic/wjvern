@@ -121,7 +121,7 @@ public class FunctionBuilder {
             if (paramType.isReferenceType()) {
                 paramType = new LlvmType.Pointer(paramType);
             }
-            codeGenerator.addParameter("local." + i, paramType);
+            codeGenerator.addParameter("param." + i, paramType);
         }
 
         generateCode(codeGenerator);
@@ -156,7 +156,7 @@ public class FunctionBuilder {
                 case InvokeInstruction i -> {
                     handleInvoke(generator, stack, types, labelGenerator, exceptionState, i);
                     if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
-                        addInitVtable(generator);
+                        addInitVtable(generator, types);
                     }
                 }
                 case Label label -> currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, label);
@@ -170,7 +170,7 @@ public class FunctionBuilder {
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, types, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
-                case TableSwitchInstruction s -> handleSwitch(generator, stack, labelGenerator, s);
+                case TableSwitchInstruction s -> handleSwitch(generator, stack, types, labelGenerator, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
@@ -218,9 +218,10 @@ public class FunctionBuilder {
         }
     }
 
-    private void addInitVtable(IrMethodGenerator generator) {
+    private void addInitVtable(IrMethodGenerator generator, Map<String, LlvmType> types) {
         var parentClass = new LlvmType.Declared(parent);
-        var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), "%local.0", List.of("0", "0"));
+        var thisVar = loadIfNeeded(generator, types, "%local.0");
+        var vtablePointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), thisVar, List.of("0", "0"));
         var vtableType = new LlvmType.Pointer(new LlvmType.Declared(parent + "_vtable_type"));
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
         generator.store(vtableType, "@" + Utils.escape(parent + "_vtable_data"), vtableTypePointer, vtablePointer);
@@ -732,7 +733,7 @@ public class FunctionBuilder {
 
     private void putField(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldInstruction instruction) {
         var value = loadIfNeeded(generator, types, stack.pop());
-        var objectReference = stack.pop();
+        var objectReference = loadIfNeeded(generator, types, stack.pop());
 
         var fieldType = IrTypeMapper.mapType(instruction.field().typeSymbol());
         if (fieldType.isReferenceType()) {
@@ -1086,7 +1087,7 @@ public class FunctionBuilder {
     }
 
     private void handleSwitch(
-        IrMethodGenerator generator, VarStack stack, LabelGenerator labelGenerator, TableSwitchInstruction instruction
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, TableSwitchInstruction instruction
     ) {
         var cases = instruction.cases()
             .stream()
@@ -1094,7 +1095,7 @@ public class FunctionBuilder {
             .toList();
         var defaultCase = labelGenerator.getLabel(instruction.defaultTarget());
         generator.switchBranch(
-            stack.pop(),
+            loadIfNeeded(generator, types, stack.pop()),
             defaultCase,
             cases
         );

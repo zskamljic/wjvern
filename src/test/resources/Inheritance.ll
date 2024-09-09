@@ -19,12 +19,16 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %Parent_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Parent*)* }
 %Inheritance_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
 
-define void @"Inheritance_childMethod()V"(%Inheritance* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_childMethod()V"(%Inheritance* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Inheritance**
+  store %Inheritance* %param.0, %Inheritance** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 18
-  %0 = getelementptr inbounds %Inheritance, %Inheritance* %local.0, i32 0, i32 3
-  store i32 2, i32* %0
+  %1 = load %Inheritance*, %Inheritance** %local.0
+  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 3
+  store i32 2, i32* %2
   ; Line 19
   ret void
 label1:
@@ -32,12 +36,16 @@ label1:
   unreachable
 }
 
-define void @"Inheritance_dynamic()V"(%Inheritance* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_dynamic()V"(%Inheritance* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Inheritance**
+  store %Inheritance* %param.0, %Inheritance** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 23
-  %0 = getelementptr inbounds %Inheritance, %Inheritance* %local.0, i32 0, i32 2
-  store i32 5, i32* %0
+  %1 = load %Inheritance*, %Inheritance** %local.0
+  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 2
+  store i32 5, i32* %2
   ; Line 24
   ret void
 label1:
@@ -62,13 +70,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%Inheritance*)* @"Inheritance_childMethod()V"
 }
 
-define void @"Inheritance_<init>()V"(%Inheritance* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"Inheritance_<init>()V"(%Inheritance* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Inheritance**
+  store %Inheritance* %param.0, %Inheritance** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 14
-  call void @"Parent_<init>()V"(%Parent* %local.0)
-  %0 = getelementptr inbounds %Inheritance, %Inheritance* %local.0, i32 0, i32 0
-  store %Inheritance_vtable_type* @Inheritance_vtable_data, %Inheritance_vtable_type** %0
+  %1 = load %Inheritance*, %Inheritance** %local.0
+  call void @"Parent_<init>()V"(%Parent* %1)
+  %2 = load %Inheritance*, %Inheritance** %local.0
+  %3 = getelementptr inbounds %Inheritance, %Inheritance* %2, i32 0, i32 0
+  store %Inheritance_vtable_type* @Inheritance_vtable_data, %Inheritance_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

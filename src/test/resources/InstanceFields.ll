@@ -29,22 +29,30 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"InstanceFields_<init>()V"(%InstanceFields* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"InstanceFields_<init>()V"(%InstanceFields* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %InstanceFields**
+  store %InstanceFields* %param.0, %InstanceFields** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 6
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %InstanceFields, %InstanceFields* %local.0, i32 0, i32 0
-  store %InstanceFields_vtable_type* @InstanceFields_vtable_data, %InstanceFields_vtable_type** %0
+  %1 = load %InstanceFields*, %InstanceFields** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %InstanceFields*, %InstanceFields** %local.0
+  %3 = getelementptr inbounds %InstanceFields, %InstanceFields* %2, i32 0, i32 0
+  store %InstanceFields_vtable_type* @InstanceFields_vtable_data, %InstanceFields_vtable_type** %3
   ; Line 7
-  %1 = getelementptr inbounds %InstanceFields, %InstanceFields* %local.0, i32 0, i32 1
-  store i32 1, i32* %1
+  %4 = load %InstanceFields*, %InstanceFields** %local.0
+  %5 = getelementptr inbounds %InstanceFields, %InstanceFields* %4, i32 0, i32 1
+  store i32 1, i32* %5
   ; Line 8
-  %2 = getelementptr inbounds %InstanceFields, %InstanceFields* %local.0, i32 0, i32 2
-  store float 5.0, float* %2
+  %6 = load %InstanceFields*, %InstanceFields** %local.0
+  %7 = getelementptr inbounds %InstanceFields, %InstanceFields* %6, i32 0, i32 2
+  store float 5.0, float* %7
   ; Line 9
-  %3 = getelementptr inbounds %InstanceFields, %InstanceFields* %local.0, i32 0, i32 3
-  store double 7.0, double* %3
+  %8 = load %InstanceFields*, %InstanceFields** %local.0
+  %9 = getelementptr inbounds %InstanceFields, %InstanceFields* %8, i32 0, i32 3
+  store double 7.0, double* %9
   ; Line 10
   ret void
 label1:

@@ -29,13 +29,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"BasicMath_<init>()V"(%BasicMath* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"BasicMath_<init>()V"(%BasicMath* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %BasicMath**
+  store %BasicMath* %param.0, %BasicMath** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %BasicMath, %BasicMath* %local.0, i32 0, i32 0
-  store %BasicMath_vtable_type* @BasicMath_vtable_data, %BasicMath_vtable_type** %0
+  %1 = load %BasicMath*, %BasicMath** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %BasicMath*, %BasicMath** %local.0
+  %3 = getelementptr inbounds %BasicMath, %BasicMath* %2, i32 0, i32 0
+  store %BasicMath_vtable_type* @BasicMath_vtable_data, %BasicMath_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

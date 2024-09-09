@@ -15,7 +15,10 @@ declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 
-define i32 @"ReturnReference_returnValue()I"(%ReturnReference* %local.0) personality ptr @__gxx_personality_v0 {
+define i32 @"ReturnReference_returnValue()I"(%ReturnReference* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ReturnReference**
+  store %ReturnReference* %param.0, %ReturnReference** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 3
@@ -40,13 +43,18 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i32(%ReturnReference*)* @"ReturnReference_returnValue()I"
 }
 
-define void @"ReturnReference_<init>()V"(%ReturnReference* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"ReturnReference_<init>()V"(%ReturnReference* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ReturnReference**
+  store %ReturnReference* %param.0, %ReturnReference** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %ReturnReference, %ReturnReference* %local.0, i32 0, i32 0
-  store %ReturnReference_vtable_type* @ReturnReference_vtable_data, %ReturnReference_vtable_type** %0
+  %1 = load %ReturnReference*, %ReturnReference** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %ReturnReference*, %ReturnReference** %local.0
+  %3 = getelementptr inbounds %ReturnReference, %ReturnReference* %2, i32 0, i32 0
+  store %ReturnReference_vtable_type* @ReturnReference_vtable_data, %ReturnReference_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0

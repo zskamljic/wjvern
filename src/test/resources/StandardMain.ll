@@ -32,70 +32,80 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-define void @"StandardMain_<init>()V"(%StandardMain* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"StandardMain_<init>()V"(%StandardMain* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %StandardMain**
+  store %StandardMain* %param.0, %StandardMain** %local.0
+  br label %label0
 label0:
   ; %this entered scope under name %local.0
   ; Line 1
-  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %local.0)
-  %0 = getelementptr inbounds %StandardMain, %StandardMain* %local.0, i32 0, i32 0
-  store %StandardMain_vtable_type* @StandardMain_vtable_data, %StandardMain_vtable_type** %0
+  %1 = load %StandardMain*, %StandardMain** %local.0
+  call void @"java/lang/Object_<init>()V"(%"java/lang/Object"* %1)
+  %2 = load %StandardMain*, %StandardMain** %local.0
+  %3 = getelementptr inbounds %StandardMain, %StandardMain* %2, i32 0, i32 0
+  store %StandardMain_vtable_type* @StandardMain_vtable_data, %StandardMain_vtable_type** %3
   ret void
 label1:
   ; %this exited scope under name %local.0
   unreachable
 }
 
-define void @"StandardMain_main([Ljava/lang/String;)V"(%java_Array* %local.0) personality ptr @__gxx_personality_v0 {
+define void @"StandardMain_main([Ljava/lang/String;)V"(%java_Array* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %java_Array**
+  store %java_Array* %param.0, %java_Array** %local.0
+  br label %label2
 label2:
   ; %args entered scope under name %local.0
   ; Line 3
+  %1 = load %java_Array*, %java_Array** %local.0
   %local.1 = alloca ptr
-  store %java_Array* %local.0, ptr %local.1
-  %0 = load %java_Array*, %java_Array** %local.1
-  %1 = getelementptr inbounds %java_Array, %java_Array* %0, i32 0, i32 0
-  %2 = load i32, ptr %1
+  store %java_Array* %1, ptr %local.1
+  %2 = load %java_Array*, %java_Array** %local.1
+  %3 = getelementptr inbounds %java_Array, %java_Array* %2, i32 0, i32 0
+  %4 = load i32, ptr %3
   %local.2 = alloca ptr
-  store i32 %2, ptr %local.2
+  store i32 %4, ptr %local.2
   %local.3 = alloca ptr
   store i32 0, ptr %local.3
   br label %label4
 label4:
-  %3 = load i32, i32* %local.2
-  %4 = load i32, i32* %local.3
-  %5 = icmp sge i32 %4, %3
-  br i1 %5, label %label5, label %label6
-label6:
+  %5 = load i32, i32* %local.2
   %6 = load i32, i32* %local.3
-  %7 = load %java_Array*, %java_Array** %local.1
-  %8 = getelementptr inbounds %java_Array, %java_Array* %7, i32 0, i32 1
-  %9 = load ptr, ptr %8
-  %10 = getelementptr inbounds %"java/lang/String", ptr %9, i32 %6
-  %11 = load %"java/lang/String"*, ptr %10
+  %7 = icmp sge i32 %6, %5
+  br i1 %7, label %label5, label %label6
+label6:
+  %8 = load i32, i32* %local.3
+  %9 = load %java_Array*, %java_Array** %local.1
+  %10 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %11 = load ptr, ptr %10
+  %12 = getelementptr inbounds %"java/lang/String", ptr %11, i32 %8
+  %13 = load %"java/lang/String"*, ptr %12
   %local.4 = alloca ptr
-  store %"java/lang/String"* %11, ptr %local.4
+  store %"java/lang/String"* %13, ptr %local.4
   br label %label0
 label0:
   ; %arg entered scope under name %local.4
   ; Line 4
-  %12 = load %"java/lang/String"*, %"java/lang/String"** %local.4
-  %13 = alloca %java_Array
-  call void @"java/lang/String_getBytes()[B"(ptr sret(%java_Array*) %13, %"java/lang/String"* %12)
-  %14 = getelementptr inbounds %java_Array, %java_Array* %13, i32 0, i32 1
-  %15 = load ptr, ptr %14
-  %16 = call i32 @puts(i8* %15)
+  %14 = load %"java/lang/String"*, %"java/lang/String"** %local.4
+  %15 = alloca %java_Array
+  call void @"java/lang/String_getBytes()[B"(ptr sret(%java_Array*) %15, %"java/lang/String"* %14)
+  %16 = getelementptr inbounds %java_Array, %java_Array* %15, i32 0, i32 1
+  %17 = load ptr, ptr %16
+  %18 = call i32 @puts(i8* %17)
   br label %label1
 label1:
   ; %arg exited scope under name %local.4
   ; Line 3
-  %17 = load i32, i32* %local.3
-  %18 = add i32 %17, 1
-  store i32 %18, i32* %local.3
+  %19 = load i32, i32* %local.3
+  %20 = add i32 %19, 1
+  store i32 %20, i32* %local.3
   br label %label4
 label5:
   ; Line 7
-  %19 = getelementptr inbounds %java_Array, %java_Array* %local.0, i32 0, i32 0
-  %20 = load i32, ptr %19
-  call void @"java/lang/System_exit(I)V"(i32 %20)
+  %21 = load %java_Array*, %java_Array** %local.0
+  %22 = getelementptr inbounds %java_Array, %java_Array* %21, i32 0, i32 0
+  %23 = load i32, ptr %22
+  call void @"java/lang/System_exit(I)V"(i32 %23)
   ; Line 8
   ret void
 label3:
