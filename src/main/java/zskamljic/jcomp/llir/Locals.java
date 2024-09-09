@@ -1,6 +1,7 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.Local;
 
 import java.lang.classfile.instruction.LocalVariable;
 import java.util.ArrayList;
