@@ -12,6 +12,8 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LookupSwitchInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,24 +22,30 @@ import java.util.Map;
 public class Blacklist {
     private static final List<String> blacklistedFunctions;
     private static final Map<String, BlacklistClass> blacklistClasses;
+    private static final List<String> supportedClasses;
 
     static {
         var objectMapper = new ObjectMapper();
-        Items blacklist = null;
+        Items blacklist;
         try {
+            supportedClasses = Files.readAllLines(Path.of(Blacklist.class.getResource("/supported_classes.txt").getPath()));
             blacklist = objectMapper.readValue(
                 Blacklist.class.getResourceAsStream("/unsupported_functions.json"),
                 Items.class
             );
+            blacklistedFunctions = blacklist.any().byName();
+            blacklistClasses = blacklist.classes();
         } catch (IOException e) {
             throw new IllegalStateException("Unable to parse blacklist file", e);
         }
-        blacklistedFunctions = blacklist.any().byName();
-        blacklistClasses = blacklist.classes();
     }
 
     private Blacklist() {
         // Prevent instantiation
+    }
+
+    public static boolean isSupportedClass(String className) {
+        return supportedClasses.contains(className);
     }
 
     public static boolean isUnsupportedFunction(MethodModel method) {

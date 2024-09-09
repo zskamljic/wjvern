@@ -3,18 +3,16 @@
 %Parent = type { ptr, i32, i32 }
 %java_Array = type { i32, ptr }
 %Inheritance = type { %Inheritance_vtable_type*, i32, i32, i32 }
-declare void @"Parent_<init>()V"(%Parent*)
-
 declare void @"Parent_parentMethod()V"(%Parent*)
-declare void @"Parent_dynamic()V"(%Parent*)
-declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
-declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
-declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
+declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
+declare void @"Parent_<init>()V"(%Parent*)
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
-
+declare void @"Parent_dynamic()V"(%Parent*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
+declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
+declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %Parent_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Parent*)* }
 %Inheritance_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }

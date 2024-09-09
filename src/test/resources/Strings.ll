@@ -6,17 +6,15 @@
 @string.array.7 = private unnamed_addr constant %java_Array { i32 7, ptr @string.value.7 }
 @string.7 = private global %"java/lang/String" { ptr null, ptr null, i8 0, i32 0, i1 0 }
 
+declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
+declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
+declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare %java_Array @"java/lang/String_getBytes()[B"(%"java/lang/String"*)
+declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"java/lang/String_length()I"(%"java/lang/String"*)
-
-declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
-declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
-declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
-declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
-declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
-
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %Strings_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }

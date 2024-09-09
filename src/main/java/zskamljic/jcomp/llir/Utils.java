@@ -48,18 +48,16 @@ public class Utils {
             !method.methodName().stringValue().endsWith(">");
     }
 
+    public static boolean isNative(MethodModel method) {
+        return method.flags().has(AccessFlag.NATIVE);
+    }
+
     public static ClassDesc unwrapType(ClassEntry entry) {
         var type = entry.asSymbol();
         while (type.isArray()) {
             type = type.componentType();
         }
         return type;
-    }
-
-    public static boolean isSupportedClass(String className) {
-        return className.equals("java/lang/Object") ||
-            className.equals("java/lang/String") ||
-            className.equals("java/lang/Void");
     }
 
     public static String vtableTypeName(String className) {

@@ -498,6 +498,7 @@ public class FunctionBuilder {
         String arrayLength;
         var size = switch (type) {
             case BYTE -> 1;
+            case SHORT -> 2;
             case LONG -> 8;
             default -> 4; // TODO: determine size based on type
         };
@@ -507,6 +508,7 @@ public class FunctionBuilder {
             var arraySize = loadIfNeeded(generator, types, sizeVariable);
             if (size != 1) {
                 arrayLength = generator.binaryOperator(IrMethodGenerator.Operator.MUL, LlvmType.Primitive.INT, arraySize, String.valueOf(size));
+                types.put(arrayLength, LlvmType.Primitive.INT);
             } else {
                 arrayLength = arraySize;
             }
@@ -537,7 +539,7 @@ public class FunctionBuilder {
     }
 
     private String handleCreateArray(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LlvmType type) {
-        var size = stack.pop();
+        var size = loadIfNeeded(generator, types, stack.pop());
         LlvmType arrayType;
         if (size.matches("\\d+")) {
             arrayType = new LlvmType.SizedArray(Integer.parseInt(size), type);
@@ -581,6 +583,7 @@ public class FunctionBuilder {
             case IOR, LOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.OR);
             case ISHL, LSHL -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SHL);
             case ISHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
+            case IUSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.LSHR);
             case IXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
             case LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
             default -> throw new IllegalArgumentException(instruction.opcode() + " is not supported yet");

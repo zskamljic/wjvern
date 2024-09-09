@@ -26,7 +26,7 @@ public class GlobalInitializer {
         if (!initializers.containsKey(classGenerator)) return;
 
         var initBuilder = new StringBuilder();
-        if (!"java/lang/String".equals(classGenerator.getClassName())) {
+        if (!classGenerator.getClassName().startsWith("java/lang/String")) {
             initBuilder.append("declare void @\"java/lang/String_<init>([BB)V\"(ptr, ptr, i8) personality ptr @__gxx_personality_v0\n");
         }
         initBuilder.append("define void @\"").append(classGenerator.getClassName()).append("_var_init\"() personality ptr @__gxx_personality_v0 {\n");

@@ -67,7 +67,7 @@ public sealed interface LlvmType {
         }
     }
 
-    record Function(LlvmType returnType, List<LlvmType> parameters) implements LlvmType {
+    record Function(LlvmType returnType, List<LlvmType> parameters, boolean isNative) implements LlvmType {
         @Override
         public String toString() {
             return returnType + "(" + parameters.stream().map(Objects::toString).collect(Collectors.joining(", ")) + ")";

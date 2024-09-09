@@ -169,32 +169,16 @@ public class IrClassGenerator {
             builder.append("\n");
         }
 
-        for (var methodDependency : methodDependencies) {
-            builder.append(methodDependency).append("\n");
-        }
-        if (!methodDependencies.isEmpty()) {
-            builder.append("\n");
-        }
+        declareMethods(builder);
 
-        for (var parentMethod : parentMethods) {
-            var methodDeclaration = declareMethod(parentMethod);
-            if (!methodDependencies.contains(methodDeclaration)) {
-                builder.append(methodDeclaration).append("\n");
-            }
-        }
-        if (!parentMethods.isEmpty()) {
-            builder.append("\n");
-        }
-
-        var addedVtableType = false;
         for (LlvmType.Declared t : classDependencies) {
-            if (!functionRegistry.getVirtualFunctions(t.type()).isEmpty()) {
-                generateVtable(t.type(), builder);
-                builder.append("\n");
-                addedVtableType = true;
-            }
+            generateVtable(t.type(), builder);
+            builder.append("\n");
         }
-        if (addedVtableType) builder.append("\n");
+        if (!classDependencies.contains(new LlvmType.Declared(className))) {
+            generateVtable(className, builder);
+        }
+        builder.append("\n");
 
         generateStatics(builder);
 
@@ -212,7 +196,7 @@ public class IrClassGenerator {
             }
         }
 
-        if (!functionRegistry.getVirtualFunctions(className).isEmpty()) {
+        if (!className.equals("__entrypoint")) {
             generateVtableData(builder, vtableType);
         }
         builder.append("\n\n");
@@ -224,6 +208,25 @@ public class IrClassGenerator {
         builder.append(methodString).append("\n");
 
         return builder.toString();
+    }
+
+    private void declareMethods(StringBuilder builder) {
+        var allMethods = new HashSet<>(methodDependencies);
+        parentMethods.stream()
+            .map(this::declareMethod)
+            .forEach(allMethods::add);
+
+        functionRegistry.getVirtualFunctions(className)
+            .stream()
+            .filter(f -> !functionRegistry.declaresFunction(className, f))
+            .map(VtableInfo::toDeclarationString)
+            .forEach(allMethods::add);
+
+        builder.append(String.join("\n", allMethods));
+
+        if (!allMethods.isEmpty()) {
+            builder.append("\n");
+        }
     }
 
     private String createStringConstant(StringConstant entry) {
@@ -296,14 +299,12 @@ public class IrClassGenerator {
         builder.append(vtableType).append(" = type {");
 
         var virtualFunctions = functionRegistry.getVirtualFunctions(className);
-        if (!virtualFunctions.isEmpty()) {
-            var vtableString = virtualFunctions.stream()
-                .map(VtableInfo::signature)
-                .map(LlvmType.Pointer::new)
-                .map(Objects::toString)
-                .collect(Collectors.joining(", "));
-            builder.append(" ").append(vtableString);
-        }
+        var vtableString = virtualFunctions.stream()
+            .map(VtableInfo::signature)
+            .map(LlvmType.Pointer::new)
+            .map(Objects::toString)
+            .collect(Collectors.joining(", "));
+        builder.append(" ").append(vtableString);
 
         builder.append(" }");
     }
@@ -312,9 +313,7 @@ public class IrClassGenerator {
         builder.append("%").append(Utils.escape(className)).append(" = type {");
 
         var allFields = new ArrayList<LlvmType>();
-        if (!className.equals("java/lang/Exception")) { // TODO: remove once exception compiles
-            allFields.add(new LlvmType.Pointer(vtableType));
-        }
+        allFields.add(new LlvmType.Pointer(vtableType));
         allFields.addAll(fields.values());
 
         var fieldDefinition = allFields.stream()

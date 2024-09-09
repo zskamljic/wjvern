@@ -90,7 +90,7 @@ public class FunctionRegistry {
             if (Utils.isVirtual(method)) {
                 var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
                 var parameterList = generateParameterList(className, method.methodTypeSymbol());
-                var functionSignature = new LlvmType.Function(returnType, parameterList);
+                var functionSignature = new LlvmType.Function(returnType, parameterList, Utils.isNative(method));
                 var functionName = "@" + Utils.methodName(className, method);
                 vtable.put(
                     method.methodName().stringValue(),
@@ -135,6 +135,13 @@ public class FunctionRegistry {
             parameterList.add(type);
         }
         return parameterList;
+    }
+
+    public boolean declaresFunction(String className, VtableInfo vtableInfo) {
+        return methods.getOrDefault(className, Set.of())
+            .stream()
+            .map(m -> "@" + Utils.methodName(className, m))
+            .anyMatch(m -> m.equals(vtableInfo.functionName()));
     }
 
     @FunctionalInterface

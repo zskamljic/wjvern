@@ -24,6 +24,7 @@ public interface CodeEntry {
                 case SUB -> isFloatingPoint ? "fsub" : "sub";
                 case SHL -> "shl";
                 case ASHR -> "ashr";
+                case LSHR -> "lshr";
                 case AND -> "and";
                 case OR -> "or";
                 case XOR -> "xor";

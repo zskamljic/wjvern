@@ -113,5 +113,24 @@
     "byName": [
       "hashCode"
     ]
+  },
+  "java/lang/StringUTF16": {
+    "byName": [
+      "newBytesLength",
+      "putChar",
+      "getChar",
+      "codePointAt",
+      "codePointCount",
+      "compareToCIImpl",
+      "indexOfUnsafe",
+      "indexOfLatin1Unsafe",
+      "lastIndexOf",
+      "replace",
+      "toLowerCaseEx",
+      "toUpperCaseEx",
+      "getChars",
+      "putCharsAt",
+      "lastIndexOfLatin1"
+    ]
   }
 }

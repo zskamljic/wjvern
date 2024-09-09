@@ -237,7 +237,7 @@ public class ClassBuilder {
                 generatedClasses.put("java/lang/Exception", generator);
                 return;
             } else {
-                if (Utils.isSupportedClass(name)) {
+                if (Blacklist.isSupportedClass(name)) {
                     var superClass = resolver.resolve(entry.name().stringValue());
                     classBuilder = new ClassBuilder(resolver, superClass, classPath, debug);
                 } else {
@@ -273,7 +273,7 @@ public class ClassBuilder {
 
     private Optional<ClassModel> loadClass(String className) throws IOException {
         if (resolver.contains(className)) {
-            if (Utils.isSupportedClass(className)) {
+            if (Blacklist.isSupportedClass(className)) {
                 return Optional.of(resolver.resolve(className));
             } else {
                 System.err.println("Class " + className + " not supported");

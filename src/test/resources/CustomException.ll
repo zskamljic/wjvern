@@ -4,7 +4,7 @@
 %java_Array = type { i32, ptr }
 %CustomException = type { %CustomException_vtable_type*, i32 }
 declare void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*)
-
+%"java/lang/Exception_vtable_type" = type {  }
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
 
