@@ -1,5 +1,6 @@
 public class Switch {
     static int switchFunc(int value) {
+        // tableswitch
         return switch (value) {
             case 1 -> 5;
             case 2 -> 4;
@@ -9,7 +10,17 @@ public class Switch {
         };
     }
 
+    static int switchFunc2(int value) {
+        // lookupswitch
+        return switch (value) {
+            case 1 -> 5;
+            case 10 -> 50;
+            case 100 -> 500;
+            default -> 3;
+        };
+    }
+
     static int main() {
-        return switchFunc(3);
+        return switchFunc2(switchFunc(3));
     }
 }

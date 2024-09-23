@@ -93,6 +93,7 @@ public class VarStack {
                     .filter(Objects::nonNull)
                     .findFirst()
                     .orElse(LlvmType.Primitive.INT); // TODO: make stack accept typed values
+                // TODO: load variables if needed
 
                 var variable = generator.phi(type, phiEntries);
                 operandStack.push(new StackEntry(currentLabel, variable));

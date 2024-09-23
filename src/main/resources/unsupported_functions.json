@@ -86,7 +86,8 @@
       "encode8859_1",
       "getBytesNoRepl1",
       "encodeUTF8_UTF16",
-      "computeSizeUTF8_UTF16"
+      "computeSizeUTF8_UTF16",
+      "translateEscapes"
     ]
   },
   "java/lang/String": {

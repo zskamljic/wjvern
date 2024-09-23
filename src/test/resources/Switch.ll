@@ -51,27 +51,57 @@ define i32 @"Switch_switchFunc(I)I"(i32 %param.0) personality ptr @__gxx_persona
   br label %label0
 label0:
   ; %value entered scope under name %local.0
-  ; Line 3
+  ; Line 4
   %1 = load i32, i32* %local.0
   switch i32 %1, label %label6 [i32 1, label %label2 i32 2, label %label3 i32 3, label %label4 i32 4, label %label5]
 label2:
-  ; Line 4
-  br label %label7
-label3:
   ; Line 5
   br label %label7
-label4:
+label3:
   ; Line 6
   br label %label7
-label5:
+label4:
   ; Line 7
   br label %label7
-label6:
+label5:
   ; Line 8
+  br label %label7
+label6:
+  ; Line 9
   br label %label7
 label7:
   %2 = phi i32 [3, %label4], [2, %label5], [1, %label6], [5, %label2], [4, %label3]
-  ; Line 3
+  ; Line 4
+  ret i32 %2
+label1:
+  ; %value exited scope under name %local.0
+  unreachable
+}
+
+define i32 @"Switch_switchFunc2(I)I"(i32 %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca i32*
+  store i32 %param.0, i32* %local.0
+  br label %label0
+label0:
+  ; %value entered scope under name %local.0
+  ; Line 15
+  %1 = load i32, i32* %local.0
+  switch i32 %1, label %label5 [i32 1, label %label2 i32 10, label %label3 i32 100, label %label4]
+label2:
+  ; Line 16
+  br label %label6
+label3:
+  ; Line 17
+  br label %label6
+label4:
+  ; Line 18
+  br label %label6
+label5:
+  ; Line 19
+  br label %label6
+label6:
+  %2 = phi i32 [500, %label4], [3, %label5], [5, %label2], [50, %label3]
+  ; Line 15
   ret i32 %2
 label1:
   ; %value exited scope under name %local.0
@@ -79,7 +109,8 @@ label1:
 }
 
 define i32 @"Switch_main()I"() personality ptr @__gxx_personality_v0 {
-  ; Line 13
+  ; Line 24
   %1 = call i32 @"Switch_switchFunc(I)I"(i32 3)
-  ret i32 %1
+  %2 = call i32 @"Switch_switchFunc2(I)I"(i32 %1)
+  ret i32 %2
 }

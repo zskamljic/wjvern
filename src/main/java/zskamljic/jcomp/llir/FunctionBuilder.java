@@ -25,6 +25,7 @@ import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LineNumber;
 import java.lang.classfile.instruction.LoadInstruction;
 import java.lang.classfile.instruction.LocalVariable;
+import java.lang.classfile.instruction.LookupSwitchInstruction;
 import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.NewPrimitiveArrayInstruction;
 import java.lang.classfile.instruction.NewReferenceArrayInstruction;
@@ -32,6 +33,7 @@ import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
 import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
+import java.lang.classfile.instruction.SwitchCase;
 import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.constant.ClassDesc;
@@ -163,6 +165,7 @@ public class FunctionBuilder {
                 case LineNumber l -> generator.comment("Line " + l.line());
                 case LoadInstruction l -> handleLoad(generator, stack, types, locals, l);
                 case LocalVariable v -> locals.register(v);
+                case LookupSwitchInstruction s -> handleLookupSwitch(generator, stack, types, labelGenerator, s);
                 case NewObjectInstruction n -> handleCreateNewObject(generator, stack, types, n);
                 case NewPrimitiveArrayInstruction a -> handleCreatePrimitiveArray(generator, stack, types, a);
                 case NewReferenceArrayInstruction a -> handleCreateRefArray(generator, stack, types, a);
@@ -170,7 +173,7 @@ public class FunctionBuilder {
                 case ReturnInstruction r -> handleReturn(generator, stack, types, r);
                 case StackInstruction s -> handleStackInstruction(stack, types, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
-                case TableSwitchInstruction s -> handleSwitch(generator, stack, types, labelGenerator, s);
+                case TableSwitchInstruction s -> handleTableSwitch(generator, stack, types, labelGenerator, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
@@ -1089,16 +1092,29 @@ public class FunctionBuilder {
         }
     }
 
-    private void handleSwitch(
+    private void handleTableSwitch(
         IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, TableSwitchInstruction instruction
     ) {
-        var cases = instruction.cases()
-            .stream()
-            .map(c -> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
+        handleSwitch(generator, stack, types, labelGenerator, instruction.cases(), instruction.defaultTarget());
+    }
+
+    private void handleLookupSwitch(
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, LookupSwitchInstruction instruction
+    ) {
+        handleSwitch(generator, stack, types, labelGenerator, instruction.cases(), instruction.defaultTarget());
+    }
+
+    private void handleSwitch(
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, List<SwitchCase> table, Label defaultTarget
+    ) {
+        var cases = table.stream()
+            .map(c-> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
             .toList();
-        var defaultCase = labelGenerator.getLabel(instruction.defaultTarget());
+        var defaultCase = labelGenerator.getLabel(defaultTarget);
+        var value = loadIfNeeded(generator, types, stack.pop());
+        value = castIfNeeded(generator, types.get(value), LlvmType.Primitive.INT, value);
         generator.switchBranch(
-            loadIfNeeded(generator, types, stack.pop()),
+            value,
             defaultCase,
             cases
         );
@@ -1107,7 +1123,7 @@ public class FunctionBuilder {
     }
 
     private void handleThrowInstruction(
-        IrMethodGenerator generator, LabelGenerator labelGenerator, HashMap<String, LlvmType> types, ExceptionState exceptions, VarStack stack
+        IrMethodGenerator generator, LabelGenerator labelGenerator, Map<String, LlvmType> types, ExceptionState exceptions, VarStack stack
     ) {
         var exception = stack.pop();
 
