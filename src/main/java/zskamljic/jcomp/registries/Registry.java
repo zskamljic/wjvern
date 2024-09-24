@@ -1,7 +1,10 @@
-package zskamljic.jcomp.llir.models;
+package zskamljic.jcomp.registries;
 
 import zskamljic.jcomp.llir.IrTypeMapper;
 import zskamljic.jcomp.llir.Utils;
+import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.llir.models.Vtable;
+import zskamljic.jcomp.llir.models.VtableInfo;
 
 import java.io.IOException;
 import java.lang.classfile.ClassModel;
@@ -12,26 +15,33 @@ import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public class FunctionRegistry {
+public class Registry {
+    public static final String EXCEPTION_NAME = "java/lang/Exception";
     private final Map<String, Vtable> vtables = new HashMap<>();
     private final Map<String, Set<MethodModel>> methods = new HashMap<>();
     private final ClassLoader classLoader;
     private final Predicate<MethodModel> isUnsupportedFunction;
+    private final Map<String, Integer> typeIds = new HashMap<>();
+    private final Map<String, TypeInfo> typeInfos = new HashMap<>();
 
-    public FunctionRegistry(ClassLoader classLoader, Predicate<MethodModel> isUnsupportedFunction) {
+    public Registry(ClassLoader classLoader, Predicate<MethodModel> isUnsupportedFunction) {
         this.classLoader = classLoader;
         this.isUnsupportedFunction = isUnsupportedFunction;
         // TODO: remove when exception compiles
-        vtables.put("java/lang/Exception", new Vtable("java/lang/Exception"));
-        methods.put("java/lang/Exception", new HashSet<>());
+        vtables.put(EXCEPTION_NAME, new Vtable(EXCEPTION_NAME));
+        methods.put(EXCEPTION_NAME, new HashSet<>());
+        typeIds.put(EXCEPTION_NAME, 0);
+        typeInfos.put(EXCEPTION_NAME, new TypeInfo(List.of(), List.of()));
     }
 
     public List<LlvmType.Declared> getRequiredTypes(String className) {
@@ -68,10 +78,10 @@ public class FunctionRegistry {
     }
 
     public void walk(ClassModel classModel) throws IOException {
-        generateVtable(classModel);
+        walkClass(classModel);
     }
 
-    private Vtable generateVtable(ClassModel current) throws IOException {
+    private Vtable walkClass(ClassModel current) throws IOException {
         var className = current.thisClass().name().stringValue();
         if (vtables.containsKey(className)) return vtables.get(className);
 
@@ -79,7 +89,7 @@ public class FunctionRegistry {
         if (current.superclass().isPresent()) {
             var parentClass = classLoader.load(current.superclass().get());
             if (parentClass.isPresent()) {
-                var parent = generateVtable(parentClass.get());
+                var parent = walkClass(parentClass.get());
                 vtable.addAll(parent);
             }
         }
@@ -102,12 +112,25 @@ public class FunctionRegistry {
             methods.computeIfAbsent(className, ignored -> new HashSet<>()).add(method);
         }
         vtables.put(className, vtable);
+        var typeId = typeIds.size();
+        typeIds.put(className, typeId);
+        var typeInfo = new TypeInfo(new ArrayList<>(), new ArrayList<>());
+        typeInfo.types().add(typeId);
+        if (current.superclass().isPresent()) {
+            var parent = current.superclass().get().name().stringValue();
+            var parentTypes = typeInfos.get(parent);
+            if (parentTypes != null) {
+                typeInfo.types().addAll(parentTypes.types());
+                typeInfo.interfaces().addAll(parentTypes.interfaces());
+            }
+        }
+        typeInfos.put(className, typeInfo);
 
         for (var entry : current.constantPool()) {
             if (entry instanceof ClassEntry classEntry) {
                 var referencedClass = classLoader.load(classEntry);
                 if (referencedClass.isPresent()) {
-                    generateVtable(referencedClass.get());
+                    walkClass(referencedClass.get());
                 } else {
                     vtables.put(classEntry.name().stringValue(), new Vtable(classEntry.name().stringValue()));
                 }
@@ -117,12 +140,21 @@ public class FunctionRegistry {
 
                 var referencedClass = classLoader.load(owner);
                 if (referencedClass.isPresent()) {
-                    generateVtable(referencedClass.get());
+                    walkClass(referencedClass.get());
                 } else {
                     vtables.put(owner.name().stringValue(), new Vtable(owner.name().stringValue()));
                 }
             }
         }
+        current.interfaces()
+            .stream()
+            .map(i -> i.name().stringValue())
+            .map(typeInfos::get)
+            .filter(Objects::nonNull)
+            .map(TypeInfo::interfaces)
+            .flatMap(Collection::stream)
+            .distinct()
+            .forEach(typeInfo.interfaces()::add);
         return vtable;
     }
 
@@ -142,6 +174,10 @@ public class FunctionRegistry {
             .stream()
             .map(m -> "@" + Utils.methodName(className, m))
             .anyMatch(m -> m.equals(vtableInfo.functionName()));
+    }
+
+    public TypeInfo getTypeInfo(String className) {
+        return typeInfos.get(className);
     }
 
     @FunctionalInterface

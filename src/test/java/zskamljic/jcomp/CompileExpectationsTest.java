@@ -25,7 +25,7 @@ class CompileExpectationsTest {
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
         "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields", "ReturnArray",
-        "ReferenceFields", "Strings", "StandardMain", "MutableParameters"
+        "ReferenceFields", "Strings", "StandardMain", "MutableParameters", "InstanceOf"
     })
     void compileAndVerifyOutput(String fileName) throws IOException, InterruptedException {
         Main.main(new String[]{"target/test-classes/" + fileName + ".class", "-o", tempDir.toString(), "-d"});

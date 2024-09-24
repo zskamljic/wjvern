@@ -1,7 +1,7 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.AggregateType;
-import zskamljic.jcomp.llir.models.FunctionRegistry;
+import zskamljic.jcomp.registries.Registry;
 import zskamljic.jcomp.llir.models.LlvmType;
 
 import java.lang.classfile.MethodModel;
@@ -64,11 +64,11 @@ public class GlobalInitializer {
         String className,
         Map<String, IrClassGenerator> generated,
         Function<LlvmType.Declared, AggregateType> definitionMapper,
-        FunctionRegistry functionRegistry
+        Registry registry
     ) {
         if (generated.containsKey("__entrypoint")) return;
 
-        var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, functionRegistry);
+        var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, registry);
         generated.put("__entrypoint", generator);
 
         var stringDefinition = definitionMapper.apply(new LlvmType.Declared("java/lang/String"));

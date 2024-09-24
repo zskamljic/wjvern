@@ -56,8 +56,7 @@ public class Blacklist {
         return method.code()
             .stream()
             .flatMap(CompoundElement::elementStream)
-            .anyMatch(e -> e instanceof InvokeInstruction i && i.opcode() == Opcode.INVOKEINTERFACE ||
-                e instanceof TypeCheckInstruction);
+            .anyMatch(e -> e instanceof InvokeInstruction i && i.opcode() == Opcode.INVOKEINTERFACE);
     }
 
     private static boolean isBlacklisted(MethodModel method) {

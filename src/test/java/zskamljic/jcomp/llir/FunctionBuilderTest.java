@@ -1,7 +1,7 @@
 package zskamljic.jcomp.llir;
 
 import org.junit.jupiter.api.Test;
-import zskamljic.jcomp.llir.models.FunctionRegistry;
+import zskamljic.jcomp.registries.Registry;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
@@ -21,7 +21,7 @@ class FunctionBuilderTest {
             .findFirst()
             .orElseThrow();
 
-        var functionRegistry = new FunctionRegistry(ignored -> Optional.empty(), ignored -> false);
+        var functionRegistry = new Registry(ignored -> Optional.empty(), ignored -> false);
         var functionBuilder = new FunctionBuilder(coderMethod, List.of("coder"), functionRegistry, false);
 
         var generated = functionBuilder.generate();
@@ -40,7 +40,7 @@ class FunctionBuilderTest {
               br i1 %3, label %label2, label %label3
             label3:
               %4 = load %"java/lang/String"*, %"java/lang/String"** %local.0
-              %5 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %4, i32 0, i32 1
+              %5 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %4, i32 0, i32 2
               %6 = load i8, i8* %5
               br label %label4
             label2:

@@ -1,7 +1,8 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
-%InstanceFields = type { %InstanceFields_vtable_type*, i32, float, double }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%InstanceFields = type { %InstanceFields_vtable_type*, %java_TypeInfo*, i32, float, double }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
@@ -16,6 +17,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -26,6 +28,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
+
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
 
 define void @"InstanceFields_<init>()V"(%InstanceFields* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %InstanceFields**
@@ -39,18 +45,21 @@ label0:
   %2 = load %InstanceFields*, %InstanceFields** %local.0
   %3 = getelementptr inbounds %InstanceFields, %InstanceFields* %2, i32 0, i32 0
   store %InstanceFields_vtable_type* @InstanceFields_vtable_data, %InstanceFields_vtable_type** %3
-  ; Line 7
   %4 = load %InstanceFields*, %InstanceFields** %local.0
   %5 = getelementptr inbounds %InstanceFields, %InstanceFields* %4, i32 0, i32 1
-  store i32 1, i32* %5
-  ; Line 8
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
+  ; Line 7
   %6 = load %InstanceFields*, %InstanceFields** %local.0
   %7 = getelementptr inbounds %InstanceFields, %InstanceFields* %6, i32 0, i32 2
-  store float 5.0, float* %7
-  ; Line 9
+  store i32 1, i32* %7
+  ; Line 8
   %8 = load %InstanceFields*, %InstanceFields** %local.0
   %9 = getelementptr inbounds %InstanceFields, %InstanceFields* %8, i32 0, i32 3
-  store double 7.0, double* %9
+  store float 5.0, float* %9
+  ; Line 9
+  %10 = load %InstanceFields*, %InstanceFields** %local.0
+  %11 = getelementptr inbounds %InstanceFields, %InstanceFields* %10, i32 0, i32 4
+  store double 7.0, double* %11
   ; Line 10
   ret void
 label1:
@@ -99,7 +108,7 @@ label0:
   store ptr %20, ptr %21
   call void @llvm.memset.p0.i32(ptr %20, i8 0, i64 4, i1 false)
   %22 = load %InstanceFields*, %InstanceFields** %local.0
-  %23 = getelementptr inbounds %InstanceFields, %InstanceFields* %22, i32 0, i32 1
+  %23 = getelementptr inbounds %InstanceFields, %InstanceFields* %22, i32 0, i32 2
   %24 = load i32, i32* %23
   %25 = getelementptr inbounds %java_Array, %java_Array* %18, i32 0, i32 1
   %26 = load ptr, ptr %25
@@ -144,7 +153,7 @@ label0:
   store ptr %53, ptr %54
   call void @llvm.memset.p0.i32(ptr %53, i8 0, i64 4, i1 false)
   %55 = load %InstanceFields*, %InstanceFields** %local.0
-  %56 = getelementptr inbounds %InstanceFields, %InstanceFields* %55, i32 0, i32 2
+  %56 = getelementptr inbounds %InstanceFields, %InstanceFields* %55, i32 0, i32 3
   %57 = load float, float* %56
   %58 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
   %59 = load ptr, ptr %58
@@ -190,7 +199,7 @@ label0:
   store ptr %87, ptr %88
   call void @llvm.memset.p0.i64(ptr %87, i8 0, i64 4, i1 false)
   %89 = load %InstanceFields*, %InstanceFields** %local.0
-  %90 = getelementptr inbounds %InstanceFields, %InstanceFields* %89, i32 0, i32 3
+  %90 = getelementptr inbounds %InstanceFields, %InstanceFields* %89, i32 0, i32 4
   %91 = load double, double* %90
   %92 = getelementptr inbounds %java_Array, %java_Array* %85, i32 0, i32 1
   %93 = load ptr, ptr %92

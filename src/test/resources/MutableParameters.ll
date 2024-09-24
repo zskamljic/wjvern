@@ -1,8 +1,9 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %"java/lang/System" = type opaque
 %java_Array = type { i32, ptr }
-%MutableParameters = type { %MutableParameters_vtable_type* }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%MutableParameters = type { %MutableParameters_vtable_type*, %java_TypeInfo* }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/System_exit(I)V"(i32)
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -19,6 +20,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -29,6 +31,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
+
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
 
 define void @"MutableParameters_<init>()V"(%MutableParameters* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %MutableParameters**
@@ -42,6 +48,9 @@ label0:
   %2 = load %MutableParameters*, %MutableParameters** %local.0
   %3 = getelementptr inbounds %MutableParameters, %MutableParameters* %2, i32 0, i32 0
   store %MutableParameters_vtable_type* @MutableParameters_vtable_data, %MutableParameters_vtable_type** %3
+  %4 = load %MutableParameters*, %MutableParameters** %local.0
+  %5 = getelementptr inbounds %MutableParameters, %MutableParameters* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
 label1:
   ; %this exited scope under name %local.0

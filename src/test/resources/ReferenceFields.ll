@@ -1,7 +1,8 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
-%ReferenceFields = type { %ReferenceFields_vtable_type*, %java_Array*, %ReferenceFields* }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%ReferenceFields = type { %ReferenceFields_vtable_type*, %java_TypeInfo*, %java_Array*, %ReferenceFields* }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
@@ -16,6 +17,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -26,6 +28,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
+
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
 
 define void @"ReferenceFields_<init>()V"(%ReferenceFields* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %ReferenceFields**
@@ -39,6 +45,9 @@ label0:
   %2 = load %ReferenceFields*, %ReferenceFields** %local.0
   %3 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %2, i32 0, i32 0
   store %ReferenceFields_vtable_type* @ReferenceFields_vtable_data, %ReferenceFields_vtable_type** %3
+  %4 = load %ReferenceFields*, %ReferenceFields** %local.0
+  %5 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
 label1:
   ; %this exited scope under name %local.0
@@ -71,11 +80,11 @@ label0:
   %11 = load ptr, ptr %10
   %12 = getelementptr inbounds i32, ptr %11, i32 1
   store i32 2, ptr %12
-  %13 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %2, i32 0, i32 1
+  %13 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %2, i32 0, i32 2
   store %java_Array* %3, %java_Array** %13
   ; Line 8
   %14 = load %ReferenceFields*, %ReferenceFields** %local.0
-  %15 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %14, i32 0, i32 1
+  %15 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %14, i32 0, i32 2
   %16 = load %java_Array*, %java_Array** %15
   %17 = getelementptr inbounds %java_Array, %java_Array* %16, i32 0, i32 1
   %18 = load ptr, ptr %17
@@ -84,7 +93,7 @@ label0:
   call void @"ReferenceFields_printInt(I)V"(i32 %20)
   ; Line 9
   %21 = load %ReferenceFields*, %ReferenceFields** %local.0
-  %22 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %21, i32 0, i32 1
+  %22 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %21, i32 0, i32 2
   %23 = load %java_Array*, %java_Array** %22
   %24 = getelementptr inbounds %java_Array, %java_Array* %23, i32 0, i32 1
   %25 = load ptr, ptr %24
@@ -95,11 +104,11 @@ label0:
   %28 = load %ReferenceFields*, %ReferenceFields** %local.0
   %29 = alloca %ReferenceFields
   call void @"ReferenceFields_<init>()V"(%ReferenceFields* %29)
-  %30 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %28, i32 0, i32 2
+  %30 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %28, i32 0, i32 3
   store %ReferenceFields* %29, %ReferenceFields** %30
   ; Line 12
   %31 = load %ReferenceFields*, %ReferenceFields** %local.0
-  %32 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %31, i32 0, i32 2
+  %32 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %31, i32 0, i32 3
   %33 = load %ReferenceFields*, %ReferenceFields** %32
   %34 = alloca %java_Array
   %35 = getelementptr inbounds %java_Array, %java_Array* %34, i32 0, i32 0
@@ -116,13 +125,13 @@ label0:
   %42 = load ptr, ptr %41
   %43 = getelementptr inbounds i32, ptr %42, i32 1
   store i32 4, ptr %43
-  %44 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %33, i32 0, i32 1
+  %44 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %33, i32 0, i32 2
   store %java_Array* %34, %java_Array** %44
   ; Line 13
   %45 = load %ReferenceFields*, %ReferenceFields** %local.0
-  %46 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %45, i32 0, i32 2
+  %46 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %45, i32 0, i32 3
   %47 = load %ReferenceFields*, %ReferenceFields** %46
-  %48 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %47, i32 0, i32 1
+  %48 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %47, i32 0, i32 2
   %49 = load %java_Array*, %java_Array** %48
   %50 = getelementptr inbounds %java_Array, %java_Array* %49, i32 0, i32 1
   %51 = load ptr, ptr %50
@@ -131,9 +140,9 @@ label0:
   call void @"ReferenceFields_printInt(I)V"(i32 %53)
   ; Line 14
   %54 = load %ReferenceFields*, %ReferenceFields** %local.0
-  %55 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %54, i32 0, i32 2
+  %55 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %54, i32 0, i32 3
   %56 = load %ReferenceFields*, %ReferenceFields** %55
-  %57 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %56, i32 0, i32 1
+  %57 = getelementptr inbounds %ReferenceFields, %ReferenceFields* %56, i32 0, i32 2
   %58 = load %java_Array*, %java_Array** %57
   %59 = getelementptr inbounds %java_Array, %java_Array* %58, i32 0, i32 1
   %60 = load ptr, ptr %59

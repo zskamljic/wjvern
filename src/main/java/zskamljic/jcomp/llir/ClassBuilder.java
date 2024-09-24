@@ -3,7 +3,7 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.Blacklist;
 import zskamljic.jcomp.StdLibResolver;
 import zskamljic.jcomp.llir.models.AggregateType;
-import zskamljic.jcomp.llir.models.FunctionRegistry;
+import zskamljic.jcomp.registries.Registry;
 import zskamljic.jcomp.llir.models.LlvmType;
 
 import java.io.IOException;
@@ -18,6 +18,7 @@ import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.nio.file.Files;
@@ -47,13 +48,18 @@ public class ClassBuilder {
         var globalInitializer = new GlobalInitializer();
         generate(generated, functionRegistry, globalInitializer);
 
-        globalInitializer.generateEntryPoint(classModel.thisClass().name().stringValue(), generated, c -> generateType(c, generated), functionRegistry);
+        globalInitializer.generateEntryPoint(
+            classModel.thisClass().name().stringValue(),
+            generated,
+            c -> generateType(c, generated),
+            functionRegistry
+        );
 
         return generated;
     }
 
-    private FunctionRegistry generateFunctionRegistry() throws IOException {
-        var registry = new FunctionRegistry(this::loadClass, Blacklist::isUnsupportedFunction);
+    private Registry generateFunctionRegistry() throws IOException {
+        var registry = new Registry(this::loadClass, Blacklist::isUnsupportedFunction);
         registry.walk(classModel);
 
         // TODO: when toString is enabled this will no longer be needed
@@ -65,17 +71,17 @@ public class ClassBuilder {
 
     public void generate(
         Map<String, IrClassGenerator> generatedClasses,
-        FunctionRegistry functionRegistry,
+        Registry registry,
         GlobalInitializer globalInitializer
     ) throws IOException {
         var className = classModel.thisClass().name().stringValue();
-        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), functionRegistry);
+        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), registry);
 
         var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
         if (classModel.superclass().isPresent()) {
             var superclass = classModel.superclass().get();
-            generateSuperClass(superclass, classGenerator, generatedClasses, functionRegistry, globalInitializer);
+            generateSuperClass(superclass, classGenerator, generatedClasses, registry, globalInitializer);
             Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
                 .flatMap(IrClassGenerator::getExceptionDefinition)
                 .ifPresent(thrownExceptions::add);
@@ -94,7 +100,7 @@ public class ClassBuilder {
         for (var entry : classModel.constantPool()) {
             switch (entry) {
                 case ClassEntry classEntry ->
-                    handleClassEntry(classEntry, generatedClasses, functionRegistry, classGenerator, thrownExceptions, globalInitializer);
+                    handleClassEntry(classEntry, generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
                 case MethodRefEntry method -> handleMethodEntry(method, classGenerator, staticInvokes);
                 case StringEntry string -> handleStringEntry(string, classGenerator, globalInitializer);
                 default -> {
@@ -126,7 +132,7 @@ public class ClassBuilder {
             hasThrow = hasThrow || method.code()
                 .stream()
                 .flatMap(CompoundElement::elementStream)
-                .anyMatch(c -> c instanceof ThrowInstruction);
+                .anyMatch(c -> c instanceof ThrowInstruction || c instanceof TypeCheckInstruction t && t.opcode() == Opcode.CHECKCAST);
             classGenerator.addMethod(method);
         }
 
@@ -134,6 +140,7 @@ public class ClassBuilder {
             %"java/util/stream/IntStream" = type opaque
             %"java/util/function/BiFunction" = type opaque
             declare i32 @__gxx_personality_v0(...)
+            declare i1 @instanceof(ptr,i32)
             declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
             declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
             declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -154,18 +161,18 @@ public class ClassBuilder {
 
         // TODO: when toString is enabled this will no longer be needed
         var stringClass = loadClass("java/lang/String").orElseThrow();
-        handleClassEntry(stringClass.thisClass(), generatedClasses, functionRegistry, classGenerator, thrownExceptions, globalInitializer);
+        handleClassEntry(stringClass.thisClass(), generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
     }
 
     private void handleClassEntry(
         ClassEntry classEntry,
         Map<String, IrClassGenerator> generatedClasses,
-        FunctionRegistry functionRegistry,
+        Registry registry,
         IrClassGenerator classGenerator,
         List<String> thrownExceptions,
         GlobalInitializer globalInitializer
     ) throws IOException {
-        generateClass(classEntry, generatedClasses, functionRegistry, globalInitializer);
+        generateClass(classEntry, generatedClasses, registry, globalInitializer);
         var dependent = Utils.unwrapType(classEntry);
         if (!dependent.isPrimitive()) {
             classGenerator.addRequiredType(new LlvmType.Declared(typeName(dependent)));
@@ -206,17 +213,17 @@ public class ClassBuilder {
         ClassEntry entry,
         IrClassGenerator classGenerator,
         Map<String, IrClassGenerator> generatedClasses,
-        FunctionRegistry functionRegistry,
+        Registry registry,
         GlobalInitializer globalInitializer
     ) throws IOException {
-        generateClass(entry, generatedClasses, functionRegistry, globalInitializer);
+        generateClass(entry, generatedClasses, registry, globalInitializer);
         classGenerator.inherit(generatedClasses.get(entry.name().stringValue()));
     }
 
     private void generateClass(
         ClassEntry entry,
         Map<String, IrClassGenerator> generatedClasses,
-        FunctionRegistry functionRegistry,
+        Registry registry,
         GlobalInitializer globalInitializer
     ) throws IOException {
         var type = Utils.unwrapType(entry);
@@ -228,7 +235,12 @@ public class ClassBuilder {
         ClassBuilder classBuilder;
         if (resolver.contains(name)) {
             if (name.equals("java/lang/Exception")) {
-                var generator = new IrClassGenerator("java/lang/Exception", debug, c -> generateType(c, generatedClasses), functionRegistry);
+                var generator = new IrClassGenerator(
+                    "java/lang/Exception",
+                    debug,
+                    c -> generateType(c, generatedClasses),
+                    registry
+                );
                 generator.injectCode("""
                     define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
                       ret void
@@ -253,7 +265,7 @@ public class ClassBuilder {
             classBuilder = new ClassBuilder(resolver, targetClass, classPath, debug);
         }
 
-        classBuilder.generate(generatedClasses, functionRegistry, globalInitializer);
+        classBuilder.generate(generatedClasses, registry, globalInitializer);
     }
 
     private String typeName(ClassDesc type) {

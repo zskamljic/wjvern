@@ -1,9 +1,10 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.AggregateType;
-import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.VtableInfo;
+import zskamljic.jcomp.registries.Registry;
+import zskamljic.jcomp.registries.TypeInfo;
 
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.CompoundElement;
@@ -34,26 +35,28 @@ public class IrClassGenerator {
     private final Function<LlvmType.Declared, AggregateType> definitionMapper;
     private final Set<LlvmType.Declared> classDependencies = new HashSet<>();
     private final Set<String> methodDependencies = new HashSet<>();
-    private final FunctionRegistry functionRegistry;
+    private final Registry registry;
     private final Map<String, LlvmType> fields = new LinkedHashMap<>();
     private final Map<String, LlvmType> staticFields = new LinkedHashMap<>();
     private final List<StringConstant> constants = new ArrayList<>();
     private final List<MethodModel> parentMethods = new ArrayList<>();
     private final List<MethodModel> methods = new ArrayList<>();
     private final List<String> injectedCode = new ArrayList<>();
+    private final LlvmType.Declared vtableType;
     private boolean isException;
 
     public IrClassGenerator(
         String className,
         boolean debug,
         Function<LlvmType.Declared, AggregateType> definitionMapper,
-        FunctionRegistry functionRegistry
+        Registry registry
     ) {
         isException = "java/lang/Throwable".equals(className);
         this.className = className;
         this.debug = debug;
         this.definitionMapper = definitionMapper;
-        this.functionRegistry = functionRegistry;
+        this.registry = registry;
+        this.vtableType = new LlvmType.Declared(Utils.vtableTypeName(className));
     }
 
     public void inherit(IrClassGenerator parent) {
@@ -150,7 +153,7 @@ public class IrClassGenerator {
         var builder = new StringBuilder();
 
         var requiredTypes = new HashSet<>(classDependencies);
-        requiredTypes.addAll(functionRegistry.getRequiredTypes(className));
+        requiredTypes.addAll(registry.getRequiredTypes(className));
         requiredTypes.addAll(methodRequiredTypes());
         for (var typeDependency : requiredTypes) {
             if (typeDependency.type().equals(className)) continue;
@@ -158,9 +161,10 @@ public class IrClassGenerator {
             builder.append(definitionMapper.apply(typeDependency)).append("\n");
         }
         builder.append("%java_Array = type { i32, ptr }\n");
-        var vtableType = new LlvmType.Declared(Utils.vtableTypeName(className));
+        // number of classes (self+parents), class IDs, number of interfaces (incl. parent), interface IDs, interface VTables)
+        builder.append("%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }\n");
         if (!className.equals("__entrypoint")) {
-            generateType(builder, vtableType);
+            generateType(builder);
         }
         builder.append("\n");
 
@@ -198,6 +202,8 @@ public class IrClassGenerator {
 
         if (!className.equals("__entrypoint")) {
             generateVtableData(builder, vtableType);
+            builder.append("\n\n");
+            generateTypeInfo(builder, registry.getTypeInfo(className));
         }
         builder.append("\n\n");
 
@@ -210,15 +216,38 @@ public class IrClassGenerator {
         return builder.toString();
     }
 
+    private void generateTypeInfo(StringBuilder builder, TypeInfo typeInfo) {
+        var types = typeInfo.types();
+        builder.append("@typeInfo_types = private global [").append(types.size()).append(" x i32] [");
+        var typeValues = types.stream()
+            .map(t -> "i32 " + t)
+            .collect(Collectors.joining(", "));
+        builder.append(typeValues).append("]\n");
+
+        var interfaces = typeInfo.interfaces();
+        builder.append("@typeInfo_interfaces = private global [").append(interfaces.size()).append(" x i32] [");
+        var interfaceValues = interfaces.stream()
+            .map(t -> "i32 " + t)
+            .collect(Collectors.joining(", "));
+        builder.append(interfaceValues).append("]\n");
+
+        builder.append("@typeInfo = private global %java_TypeInfo { i32 ")
+            .append(types.size())
+            .append(", i32* @typeInfo_types, i32 ")
+            .append(interfaces.size())
+            .append(", i32* @typeInfo_interfaces, ptr null")
+            .append(" }");
+    }
+
     private void declareMethods(StringBuilder builder) {
         var allMethods = new HashSet<>(methodDependencies);
         parentMethods.stream()
             .map(this::declareMethod)
             .forEach(allMethods::add);
 
-        functionRegistry.getVirtualFunctions(className)
+        registry.getVirtualFunctions(className)
             .stream()
-            .filter(f -> !functionRegistry.declaresFunction(className, f))
+            .filter(f -> !registry.declaresFunction(className, f))
             .map(VtableInfo::toDeclarationString)
             .forEach(allMethods::add);
 
@@ -256,7 +285,7 @@ public class IrClassGenerator {
 
     private List<LlvmType.Declared> methodRequiredTypes() {
         var externalDependencies = classDependencies.stream()
-            .map(t -> functionRegistry.getVirtualFunctions(t.type()))
+            .map(t -> registry.getVirtualFunctions(t.type()))
             .flatMap(Collection::stream)
             .map(VtableInfo::signature)
             .<LlvmType>mapMulti((f, c) -> {
@@ -298,7 +327,7 @@ public class IrClassGenerator {
         var vtableType = new LlvmType.Declared(typeName);
         builder.append(vtableType).append(" = type {");
 
-        var virtualFunctions = functionRegistry.getVirtualFunctions(className);
+        var virtualFunctions = registry.getVirtualFunctions(className);
         var vtableString = virtualFunctions.stream()
             .map(VtableInfo::signature)
             .map(LlvmType.Pointer::new)
@@ -309,11 +338,12 @@ public class IrClassGenerator {
         builder.append(" }");
     }
 
-    private void generateType(StringBuilder builder, LlvmType vtableType) {
+    private void generateType(StringBuilder builder) {
         builder.append("%").append(Utils.escape(className)).append(" = type {");
 
         var allFields = new ArrayList<LlvmType>();
         allFields.add(new LlvmType.Pointer(vtableType));
+        allFields.add(new LlvmType.Pointer(new LlvmType.Declared("java_TypeInfo")));
         allFields.addAll(fields.values());
 
         var fieldDefinition = allFields.stream()
@@ -331,7 +361,7 @@ public class IrClassGenerator {
 
         builder.append(vtableTypeData).append(" = global ").append(vtableType).append(" {\n");
 
-        var virtualFunctions = functionRegistry.getVirtualFunctions(className);
+        var virtualFunctions = registry.getVirtualFunctions(className);
         if (!virtualFunctions.isEmpty()) {
             var mappings = virtualFunctions.stream()
                 .map(vi -> vi.signature() + "* " + vi.functionName())
@@ -346,7 +376,7 @@ public class IrClassGenerator {
 
     private String generateMethod(MethodModel method) {
         if (!method.flags().has(AccessFlag.NATIVE) && !method.flags().has(AccessFlag.ABSTRACT)) {
-            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), functionRegistry, debug);
+            var builder = new FunctionBuilder(method, new ArrayList<>(fields.keySet()), registry, debug);
             return builder.generate();
         }
 
@@ -402,7 +432,7 @@ public class IrClassGenerator {
     public AggregateType getSimpleType() {
         return new AggregateType.Defined(
             new LlvmType.Declared(Utils.escape(className)),
-            Stream.concat(Stream.of(LlvmType.Primitive.POINTER), fields.values().stream()).toList()
+            Stream.concat(Stream.of(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER), fields.values().stream()).toList()
         );
     }
 

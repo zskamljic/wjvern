@@ -184,6 +184,13 @@ public class IrMethodGenerator {
         return newName;
     }
 
+    public String ptrToInt(String value, LlvmType.Primitive type) {
+        incrementIfNeeded(null);
+        var newName = unnamedGenerator.generateNext();
+        codeEntries.add(new CodeEntry.PtrToInt(newName, value, type));
+        return newName;
+    }
+
     public void returnValue(String variable) {
         add(new CodeEntry.Return(returnType, variable));
     }

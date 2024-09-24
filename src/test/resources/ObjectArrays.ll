@@ -1,7 +1,8 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
-%ObjectArrays = type { %ObjectArrays_vtable_type*, i32 }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%ObjectArrays = type { %ObjectArrays_vtable_type*, %java_TypeInfo*, i32 }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
@@ -16,6 +17,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -26,6 +28,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
+
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
 
 define void @"ObjectArrays_<init>(I)V"(%ObjectArrays* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %ObjectArrays**
@@ -42,11 +48,14 @@ label0:
   %2 = load %ObjectArrays*, %ObjectArrays** %local.0
   %3 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %2, i32 0, i32 0
   store %ObjectArrays_vtable_type* @ObjectArrays_vtable_data, %ObjectArrays_vtable_type** %3
-  ; Line 5
   %4 = load %ObjectArrays*, %ObjectArrays** %local.0
-  %5 = load i32, i32* %local.1
-  %6 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %4, i32 0, i32 1
-  store i32 %5, i32* %6
+  %5 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
+  ; Line 5
+  %6 = load %ObjectArrays*, %ObjectArrays** %local.0
+  %7 = load i32, i32* %local.1
+  %8 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %6, i32 0, i32 2
+  store i32 %7, i32* %8
   ; Line 6
   ret void
 label1:
@@ -189,7 +198,7 @@ label14:
   %60 = load ptr, ptr %59
   %61 = getelementptr inbounds %ObjectArrays, ptr %60, i32 %58
   %62 = load %ObjectArrays*, ptr %61
-  %63 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %62, i32 0, i32 1
+  %63 = getelementptr inbounds %ObjectArrays, %ObjectArrays* %62, i32 0, i32 2
   %64 = load i32, i32* %63
   call void @"ObjectArrays_print(I)V"(i32 %64)
   ; Line 26

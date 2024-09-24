@@ -107,12 +107,19 @@
           "(Ljava/lang/StringBuffer;)V",
           "([CIILjava/lang/Void;)V",
           "(Ljava/lang/StringBuilder;)V",
-          "([B)V"
+          "([B)V",
+          "([BIILjava/nio/charset/Charset;)V",
+          "([BLjava/nio/charset/Charset;)V"
         ]
       }
     ],
     "byName": [
-      "hashCode"
+      "hashCode",
+      "encodeASCII",
+      "encodeUTF8",
+      "newStringNoRepl",
+      "getBytesNoRepl",
+      "equals"
     ]
   },
   "java/lang/StringUTF16": {

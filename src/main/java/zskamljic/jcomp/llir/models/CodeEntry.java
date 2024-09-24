@@ -109,8 +109,7 @@ public interface CodeEntry {
             var comparisonType = switch (type) {
                 case LlvmType.Primitive p when !p.isFloatingPoint() -> "icmp";
                 case LlvmType.Primitive.POINTER -> "icmp";
-                default ->
-                    throw new IllegalArgumentException("Comparison between types of " + type + " not yet supported ");
+                default -> throw new IllegalArgumentException("Comparison between types of " + type + " not yet supported ");
             };
             var cond = switch (condition) {
                 case EQUAL -> "eq";
@@ -243,6 +242,13 @@ public interface CodeEntry {
             return newName + " = phi " + type + " " + alternatives.stream()
                 .map(a -> "[" + a.variable() + ", %" + a.label() + "]")
                 .collect(Collectors.joining(", "));
+        }
+    }
+
+    record PtrToInt(String newName, String source, LlvmType.Primitive targetType) implements CodeEntry {
+        @Override
+        public String toString() {
+            return newName + " = ptrtoint ptr " + source + " to " + targetType;
         }
     }
 

@@ -1,9 +1,10 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
-%CustomException = type { ptr, i32 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
+%CustomException = type { ptr, ptr, i32 }
 %"java/lang/Throwable" = type opaque
 %java_Array = type { i32, ptr }
-%Exceptions = type { %Exceptions_vtable_type* }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%Exceptions = type { %Exceptions_vtable_type*, %java_TypeInfo* }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
@@ -22,6 +23,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -51,6 +53,10 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
+
 define void @"Exceptions_<init>()V"(%Exceptions* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %Exceptions**
   store %Exceptions* %param.0, %Exceptions** %local.0
@@ -63,6 +69,9 @@ label0:
   %2 = load %Exceptions*, %Exceptions** %local.0
   %3 = getelementptr inbounds %Exceptions, %Exceptions* %2, i32 0, i32 0
   store %Exceptions_vtable_type* @Exceptions_vtable_data, %Exceptions_vtable_type** %3
+  %4 = load %Exceptions*, %Exceptions** %local.0
+  %5 = getelementptr inbounds %Exceptions, %Exceptions* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
 label1:
   ; %this exited scope under name %local.0

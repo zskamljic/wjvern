@@ -1,7 +1,8 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
-%VirtualMethods = type { %VirtualMethods_vtable_type*, i32 }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%VirtualMethods = type { %VirtualMethods_vtable_type*, %java_TypeInfo*, i32 }
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
@@ -71,7 +72,7 @@ label0:
   %35 = call i32(i8*,...) @printf(i8* %34)
   ; Line 5
   %36 = load %VirtualMethods*, %VirtualMethods** %local.0
-  %37 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %36, i32 0, i32 1
+  %37 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %36, i32 0, i32 2
   store i32 5, i32* %37
   ; Line 6
   ret void
@@ -83,6 +84,7 @@ label1:
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -94,6 +96,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V",
   void(%VirtualMethods*)* @"VirtualMethods_doSomething()V"
 }
+
+@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
 
 define void @"VirtualMethods_<init>()V"(%VirtualMethods* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %VirtualMethods**
@@ -107,6 +113,9 @@ label0:
   %2 = load %VirtualMethods*, %VirtualMethods** %local.0
   %3 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %2, i32 0, i32 0
   store %VirtualMethods_vtable_type* @VirtualMethods_vtable_data, %VirtualMethods_vtable_type** %3
+  %4 = load %VirtualMethods*, %VirtualMethods** %local.0
+  %5 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
 label1:
   ; %this exited scope under name %local.0
@@ -131,7 +140,7 @@ label0:
   call void %6(%VirtualMethods* %2)
   ; Line 11
   %7 = load %VirtualMethods*, %VirtualMethods** %local.0
-  %8 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %7, i32 0, i32 1
+  %8 = getelementptr inbounds %VirtualMethods, %VirtualMethods* %7, i32 0, i32 2
   %9 = load i32, i32* %8
   ret i32 %9
 label1:

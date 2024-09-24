@@ -15,7 +15,7 @@ define void @"java/lang/String_intern()Ljava/lang/String;"() {
 ; TODO: remove below when compilation of these is supported
 
 define void @"java/lang/String_getBytes()[B"(ptr sret(%java_Array*) %local.0, %"java/lang/String"* %this) {
-    %1 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %this, i32 0, i32 1
+    %1 = getelementptr inbounds %"java/lang/String", %"java/lang/String"* %this, i32 0, i32 2
     %2 = load %java_Array*, ptr %1
     %3 = load %java_Array, %java_Array* %2
     store %java_Array %3, %java_Array* %local.0

@@ -105,7 +105,7 @@ public class Main {
             .map(Objects::toString)
             .forEach(command::add);
 
-        Stream.of("stock_native.ll")
+        Stream.of("stock_native.ll", "instanceof.ll")
             .forEach(name -> {
                 try (var input = Main.class.getResourceAsStream("/" + name)) {
                     if (input == null) throw new IllegalStateException("Unable to load " + name);

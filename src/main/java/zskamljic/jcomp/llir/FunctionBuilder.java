@@ -1,9 +1,10 @@
 package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.ExceptionInfo;
-import zskamljic.jcomp.llir.models.FunctionRegistry;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
+import zskamljic.jcomp.llir.models.PhiEntry;
+import zskamljic.jcomp.registries.Registry;
 
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.Label;
@@ -36,6 +37,7 @@ import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
@@ -50,22 +52,23 @@ public class FunctionBuilder {
     private static final LlvmType.Declared ARRAY_TYPE = new LlvmType.Declared("java_Array");
     private static final LlvmType.Pointer ARRAY_POINTER_TYPE = new LlvmType.Pointer(ARRAY_TYPE);
     private static final String LANDING_PAD_COMPOSITE = "{ ptr, i32 }";
+    private static final int FIELD_OFFSET = 2;
 
     private final MethodModel method;
     private final List<String> fieldDefinition;
-    private final FunctionRegistry functionRegistry;
+    private final Registry registry;
     private final boolean debug;
     private final String parent;
 
     public FunctionBuilder(
         MethodModel method,
         List<String> fieldNames,
-        FunctionRegistry functionRegistry,
+        Registry registry,
         boolean debug
     ) {
         this.method = method;
         this.fieldDefinition = fieldNames;
-        this.functionRegistry = functionRegistry;
+        this.registry = registry;
         this.debug = debug;
         this.parent = method.parent()
             .orElseThrow(() -> new IllegalArgumentException("Method must have a parent class"))
@@ -159,6 +162,7 @@ public class FunctionBuilder {
                     handleInvoke(generator, stack, types, labelGenerator, exceptionState, i);
                     if (i.opcode() == Opcode.INVOKESPECIAL && method.methodName().equalsString("<init>")) {
                         addInitVtable(generator, types);
+                        addInitTypeInfo(generator, types);
                     }
                 }
                 case Label label -> currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, label);
@@ -175,6 +179,7 @@ public class FunctionBuilder {
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
                 case TableSwitchInstruction s -> handleTableSwitch(generator, stack, types, labelGenerator, s);
                 case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
+                case TypeCheckInstruction t -> handleTypeCheckInstruction(generator, stack, types, labelGenerator, t);
                 default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
         }
@@ -228,6 +233,15 @@ public class FunctionBuilder {
         var vtableType = new LlvmType.Pointer(new LlvmType.Declared(parent + "_vtable_type"));
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
         generator.store(vtableType, "@" + Utils.escape(parent + "_vtable_data"), vtableTypePointer, vtablePointer);
+    }
+
+    private void addInitTypeInfo(IrMethodGenerator generator, Map<String, LlvmType> types) {
+        var parentClass = new LlvmType.Declared(parent);
+        var thisVar = loadIfNeeded(generator, types, "%local.0");
+        var typeInfoPointer = generator.getElementPointer(parentClass, new LlvmType.Pointer(parentClass), thisVar, List.of("0", "1"));
+        var typeInfoType = new LlvmType.Pointer(new LlvmType.Declared("java_TypeInfo"));
+        var typeInfoTypePointer = new LlvmType.Pointer(typeInfoType);
+        generator.store(typeInfoType, "@typeInfo", typeInfoTypePointer, typeInfoPointer);
     }
 
     private void handleArrayStore(
@@ -729,7 +743,7 @@ public class FunctionBuilder {
         var parentType = new LlvmType.Declared(field.owner().name().stringValue());
         var varName = generator.getElementPointer(
             parentType, new LlvmType.Pointer(parentType), source,
-            List.of("0", String.valueOf(fieldDefinition.indexOf(field.name().stringValue()) + 1))
+            List.of("0", String.valueOf(fieldDefinition.indexOf(field.name().stringValue()) + FIELD_OFFSET))
         );
 
         var valueVar = generator.load(fieldType, new LlvmType.Pointer(fieldType), varName);
@@ -749,7 +763,7 @@ public class FunctionBuilder {
         var parentType = new LlvmType.Declared(instruction.field().owner().name().stringValue());
         var varName = generator.getElementPointer(
             parentType, new LlvmType.Pointer(parentType), objectReference,
-            List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + 1))
+            List.of("0", String.valueOf(fieldDefinition.indexOf(instruction.field().name().stringValue()) + FIELD_OFFSET))
         );
         generator.store(fieldType, value, new LlvmType.Pointer(fieldType), varName);
     }
@@ -793,7 +807,7 @@ public class FunctionBuilder {
         ExceptionState exceptions,
         InvokeInstruction invocation
     ) {
-        var isVarArg = functionRegistry.isNativeVarArg(invocation.method().owner().name().stringValue(), invocation.method());
+        var isVarArg = registry.isNativeVarArg(invocation.method().owner().name().stringValue(), invocation.method());
 
         var parameterCount = invocation.typeSymbol().parameterCount();
         if (isVarArg) {
@@ -812,7 +826,7 @@ public class FunctionBuilder {
             var variable = loadIfNeeded(generator, types, stack.pop());
             var actualType = types.getOrDefault(variable, targetType);
 
-            if (functionRegistry.isNative(invocation.owner().name().stringValue(), invocation.method()) &&
+            if (registry.isNative(invocation.owner().name().stringValue(), invocation.method()) &&
                 arrayNestedType(actualType) instanceof LlvmType nestedType) {
                 var dataPointer = generator.getElementPointer(ARRAY_TYPE, ARRAY_POINTER_TYPE, variable, List.of("0", "1"));
                 variable = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, dataPointer);
@@ -848,7 +862,7 @@ public class FunctionBuilder {
             case INVOKESPECIAL -> directCall(invocation);
             case INVOKEVIRTUAL -> handleInvokeVirtual(generator, invocation, parameters);
             case INVOKESTATIC -> {
-                if (functionRegistry.isNative(invocation.owner().name().stringValue(), invocation.method())) {
+                if (registry.isNative(invocation.owner().name().stringValue(), invocation.method())) {
                     yield invocation.method().name().stringValue();
                 } else {
                     yield directCall(invocation);
@@ -919,7 +933,7 @@ public class FunctionBuilder {
         IrMethodGenerator generator, InvokeInstruction invocation, List<Parameter> parameters
     ) {
         var ownerClass = invocation.method().owner().name().stringValue();
-        var virtualInfo = functionRegistry.getVirtual(ownerClass, invocation.name().stringValue(), invocation.typeSymbol());
+        var virtualInfo = registry.getVirtual(ownerClass, invocation.name().stringValue(), invocation.typeSymbol());
         if (virtualInfo.isEmpty()) {
             return directCall(invocation);
         }
@@ -1034,7 +1048,7 @@ public class FunctionBuilder {
     }
 
     private String castIfNeeded(IrMethodGenerator generator, LlvmType originalType, LlvmType.Primitive requiredType, String value) {
-        if (originalType == null || originalType == requiredType) return value;
+        if (originalType == null || originalType == requiredType || originalType instanceof LlvmType.Pointer) return value;
 
         return switch (originalType) {
             case LlvmType.Primitive original when original.isFloatingPoint() && requiredType.isFloatingPoint() -> {
@@ -1108,7 +1122,7 @@ public class FunctionBuilder {
         IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, List<SwitchCase> table, Label defaultTarget
     ) {
         var cases = table.stream()
-            .map(c-> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
+            .map(c -> Map.entry(c.caseValue(), labelGenerator.getLabel(c.target())))
             .toList();
         var defaultCase = labelGenerator.getLabel(defaultTarget);
         var value = loadIfNeeded(generator, types, stack.pop());
@@ -1156,5 +1170,73 @@ public class FunctionBuilder {
             generator.call(LlvmType.Primitive.VOID, "__cxa_throw", throwParameters);
             generator.unreachable();
         }
+    }
+
+    private void handleTypeCheckInstruction(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, TypeCheckInstruction instruction) {
+        if (instruction.opcode() == Opcode.INSTANCEOF) {
+            handleInstanceOf(generator, stack, types, instruction);
+        } else {
+            handleCheckCast(generator, stack, types, labelGenerator, instruction);
+        }
+    }
+
+    private void handleInstanceOf(IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, TypeCheckInstruction instruction) {
+        // TODO: handle array instances
+        var value = stack.pop();
+        var result = checkInstance(generator, instruction, value);
+        stack.push(result);
+        types.put(result, LlvmType.Primitive.BOOLEAN);
+    }
+
+    private void handleCheckCast(
+        IrMethodGenerator generator, VarStack stack, Map<String, LlvmType> types, LabelGenerator labelGenerator, TypeCheckInstruction instruction
+    ) {
+        // TODO: handle array instances
+        var value = stack.pop();
+        var ptrValue = generator.ptrToInt(value, LlvmType.Primitive.INT);
+        var isNull = generator.compare(IrMethodGenerator.Condition.EQUAL, LlvmType.Primitive.INT, ptrValue, "0");
+        var nullValue = labelGenerator.nextLabel();
+        var nonNull = labelGenerator.nextLabel();
+        var resultLabel = labelGenerator.nextLabel();
+
+        // If value is null, stack should remain unchanged
+        generator.branchBool(isNull, nullValue, nonNull);
+        generator.label(nullValue);
+        generator.branchLabel(resultLabel);
+        generator.label(nonNull);
+        generator.branchLabel(resultLabel);
+        generator.label(resultLabel);
+        var result = generator.phi(types.get(value), List.of(new PhiEntry(nullValue, "null"), new PhiEntry(nonNull, value)));
+        types.put(result, types.get(value));
+
+        // If it is not null, check if it can be cast, otherwise throw
+        String isInstance = checkInstance(generator, instruction, value);
+        var instanceLabel = labelGenerator.nextLabel();
+        var classCastException = labelGenerator.nextLabel();
+        generator.branchBool(isInstance, instanceLabel, classCastException);
+        generator.label(classCastException);
+
+        // TODO: throw class cast exception
+        generator.call(LlvmType.Primitive.VOID, "__cxa_throw", List.of(
+            new Parameter("null", LlvmType.Primitive.POINTER),
+            new Parameter("null", LlvmType.Primitive.POINTER),
+            new Parameter("null", LlvmType.Primitive.POINTER))
+        );
+        generator.unreachable();
+        generator.label(instanceLabel);
+        stack.push(result);
+    }
+
+    private String checkInstance(IrMethodGenerator generator, TypeCheckInstruction instruction, String value) {
+        var targetType = instruction.type().name().stringValue();
+        var typeInfo = registry.getTypeInfo(targetType);
+        return generator.call(
+            LlvmType.Primitive.BOOLEAN,
+            "instanceof",
+            List.of(
+                new Parameter(value, LlvmType.Primitive.POINTER),
+                new Parameter(String.valueOf(typeInfo.types().getFirst()), LlvmType.Primitive.INT)
+            )
+        );
     }
 }

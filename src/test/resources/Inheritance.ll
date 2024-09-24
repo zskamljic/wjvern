@@ -1,8 +1,9 @@
-%"java/lang/Object" = type { ptr }
-%"java/lang/String" = type { ptr, %java_Array*, i8, i32, i1 }
-%Parent = type { ptr, i32, i32 }
+%"java/lang/Object" = type { ptr, ptr }
+%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
+%Parent = type { ptr, ptr, i32, i32 }
 %java_Array = type { i32, ptr }
-%Inheritance = type { %Inheritance_vtable_type*, i32, i32, i32 }
+%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
+%Inheritance = type { %Inheritance_vtable_type*, %java_TypeInfo*, i32, i32, i32 }
 declare void @"Parent_parentMethod()V"(%Parent*)
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -25,7 +26,7 @@ label0:
   ; %this entered scope under name %local.0
   ; Line 18
   %1 = load %Inheritance*, %Inheritance** %local.0
-  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 3
+  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 4
   store i32 2, i32* %2
   ; Line 19
   ret void
@@ -42,7 +43,7 @@ label0:
   ; %this entered scope under name %local.0
   ; Line 23
   %1 = load %Inheritance*, %Inheritance** %local.0
-  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 2
+  %2 = getelementptr inbounds %Inheritance, %Inheritance* %1, i32 0, i32 3
   store i32 5, i32* %2
   ; Line 24
   ret void
@@ -54,6 +55,7 @@ label1:
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
+declare i1 @instanceof(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -68,6 +70,10 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%Inheritance*)* @"Inheritance_childMethod()V"
 }
 
+@typeInfo_types = private global [3 x i32] [i32 3, i32 2, i32 1]
+@typeInfo_interfaces = private global [0 x i32] []
+@typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
+
 define void @"Inheritance_<init>()V"(%Inheritance* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %Inheritance**
   store %Inheritance* %param.0, %Inheritance** %local.0
@@ -80,6 +86,9 @@ label0:
   %2 = load %Inheritance*, %Inheritance** %local.0
   %3 = getelementptr inbounds %Inheritance, %Inheritance* %2, i32 0, i32 0
   store %Inheritance_vtable_type* @Inheritance_vtable_data, %Inheritance_vtable_type** %3
+  %4 = load %Inheritance*, %Inheritance** %local.0
+  %5 = getelementptr inbounds %Inheritance, %Inheritance* %4, i32 0, i32 1
+  store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
 label1:
   ; %this exited scope under name %local.0
@@ -119,14 +128,14 @@ label0:
   call void %17(%Inheritance* %13)
   ; Line 32
   %18 = load %Inheritance*, %Inheritance** %local.0
-  %19 = getelementptr inbounds %Inheritance, %Inheritance* %18, i32 0, i32 1
+  %19 = getelementptr inbounds %Inheritance, %Inheritance* %18, i32 0, i32 2
   %20 = load i32, i32* %19
   %21 = load %Inheritance*, %Inheritance** %local.0
-  %22 = getelementptr inbounds %Inheritance, %Inheritance* %21, i32 0, i32 3
+  %22 = getelementptr inbounds %Inheritance, %Inheritance* %21, i32 0, i32 4
   %23 = load i32, i32* %22
   %24 = add i32 %20, %23
   %25 = load %Inheritance*, %Inheritance** %local.0
-  %26 = getelementptr inbounds %Inheritance, %Inheritance* %25, i32 0, i32 2
+  %26 = getelementptr inbounds %Inheritance, %Inheritance* %25, i32 0, i32 3
   %27 = load i32, i32* %26
   %28 = add i32 %24, %27
   ret i32 %28
