@@ -43,13 +43,15 @@ public class IrClassGenerator {
     private final List<MethodModel> methods = new ArrayList<>();
     private final List<String> injectedCode = new ArrayList<>();
     private final LlvmType.Declared vtableType;
+    private final boolean isInterface;
     private boolean isException;
 
     public IrClassGenerator(
         String className,
         boolean debug,
         Function<LlvmType.Declared, AggregateType> definitionMapper,
-        Registry registry
+        Registry registry,
+        boolean isInterface
     ) {
         isException = "java/lang/Throwable".equals(className);
         this.className = className;
@@ -57,6 +59,7 @@ public class IrClassGenerator {
         this.definitionMapper = definitionMapper;
         this.registry = registry;
         this.vtableType = new LlvmType.Declared(Utils.vtableTypeName(className));
+        this.isInterface = isInterface;
     }
 
     public void inherit(IrClassGenerator parent) {
@@ -138,7 +141,7 @@ public class IrClassGenerator {
     public void addMethodDependency(MethodRefEntry method, boolean isStatic) {
         if (method.owner().name().stringValue().equals(className)) return;
 
-        methodDependencies.add(Utils.methodDefinition(method, isStatic));
+        methodDependencies.add(Utils.methodDeclaration(method, isStatic));
     }
 
     private boolean hasMatchingLeadParams(MethodModel left, MethodModel right) {
@@ -183,15 +186,19 @@ public class IrClassGenerator {
             generateVtable(className, builder);
         }
         builder.append("\n");
+        generateInterfaceVtables(builder);
 
         generateStatics(builder);
 
         if (methods.stream().anyMatch(Utils::isVirtual)) {
             var virtualMethodString = methods.stream()
+                .filter(m -> !m.flags().has(AccessFlag.ABSTRACT))
                 .filter(Utils::isVirtual)
                 .map(this::generateMethod)
                 .collect(Collectors.joining("\n\n"));
-            builder.append(virtualMethodString).append("\n\n");
+            if (methods.stream().filter(m -> !m.flags().has(AccessFlag.ABSTRACT)).anyMatch(Utils::isVirtual)) {
+                builder.append(virtualMethodString).append("\n\n");
+            }
         }
 
         if (!injectedCode.isEmpty()) {
@@ -202,8 +209,10 @@ public class IrClassGenerator {
 
         if (!className.equals("__entrypoint")) {
             generateVtableData(builder, vtableType);
-            builder.append("\n\n");
-            generateTypeInfo(builder, registry.getTypeInfo(className));
+            if (!isInterface) {
+                builder.append("\n\n");
+                generateTypeInfo(builder, registry.getTypeInfo(className));
+            }
         }
         builder.append("\n\n");
 
@@ -214,6 +223,31 @@ public class IrClassGenerator {
         builder.append(methodString).append("\n");
 
         return builder.toString();
+    }
+
+    private void generateInterfaceVtables(StringBuilder builder) {
+        var interfaces = registry.interfacesOf(className);
+
+        for (var interfaceName : interfaces) {
+            builder.append("@").append(Utils.escape(className + "_" + interfaceName + "_vtable"))
+                .append(" = global %").append(Utils.vtableTypeName(interfaceName)).append(" {\n");
+
+            var functions = registry.getVirtualFunctions(interfaceName);
+            var methodList = functions.stream()
+                .map(f -> {
+                    var requiredParams = f.signature().parameters().stream().skip(1).toList();
+                    var name = f.simpleName();
+                    var interfaceMethod = Stream.concat(methods.stream(), parentMethods.stream())
+                        .filter(m -> m.methodName().equalsString(name) &&
+                            m.methodTypeSymbol().parameterList().stream().map(IrTypeMapper::mapType).toList().equals(requiredParams))
+                        .findFirst();
+                    return f.signature() + "* " + interfaceMethod.map(methodElements -> "@" + Utils.methodName(methodElements.parent().get().thisClass().name().stringValue(), methodElements))
+                        .orElse("null");
+                })
+                .collect(Collectors.joining(",\n"));
+            builder.append("  ").append(methodList).append("\n");
+            builder.append("}\n");
+        }
     }
 
     private void generateTypeInfo(StringBuilder builder, TypeInfo typeInfo) {
@@ -231,11 +265,18 @@ public class IrClassGenerator {
             .collect(Collectors.joining(", "));
         builder.append(interfaceValues).append("]\n");
 
+        builder.append("@typeInfo_interface_tables = private global [").append(interfaces.size()).append(" x ptr] [");
+        var interfaceVtables = registry.interfacesOf(className)
+            .stream()
+            .map(i -> "ptr @" + Utils.escape(className + "_" + i + "_vtable"))
+            .collect(Collectors.joining(", "));
+        builder.append(interfaceVtables).append("]\n");
+
         builder.append("@typeInfo = private global %java_TypeInfo { i32 ")
             .append(types.size())
             .append(", i32* @typeInfo_types, i32 ")
             .append(interfaces.size())
-            .append(", i32* @typeInfo_interfaces, ptr null")
+            .append(", i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables")
             .append(" }");
     }
 
@@ -247,7 +288,7 @@ public class IrClassGenerator {
 
         registry.getVirtualFunctions(className)
             .stream()
-            .filter(f -> !registry.declaresFunction(className, f))
+            .filter(f -> !registry.definesFunction(className, f))
             .map(VtableInfo::toDeclarationString)
             .forEach(allMethods::add);
 
@@ -353,7 +394,7 @@ public class IrClassGenerator {
 
         builder.append(fieldDefinition);
 
-        builder.append(" }");
+        builder.append(" }\n");
     }
 
     private void generateVtableData(StringBuilder builder, LlvmType vtableType) {
@@ -364,7 +405,7 @@ public class IrClassGenerator {
         var virtualFunctions = registry.getVirtualFunctions(className);
         if (!virtualFunctions.isEmpty()) {
             var mappings = virtualFunctions.stream()
-                .map(vi -> vi.signature() + "* " + vi.functionName())
+                .map(this::createVtableDataEntry)
                 .collect(Collectors.joining(",\n  "));
             builder.append(" ".repeat(2))
                 .append(mappings)
@@ -372,6 +413,17 @@ public class IrClassGenerator {
         }
 
         builder.append("}");
+    }
+
+    private String createVtableDataEntry(VtableInfo vi) {
+        var hasDefinition = Stream.concat(methods.stream(), parentMethods.stream())
+            .filter(m -> !m.flags().has(AccessFlag.ABSTRACT))
+            .map(m -> "@" + Utils.methodName(m.parent().orElseThrow().thisClass().name().stringValue(), m))
+            .anyMatch(m -> m.equals(vi.functionName()));
+        if (hasDefinition) {
+            return vi.signature() + "* " + vi.functionName();
+        }
+        return vi.signature() + "* null";
     }
 
     private String generateMethod(MethodModel method) {

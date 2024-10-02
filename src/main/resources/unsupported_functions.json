@@ -8,7 +8,6 @@
       "clone",
       "// from java/lang/String",
       "value",
-      "compareTo",
       "resolveConstantDesc",
       "join",
       "getBytes",
@@ -109,7 +108,8 @@
           "(Ljava/lang/StringBuilder;)V",
           "([B)V",
           "([BIILjava/nio/charset/Charset;)V",
-          "([BLjava/nio/charset/Charset;)V"
+          "([BLjava/nio/charset/Charset;)V",
+          "(Ljava/nio/charset/Charset;[BII)V"
         ]
       }
     ],
@@ -119,7 +119,14 @@
       "encodeUTF8",
       "newStringNoRepl",
       "getBytesNoRepl",
-      "equals"
+      "equals",
+      "newStringNoRepl1",
+      "encodeWithEncoder",
+      "compareToIgnoreCase",
+      "outdent",
+      "contains",
+      "transform",
+      "compareTo"
     ]
   },
   "java/lang/StringUTF16": {
@@ -139,6 +146,11 @@
       "getChars",
       "putCharsAt",
       "lastIndexOfLatin1"
+    ]
+  },
+  "java/util/List": {
+    "byName": [
+      "spliterator"
     ]
   }
 }

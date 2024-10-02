@@ -3,8 +3,8 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.Blacklist;
 import zskamljic.jcomp.StdLibResolver;
 import zskamljic.jcomp.llir.models.AggregateType;
-import zskamljic.jcomp.registries.Registry;
 import zskamljic.jcomp.llir.models.LlvmType;
+import zskamljic.jcomp.registries.Registry;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
@@ -44,21 +44,21 @@ public class ClassBuilder {
 
     public Map<String, IrClassGenerator> generate() throws IOException {
         var generated = new HashMap<String, IrClassGenerator>();
-        var functionRegistry = generateFunctionRegistry();
+        var registry = generateRegistry();
         var globalInitializer = new GlobalInitializer();
-        generate(generated, functionRegistry, globalInitializer);
+        generate(generated, registry, globalInitializer);
 
         globalInitializer.generateEntryPoint(
             classModel.thisClass().name().stringValue(),
             generated,
             c -> generateType(c, generated),
-            functionRegistry
+            registry
         );
 
         return generated;
     }
 
-    private Registry generateFunctionRegistry() throws IOException {
+    private Registry generateRegistry() throws IOException {
         var registry = new Registry(this::loadClass, Blacklist::isUnsupportedFunction);
         registry.walk(classModel);
 
@@ -75,11 +75,11 @@ public class ClassBuilder {
         GlobalInitializer globalInitializer
     ) throws IOException {
         var className = classModel.thisClass().name().stringValue();
-        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), registry);
+        var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), registry, classModel.flags().has(AccessFlag.INTERFACE));
 
         var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
-        if (classModel.superclass().isPresent()) {
+        if (classModel.superclass().filter(p -> p.name().equalsString("java/lang/Exception") || isValidSuperclassFor(classModel, p)).isPresent()) {
             var superclass = classModel.superclass().get();
             generateSuperClass(superclass, classGenerator, generatedClasses, registry, globalInitializer);
             Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
@@ -141,6 +141,7 @@ public class ClassBuilder {
             %"java/util/function/BiFunction" = type opaque
             declare i32 @__gxx_personality_v0(...)
             declare i1 @instanceof(ptr,i32)
+            declare ptr @type_interface_vtable(ptr,i32)
             declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
             declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
             declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -162,6 +163,16 @@ public class ClassBuilder {
         // TODO: when toString is enabled this will no longer be needed
         var stringClass = loadClass("java/lang/String").orElseThrow();
         handleClassEntry(stringClass.thisClass(), generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
+    }
+
+    private boolean isValidSuperclassFor(ClassModel current, ClassEntry parent) {
+        try {
+            var parentModel = loadClass(parent);
+            return parentModel.filter(classElements -> Utils.isValidSuperclass(current, classElements)).isPresent();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            return false;
+        }
     }
 
     private void handleClassEntry(
@@ -239,8 +250,8 @@ public class ClassBuilder {
                     "java/lang/Exception",
                     debug,
                     c -> generateType(c, generatedClasses),
-                    registry
-                );
+                    registry,
+                    classModel.flags().has(AccessFlag.INTERFACE));
                 generator.injectCode("""
                     define void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*) {
                       ret void

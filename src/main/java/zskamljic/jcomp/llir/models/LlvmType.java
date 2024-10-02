@@ -1,7 +1,11 @@
 package zskamljic.jcomp.llir.models;
 
+import zskamljic.jcomp.llir.IrTypeMapper;
 import zskamljic.jcomp.llir.Utils;
 
+import java.lang.classfile.MethodModel;
+import java.lang.constant.MethodTypeDesc;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -68,6 +72,23 @@ public sealed interface LlvmType {
     }
 
     record Function(LlvmType returnType, List<LlvmType> parameters, boolean isNative) implements LlvmType {
+        public Function(String className, MethodModel method) {
+            var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
+            var parameterList = generateParameterList(className, method.methodTypeSymbol());
+            this(returnType, parameterList, Utils.isNative(method));
+        }
+
+        private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
+            var parameterList = new ArrayList<LlvmType>();
+            parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
+            for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
+                var parameter = methodTypeSymbol.parameterType(i);
+                var type = IrTypeMapper.mapType(parameter);
+                parameterList.add(type);
+            }
+            return parameterList;
+        }
+
         @Override
         public String toString() {
             return returnType + "(" + parameters.stream().map(Objects::toString).collect(Collectors.joining(", ")) + ")";

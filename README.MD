@@ -12,7 +12,7 @@ The following features have been tested (but more might be available):
 
 - Standard Java main function (also supporting `static int main()` for development reasons)
 - [Linking with native functions](#linking-with-native-functions)
-- Basic OOP - functions, fields, inheritance (fields, methods, overriding)
+- OOP - functions, fields, inheritance (fields, methods, overriding), interfaces
 - Conditional statements (switch expressions included)
 - Basic exceptions (using trimmed version of java.lang.Exception, permits subclasses)
 - Function overloading
@@ -49,11 +49,10 @@ Currently, all memory is managed via stack, garbage collection is not present at
 
 The following functionalities are currently not supported (yet?):
 
-- interfaces
-- abstract methods
 - static initializers
 - majority of java.lang.String methods (for full list see [here](src/main/resources/unsupported_functions.json))
 - reflection
+- most standard library classes
 
 ## Compatibility
 

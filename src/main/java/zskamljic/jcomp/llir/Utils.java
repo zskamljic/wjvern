@@ -2,6 +2,7 @@ package zskamljic.jcomp.llir;
 
 import zskamljic.jcomp.llir.models.LlvmType;
 
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
@@ -64,7 +65,7 @@ public class Utils {
         return Utils.escape(className + "_vtable_type");
     }
 
-    public static String methodDefinition(MethodRefEntry method, boolean isStatic) {
+    public static String methodDeclaration(MethodRefEntry method, boolean isStatic) {
         var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
         List<String> parameters = method.typeSymbol()
             .parameterList()
@@ -82,7 +83,7 @@ public class Utils {
         return "declare " + type + " @" + name + "(" + parameterString + ")";
     }
 
-    public static String methodDefinition(String owner, MethodModel method) {
+    public static String methodDeclaration(String owner, MethodModel method) {
         var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
         List<String> parameters = method.methodTypeSymbol()
             .parameterList()
@@ -98,5 +99,9 @@ public class Utils {
 
         var name = Utils.methodName(owner, method);
         return "declare " + type + " @" + name + "(" + parameterString + ")";
+    }
+
+    public static boolean isValidSuperclass(ClassModel current, ClassModel parent) {
+        return !(current.flags().has(AccessFlag.INTERFACE) && !parent.flags().has(AccessFlag.INTERFACE));
     }
 }

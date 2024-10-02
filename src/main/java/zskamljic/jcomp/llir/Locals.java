@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 public class Locals {
+    public static final String LOCAL_PREFIX = "%local.";
     private final List<Local> variables = new ArrayList<>();
     private final Map<Integer, Local> activeLocals = new HashMap<>();
     private final IrMethodGenerator generator;
@@ -27,11 +28,19 @@ public class Locals {
 
     public Local get(int slot) {
         return activeLocals.computeIfAbsent(slot, s -> {
-            var name = "%local." + s;
+            var name = LOCAL_PREFIX + s;
             var local = new Local(name, LlvmType.Primitive.POINTER, s, null, null);
             if (!types.containsKey(name)) {
-                generator.alloca(name, LlvmType.Primitive.POINTER);
-                types.put(name, LlvmType.Primitive.POINTER);
+                if (parameterChecker.test("param." + slot)) {
+                    var paramType = types.get("%param." + slot);
+                    var type = new LlvmType.Pointer(paramType);
+                    generator.alloca(name, type);
+                    generator.store(paramType, "%param." + slot, type, name);
+                    types.put(name, type);
+                } else {
+                    generator.alloca(name, LlvmType.Primitive.POINTER);
+                    types.put(name, LlvmType.Primitive.POINTER);
+                }
             }
             return local;
         });
@@ -47,8 +56,8 @@ public class Locals {
         }
 
         if (parameterChecker.test("param." + variable.slot())) {
-            generator.alloca("%local." + variable.slot(), new LlvmType.Pointer(type));
-            generator.store(type, "%param." + variable.slot(), new LlvmType.Pointer(type), "%local." + variable.slot());
+            generator.alloca(LOCAL_PREFIX + variable.slot(), new LlvmType.Pointer(type));
+            generator.store(type, "%param." + variable.slot(), new LlvmType.Pointer(type), LOCAL_PREFIX + variable.slot());
         }
         type = new LlvmType.Pointer(type);
 

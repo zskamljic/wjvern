@@ -4,6 +4,7 @@
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
 %InstanceOf = type { %InstanceOf_vtable_type*, %java_TypeInfo*, i32 }
+
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/System_exit(I)V"(i32)
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -21,6 +22,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
+declare ptr @type_interface_vtable(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -47,7 +49,8 @@ declare void @__cxa_end_catch()
 
 @typeInfo_types = private global [2 x i32] [i32 2, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
-@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
+@typeInfo_interface_tables = private global [0 x ptr] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
 
 define void @"InstanceOf_<init>(I)V"(%InstanceOf* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %InstanceOf**
@@ -102,31 +105,22 @@ label4:
   br i1 %5, label %label1, label %label5
 label5:
   %6 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %7 = ptrtoint ptr %6 to i32
-  %8 = icmp eq i32 %7, 0
-  br i1 %8, label %label6, label %label7
-label6:
-  br label %label8
+  %7 = call i1 @instanceof(ptr %6, i32 2)
+  br i1 %7, label %label6, label %label7
 label7:
-  br label %label8
-label8:
-  %9 = phi %"java/lang/Object"* [null, %label6], [%6, %label7]
-  %10 = call i1 @instanceof(ptr %6, i32 2)
-  br i1 %10, label %label9, label %label10
-label10:
-  call void @__cxa_throw(ptr null, ptr null, ptr null)
+  call void @"java/lang/System_exit(I)V"(i32 69)
   unreachable
-label9:
+label6:
   %local.2 = alloca ptr
-  store %"java/lang/Object"* %9, ptr %local.2
+  store %"java/lang/Object"* %6, ptr %local.2
   br label %label0
 label0:
   ; %iof entered scope under name %local.2
   ; Line 11
-  %11 = load %InstanceOf*, %InstanceOf** %local.2
-  %12 = getelementptr inbounds %InstanceOf, %InstanceOf* %11, i32 0, i32 2
-  %13 = load i32, i32* %12
-  call void @"java/lang/System_exit(I)V"(i32 %13)
+  %8 = load %InstanceOf*, %InstanceOf** %local.2
+  %9 = getelementptr inbounds %InstanceOf, %InstanceOf* %8, i32 0, i32 2
+  %10 = load i32, i32* %9
+  call void @"java/lang/System_exit(I)V"(i32 %10)
   br label %label1
 label1:
   ; %iof exited scope under name %local.2

@@ -26,9 +26,9 @@ public class Vtable {
         var previous = vtableEntries.get(name + methodTypeDesc.descriptorString());
         if (previous != null) {
             var index = previous.index();
-            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, index));
+            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, name, index));
         } else {
-            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, vtableEntries.size()));
+            vtableEntries.put(name + methodTypeDesc.descriptorString(), new VtableInfo(functionSignature, functionName, name, vtableEntries.size()));
         }
     }
 

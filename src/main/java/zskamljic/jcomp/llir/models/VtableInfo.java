@@ -2,7 +2,7 @@ package zskamljic.jcomp.llir.models;
 
 import java.util.stream.Collectors;
 
-public record VtableInfo(LlvmType.Function signature, String functionName, int index) {
+public record VtableInfo(LlvmType.Function signature, String functionName, String simpleName, int index) {
     public String toDeclarationString() {
         var signature = "declare " +
             signature().returnType() + " " + functionName() + "(" +

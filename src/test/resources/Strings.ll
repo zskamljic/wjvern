@@ -3,6 +3,7 @@
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
 %Strings = type { %Strings_vtable_type*, %java_TypeInfo* }
+
 @string.value.7 = private unnamed_addr constant [7 x i8] c"hello\0A\00"
 @string.array.7 = private unnamed_addr constant %java_Array { i32 7, ptr @string.value.7 }
 @string.7 = private global %"java/lang/String" { ptr null, ptr null, ptr null, i8 0, i32 0, i1 0 }
@@ -38,6 +39,7 @@ handlerLabel:
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
+declare ptr @type_interface_vtable(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -51,7 +53,8 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @typeInfo_types = private global [2 x i32] [i32 2, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
-@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
+@typeInfo_interface_tables = private global [0 x ptr] []
+@typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
 
 define void @"Strings_<init>()V"(%Strings* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %Strings**

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LookupSwitchInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
@@ -56,7 +57,7 @@ public class Blacklist {
         return method.code()
             .stream()
             .flatMap(CompoundElement::elementStream)
-            .anyMatch(e -> e instanceof InvokeInstruction i && i.opcode() == Opcode.INVOKEINTERFACE);
+            .anyMatch(InvokeDynamicInstruction.class::isInstance);
     }
 
     private static boolean isBlacklisted(MethodModel method) {

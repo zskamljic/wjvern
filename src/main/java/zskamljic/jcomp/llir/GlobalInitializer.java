@@ -68,7 +68,7 @@ public class GlobalInitializer {
     ) {
         if (generated.containsKey("__entrypoint")) return;
 
-        var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, registry);
+        var generator = new IrClassGenerator("__entrypoint", false, definitionMapper, registry, true);
         generated.put("__entrypoint", generator);
 
         var stringDefinition = definitionMapper.apply(new LlvmType.Declared("java/lang/String"));
@@ -116,7 +116,7 @@ public class GlobalInitializer {
             .orElseThrow(() -> new IllegalArgumentException("No main method found"));
 
         var mainBuilder = new StringBuilder()
-            .append(Utils.methodDefinition(className, mainMethod)).append("\n\n")
+            .append(Utils.methodDeclaration(className, mainMethod)).append("\n\n")
             .append("define i32 @main(i32 %0, ptr %1) {\n");
 
         String returnValue;

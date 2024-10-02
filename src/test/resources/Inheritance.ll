@@ -4,6 +4,7 @@
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
 %Inheritance = type { %Inheritance_vtable_type*, %java_TypeInfo*, i32, i32, i32 }
+
 declare void @"Parent_parentMethod()V"(%Parent*)
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
@@ -56,6 +57,7 @@ label1:
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
+declare ptr @type_interface_vtable(ptr,i32)
 declare void @llvm.memset.p0.i8(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i16(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
@@ -72,7 +74,8 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 @typeInfo_types = private global [3 x i32] [i32 3, i32 2, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
-@typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr null }
+@typeInfo_interface_tables = private global [0 x ptr] []
+@typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
 
 define void @"Inheritance_<init>()V"(%Inheritance* %param.0) personality ptr @__gxx_personality_v0 {
   %local.0 = alloca %Inheritance**

@@ -1,6 +1,5 @@
 package zskamljic.jcomp.registries;
 
-import zskamljic.jcomp.llir.IrTypeMapper;
 import zskamljic.jcomp.llir.Utils;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Vtable;
@@ -32,6 +31,7 @@ public class Registry {
     private final ClassLoader classLoader;
     private final Predicate<MethodModel> isUnsupportedFunction;
     private final Map<String, Integer> typeIds = new HashMap<>();
+    private final Map<Integer, String> idsToType = new HashMap<>();
     private final Map<String, TypeInfo> typeInfos = new HashMap<>();
 
     public Registry(ClassLoader classLoader, Predicate<MethodModel> isUnsupportedFunction) {
@@ -41,6 +41,7 @@ public class Registry {
         vtables.put(EXCEPTION_NAME, new Vtable(EXCEPTION_NAME));
         methods.put(EXCEPTION_NAME, new HashSet<>());
         typeIds.put(EXCEPTION_NAME, 0);
+        idsToType.put(0, EXCEPTION_NAME);
         typeInfos.put(EXCEPTION_NAME, new TypeInfo(List.of(), List.of()));
     }
 
@@ -87,7 +88,7 @@ public class Registry {
 
         var vtable = new Vtable(className);
         if (current.superclass().isPresent()) {
-            var parentClass = classLoader.load(current.superclass().get());
+            var parentClass = classLoader.load(current.superclass().get()).filter(p -> Utils.isValidSuperclass(current, p));
             if (parentClass.isPresent()) {
                 var parent = walkClass(parentClass.get());
                 vtable.addAll(parent);
@@ -98,9 +99,7 @@ public class Registry {
                 continue;
             }
             if (Utils.isVirtual(method)) {
-                var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
-                var parameterList = generateParameterList(className, method.methodTypeSymbol());
-                var functionSignature = new LlvmType.Function(returnType, parameterList, Utils.isNative(method));
+                var functionSignature = new LlvmType.Function(className, method);
                 var functionName = "@" + Utils.methodName(className, method);
                 vtable.put(
                     method.methodName().stringValue(),
@@ -114,9 +113,17 @@ public class Registry {
         vtables.put(className, vtable);
         var typeId = typeIds.size();
         typeIds.put(className, typeId);
+        idsToType.put(typeId, className);
         var typeInfo = new TypeInfo(new ArrayList<>(), new ArrayList<>());
         typeInfo.types().add(typeId);
-        if (current.superclass().isPresent()) {
+        if (current.superclass().filter(p -> {
+            try {
+                return p.name().equalsString(EXCEPTION_NAME) || Utils.isValidSuperclass(current, classLoader.load(p).orElseThrow());
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+                return false;
+            }
+        }).isPresent()) {
             var parent = current.superclass().get().name().stringValue();
             var parentTypes = typeInfos.get(parent);
             if (parentTypes != null) {
@@ -151,25 +158,15 @@ public class Registry {
             .map(i -> i.name().stringValue())
             .map(typeInfos::get)
             .filter(Objects::nonNull)
-            .map(TypeInfo::interfaces)
+            .map(TypeInfo::types)
             .flatMap(Collection::stream)
             .distinct()
             .forEach(typeInfo.interfaces()::add);
+        typeInfo.consolidateTypes();
         return vtable;
     }
 
-    private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {
-        var parameterList = new ArrayList<LlvmType>();
-        parameterList.add(new LlvmType.Pointer(new LlvmType.Declared(className)));
-        for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
-            var parameter = methodTypeSymbol.parameterType(i);
-            var type = IrTypeMapper.mapType(parameter);
-            parameterList.add(type);
-        }
-        return parameterList;
-    }
-
-    public boolean declaresFunction(String className, VtableInfo vtableInfo) {
+    public boolean definesFunction(String className, VtableInfo vtableInfo) {
         return methods.getOrDefault(className, Set.of())
             .stream()
             .map(m -> "@" + Utils.methodName(className, m))
@@ -178,6 +175,15 @@ public class Registry {
 
     public TypeInfo getTypeInfo(String className) {
         return typeInfos.get(className);
+    }
+
+    public List<String> interfacesOf(String className) {
+        return Optional.ofNullable(typeInfos.get(className))
+            .map(TypeInfo::interfaces)
+            .stream()
+            .flatMap(Collection::stream)
+            .map(idsToType::get)
+            .toList();
     }
 
     @FunctionalInterface
