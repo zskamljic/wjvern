@@ -3,8 +3,9 @@ package zskamljic.jcomp.llir;
 import zskamljic.jcomp.llir.models.ExceptionInfo;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Parameter;
-import zskamljic.jcomp.llir.models.PhiEntry;
+import zskamljic.jcomp.llir.models.VtableInfo;
 import zskamljic.jcomp.registries.Registry;
+import zskamljic.jcomp.registries.TypeInfo;
 
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
@@ -148,7 +149,8 @@ public class FunctionBuilder {
                         addInitTypeInfo(generator, types);
                     }
                 }
-                case Label label -> currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, label);
+                case Label label ->
+                    currentLabel = handleLabel(generator, labelGenerator, exceptionState, currentLabel, locals, stack, label);
                 case LineNumber l -> generator.comment("Line " + l.line());
                 case LoadInstruction l -> handleLoad(generator, stack, types, locals, l);
                 case LocalVariable v -> locals.register(v);
@@ -162,7 +164,8 @@ public class FunctionBuilder {
                 case StackInstruction s -> handleStackInstruction(stack, types, s);
                 case StoreInstruction s -> handleStoreInstruction(generator, stack, locals, types, s);
                 case TableSwitchInstruction s -> handleTableSwitch(generator, stack, types, labelGenerator, s);
-                case ThrowInstruction _ -> handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
+                case ThrowInstruction _ ->
+                    handleThrowInstruction(generator, labelGenerator, types, exceptionState, stack);
                 case TypeCheckInstruction t -> handleTypeCheckInstruction(generator, stack, types, labelGenerator, t);
                 default -> System.out.println(method.methodName() + ": " + element + ": not handled");
             }
@@ -186,7 +189,7 @@ public class FunctionBuilder {
             if (type.isReferenceType()) {
                 type = new LlvmType.Pointer(type);
             }
-            types.put("%param." +index, type);
+            types.put("%param." + index, type);
         }
     }
 
@@ -291,8 +294,6 @@ public class FunctionBuilder {
         var array = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, arrayPointer);
 
         var type = switch (types.get(reference)) {
-            case LlvmType.Array a -> a.type();
-            case LlvmType.SizedArray a -> a.type();
             case LlvmType.Pointer(LlvmType.Array a) -> a.type();
             case LlvmType.Pointer(LlvmType.SizedArray a) -> a.type();
             default -> {
@@ -583,25 +584,28 @@ public class FunctionBuilder {
         var type = IrTypeMapper.mapType(instruction.opcode().primaryTypeKind());
         var resultVar = switch (instruction.opcode()) {
             case ARRAYLENGTH -> {
-                if (types.get(operand) instanceof LlvmType.Pointer) {
-                    var pointer = generator.getElementPointer(ARRAY_TYPE, ARRAY_POINTER_TYPE, operand, List.of("0", "0"));
-                    yield generator.load(LlvmType.Primitive.INT, LlvmType.Primitive.POINTER, pointer);
-                } else {
-                    yield generator.extractValue(ARRAY_TYPE.toString(), operand, 0);
-                }
+                var pointer = generator.getElementPointer(ARRAY_TYPE, ARRAY_POINTER_TYPE, operand, List.of("0", "0"));
+                yield generator.load(LlvmType.Primitive.INT, LlvmType.Primitive.POINTER, pointer);
             }
-            case DADD, FADD, IADD, LADD -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ADD);
-            case DDIV, FDIV, IDIV, LDIV -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.DIV);
-            case DMUL, FMUL, IMUL, LMUL -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.MUL);
-            case DSUB, FSUB, ISUB, LSUB -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SUB);
+            case DADD, FADD, IADD, LADD ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ADD);
+            case DDIV, FDIV, IDIV, LDIV ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.DIV);
+            case DMUL, FMUL, IMUL, LMUL ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.MUL);
+            case DSUB, FSUB, ISUB, LSUB ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SUB);
             case IAND -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.AND);
             case INEG -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, type, "0", operand);
-            case IOR, LOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.OR);
-            case ISHL, LSHL -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SHL);
+            case IOR, LOR ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.OR);
+            case ISHL, LSHL ->
+                handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SHL);
             case ISHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
             case IUSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.LSHR);
             case IXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
-            case LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
+            case LCMP ->
+                signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
             default -> throw new IllegalArgumentException(instruction.opcode() + " is not supported yet");
         };
 
@@ -703,7 +707,8 @@ public class FunctionBuilder {
             case I2D, I2F, L2F, L2D -> generator.signedToFloatingPoint(sourceType, source, targetType);
             case I2B, I2C, I2S, L2I -> generator.signedTruncate(sourceType, source, targetType);
             case I2L -> generator.signedExtend(sourceType, source, targetType);
-            default -> throw new UnsupportedOperationException("Conversion for " + c.opcode() + " is not yet supported");
+            default ->
+                throw new UnsupportedOperationException("Conversion for " + c.opcode() + " is not yet supported");
         };
         types.put(result, targetType);
         stack.push(result);
@@ -728,7 +733,8 @@ public class FunctionBuilder {
             case PUTFIELD -> putField(generator, types, stack, instruction);
             case GETSTATIC -> getStatic(generator, types, stack, instruction.field());
             case PUTSTATIC -> putStatic(generator, types, stack, instruction.field());
-            default -> throw new IllegalArgumentException(instruction.opcode() + " field instruction is not yet supported");
+            default ->
+                throw new IllegalArgumentException(instruction.opcode() + " field instruction is not yet supported");
         }
     }
 
@@ -785,11 +791,7 @@ public class FunctionBuilder {
 
     private void handleIncrement(IrMethodGenerator generator, Locals locals, HashMap<String, LlvmType> types, IncrementInstruction instruction) {
         var source = locals.get(instruction.slot());
-        if (source.type() instanceof LlvmType.Primitive p && p != LlvmType.Primitive.POINTER) {
-            var valueName = generator.load(p, new LlvmType.Pointer(source.type()), source.varName());
-            var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
-            generator.store(p, updatedName, new LlvmType.Pointer(source.type()), source.varName());
-        } else if (types.get(source.varName()) instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
+        if (types.get(source.varName()) instanceof LlvmType.Pointer(LlvmType.Primitive p)) {
             var valueName = generator.load(p, new LlvmType.Pointer(p), source.varName());
             var updatedName = generator.binaryOperator(IrMethodGenerator.Operator.ADD, p, valueName, String.valueOf(instruction.constant()));
             generator.store(p, updatedName, new LlvmType.Pointer(p), source.varName());
@@ -837,9 +839,9 @@ public class FunctionBuilder {
 
         // Add implicit this
         if (invocation.opcode() != Opcode.INVOKESTATIC) {
-            var typeName = invocation.method().owner().name().stringValue();
+            var typeName = IrTypeMapper.mapType(invocation.method().owner().asSymbol());
             var thisParameter = loadIfNeeded(generator, types, stack.pop());
-            parameters.addFirst(new Parameter(thisParameter, new LlvmType.Pointer(new LlvmType.Declared(typeName))));
+            parameters.addFirst(new Parameter(thisParameter, new LlvmType.Pointer(typeName)));
         }
 
         var returnType = IrTypeMapper.mapType(invocation.typeSymbol().returnType());
@@ -887,8 +889,6 @@ public class FunctionBuilder {
 
     private LlvmType arrayNestedType(LlvmType actualType) {
         return switch (actualType) {
-            case LlvmType.Array array -> array.type();
-            case LlvmType.SizedArray array -> array.type();
             case LlvmType.Pointer(LlvmType.Array array) -> array.type();
             case LlvmType.Pointer(LlvmType.SizedArray array) -> array.type();
             default -> null;
@@ -932,7 +932,13 @@ public class FunctionBuilder {
     private String handleInvokeVirtual(
         IrMethodGenerator generator, InvokeInstruction invocation, List<Parameter> parameters
     ) {
-        var ownerClass = invocation.method().owner().name().stringValue();
+        var owner = invocation.method().owner();
+        String ownerClass;
+        if (owner.asSymbol().isArray()) {
+            ownerClass = "java_Array";
+        } else {
+            ownerClass = owner.name().stringValue();
+        }
         var virtualInfo = registry.getVirtual(ownerClass, invocation.name().stringValue(), invocation.typeSymbol());
         if (virtualInfo.isEmpty()) {
             return directCall(invocation);
@@ -947,25 +953,7 @@ public class FunctionBuilder {
         var vtableTypePointer = new LlvmType.Pointer(vtableType);
         var vtableData = generator.load(vtableTypePointer, new LlvmType.Pointer(vtableTypePointer), vtablePointer);
 
-        // Get vtable pointer to function
-        var vtableInfo = virtualInfo.get();
-        var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, List.of("0", String.valueOf(vtableInfo.index())));
-
-        var function = vtableInfo.signature();
-        var functionPointer = new LlvmType.Pointer(function);
-
-        // Load function
-        var functionName = generator.load(functionPointer, new LlvmType.Pointer(functionPointer), methodPointer);
-
-        var actualType = parameters.getFirst().type();
-        var expectedType = function.parameters().getFirst();
-        if (!actualType.equals(expectedType)) {
-            var parameter = parameters.removeFirst();
-            var newParameter = generator.bitcast(parameter.type(), parameter.name(), expectedType);
-            parameters.addFirst(new Parameter(newParameter, expectedType));
-        }
-
-        return functionName;
+        return callFromVtable(generator, virtualInfo.get(), vtableType, vtableData, parameters);
     }
 
     private String handleInvokeInterface(IrMethodGenerator generator, InvokeInstruction invocation, List<Parameter> parameters) {
@@ -981,16 +969,18 @@ public class FunctionBuilder {
             )
         );
         var vtableType = new LlvmType.Declared(Utils.escape(invocation.owner().name().stringValue() + "_vtable_type"));
-        var vtableTypePointer = new LlvmType.Pointer(vtableType);
 
         var virtualInfo = registry.getVirtual(ownerClass, invocation.name().stringValue(), invocation.typeSymbol());
         if (virtualInfo.isEmpty()) {
-            System.err.println("Didn't find virtualInfo for " + invocation);
-            return directCall(invocation);
+            throw new IllegalStateException("Unable to invoke as interface: " + invocation.name().stringValue() + invocation.type());
         }
 
+        return callFromVtable(generator, virtualInfo.get(), vtableType, vtableData, parameters);
+    }
+
+    private String callFromVtable(IrMethodGenerator generator, VtableInfo vtableInfo, LlvmType vtableType, String vtableData, List<Parameter> parameters) {
+        var vtableTypePointer = new LlvmType.Pointer(vtableType);
         // Get vtable pointer to function
-        var vtableInfo = virtualInfo.get();
         var methodPointer = generator.getElementPointer(vtableType, vtableTypePointer, vtableData, List.of("0", String.valueOf(vtableInfo.index())));
 
         var function = vtableInfo.signature();
@@ -1098,7 +1088,8 @@ public class FunctionBuilder {
     }
 
     private String castIfNeeded(IrMethodGenerator generator, LlvmType originalType, LlvmType.Primitive requiredType, String value) {
-        if (originalType == null || originalType == requiredType || originalType instanceof LlvmType.Pointer) return value;
+        if (originalType == null || originalType == requiredType || originalType instanceof LlvmType.Pointer)
+            return value;
 
         return switch (originalType) {
             case LlvmType.Primitive original when original.isFloatingPoint() && requiredType.isFloatingPoint() -> {
@@ -1108,8 +1099,10 @@ public class FunctionBuilder {
                     yield generator.floatingPointExtend(value);
                 }
             }
-            case LlvmType.Primitive original when original.isFloatingPoint() -> generator.floatingPointToSignedInteger(original, value, requiredType);
-            case LlvmType.Primitive original when requiredType.isFloatingPoint() -> generator.signedToFloatingPoint(original, value, requiredType);
+            case LlvmType.Primitive original when original.isFloatingPoint() ->
+                generator.floatingPointToSignedInteger(original, value, requiredType);
+            case LlvmType.Primitive original when requiredType.isFloatingPoint() ->
+                generator.signedToFloatingPoint(original, value, requiredType);
             case LlvmType.Primitive original -> {
                 if (original.compareTo(requiredType) > 0) {
                     yield generator.signedTruncate(original, value, requiredType);
@@ -1135,7 +1128,8 @@ public class FunctionBuilder {
                 }
                 stack.push(first);
             }
-            default -> throw new IllegalArgumentException(instruction.opcode() + " stack instruction not supported yet");
+            default ->
+                throw new IllegalArgumentException(instruction.opcode() + " stack instruction not supported yet");
         }
     }
 
@@ -1263,8 +1257,16 @@ public class FunctionBuilder {
     }
 
     private String checkInstance(IrMethodGenerator generator, TypeCheckInstruction instruction, String value) {
-        var targetType = instruction.type().name().stringValue();
-        var typeInfo = registry.getTypeInfo(targetType);
+        var type = instruction.type().asSymbol();
+
+        TypeInfo typeInfo;
+        if (type.isArray()) {
+            typeInfo = registry.getTypeInfo("java_Array");
+        } else {
+            var targetType = instruction.type().name().stringValue();
+            typeInfo = registry.getTypeInfo(targetType);
+        }
+
         return generator.call(
             LlvmType.Primitive.BOOLEAN,
             "instanceof",

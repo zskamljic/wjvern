@@ -1,11 +1,11 @@
 package zskamljic.jcomp.registries;
 
+import zskamljic.jcomp.Blacklist;
 import zskamljic.jcomp.llir.Utils;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.Vtable;
 import zskamljic.jcomp.llir.models.VtableInfo;
 
-import java.io.IOException;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.constantpool.ClassEntry;
@@ -29,14 +29,12 @@ public class Registry {
     private final Map<String, Vtable> vtables = new HashMap<>();
     private final Map<String, Set<MethodModel>> methods = new HashMap<>();
     private final ClassLoader classLoader;
-    private final Predicate<MethodModel> isUnsupportedFunction;
     private final Map<String, Integer> typeIds = new HashMap<>();
     private final Map<Integer, String> idsToType = new HashMap<>();
     private final Map<String, TypeInfo> typeInfos = new HashMap<>();
 
-    public Registry(ClassLoader classLoader, Predicate<MethodModel> isUnsupportedFunction) {
+    public Registry(ClassLoader classLoader) {
         this.classLoader = classLoader;
-        this.isUnsupportedFunction = isUnsupportedFunction;
         // TODO: remove when exception compiles
         vtables.put(EXCEPTION_NAME, new Vtable(EXCEPTION_NAME));
         methods.put(EXCEPTION_NAME, new HashSet<>());
@@ -60,7 +58,19 @@ public class Registry {
     }
 
     public Optional<VtableInfo> getVirtual(String ownerClass, String functionName, MethodTypeDesc methodTypeDesc) {
-        return vtables.get(ownerClass).get(functionName, methodTypeDesc);
+        return Optional.ofNullable(vtables.get(ownerClass)).flatMap(v -> v.get(functionName, methodTypeDesc));
+    }
+
+    public boolean isStatic(MethodRefEntry method) {
+        var owner = method.owner().name().stringValue();
+        if (!methods.containsKey(owner)) {
+            var ownerClass = classLoader.load(method.owner());
+            if (ownerClass.isEmpty()) return true;
+        }
+
+        return methods.get(owner)
+            .stream()
+            .anyMatch(m -> m.flags().has(AccessFlag.STATIC) && Utils.methodName(owner, m).equals(Utils.methodName(method)));
     }
 
     public boolean isNative(String className, MemberRefEntry methodRefEntry) {
@@ -78,53 +88,74 @@ public class Registry {
             .anyMatch(method -> Utils.methodName(className, method).equals(Utils.methodName(methodRefEntry)));
     }
 
-    public void walk(ClassModel classModel) throws IOException {
-        walkClass(classModel);
+    public void walk(ClassModel current) {
+        walkClass(current);
+        initArrayTypeInfo();
     }
 
-    private Vtable walkClass(ClassModel current) throws IOException {
+    private void initArrayTypeInfo() {
+        var typeInfo = new TypeInfo(new ArrayList<>(), List.of());
+        typeInfo.types().add(typeInfos.size());
+        typeInfo.types().add(typeInfos.get("java/lang/Object").types().getFirst());
+        typeInfos.put("java_Array", typeInfo);
+    }
+
+    private void walkClass(ClassModel current) {
         var className = current.thisClass().name().stringValue();
-        if (vtables.containsKey(className)) return vtables.get(className);
+        if (vtables.containsKey(className)) return;
 
         var vtable = new Vtable(className);
-        if (current.superclass().isPresent()) {
-            var parentClass = classLoader.load(current.superclass().get()).filter(p -> Utils.isValidSuperclass(current, p));
-            if (parentClass.isPresent()) {
-                var parent = walkClass(parentClass.get());
-                vtable.addAll(parent);
-            }
-        }
-        for (var method : current.methods()) {
-            if (isUnsupportedFunction.test(method)) {
-                continue;
-            }
-            if (Utils.isVirtual(method)) {
-                var functionSignature = new LlvmType.Function(className, method);
-                var functionName = "@" + Utils.methodName(className, method);
-                vtable.put(
-                    method.methodName().stringValue(),
-                    method.methodTypeSymbol(),
-                    functionSignature,
-                    functionName
-                );
-            }
-            methods.computeIfAbsent(className, ignored -> new HashSet<>()).add(method);
-        }
+        handleSuperclass(current, vtable);
+        handleMethods(current, className, vtable);
         vtables.put(className, vtable);
+
+        var typeInfo = createTypeInfo(current, className);
+
+        handleConstantPool(current);
+        addInterfaceInfo(current, typeInfo);
+    }
+
+    private void handleSuperclass(ClassModel current, Vtable vtable) {
+        var superclass = current.superclass();
+        if (superclass.isEmpty()) return;
+
+        var parentClass = classLoader.load(superclass.get()).filter(p -> Utils.isValidSuperclass(current, p));
+        if (parentClass.isPresent()) {
+            walkClass(parentClass.get());
+            vtable.addAll(vtables.get(parentClass.get().thisClass().name().stringValue()));
+        }
+    }
+
+    private void handleMethods(ClassModel current, String className, Vtable vtable) {
+        current.methods()
+            .stream()
+            .filter(Predicate.not(Blacklist::isUnsupportedFunction))
+            .forEach(method -> handleMethod(className, vtable, method));
+    }
+
+    private void handleMethod(String className, Vtable vtable, MethodModel method) {
+        if (Utils.isVirtual(method)) {
+            var functionSignature = new LlvmType.Function(className, method);
+            var functionName = "@" + Utils.methodName(className, method);
+            vtable.put(
+                method.methodName().stringValue(),
+                method.methodTypeSymbol(),
+                functionSignature,
+                functionName
+            );
+        }
+        methods.computeIfAbsent(className, ignored -> new HashSet<>()).add(method);
+    }
+
+    private TypeInfo createTypeInfo(ClassModel current, String className) {
         var typeId = typeIds.size();
         typeIds.put(className, typeId);
         idsToType.put(typeId, className);
         var typeInfo = new TypeInfo(new ArrayList<>(), new ArrayList<>());
         typeInfo.types().add(typeId);
-        if (current.superclass().filter(p -> {
-            try {
-                return p.name().equalsString(EXCEPTION_NAME) || Utils.isValidSuperclass(current, classLoader.load(p).orElseThrow());
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-                return false;
-            }
-        }).isPresent()) {
-            var parent = current.superclass().get().name().stringValue();
+        var superclass = current.superclass();
+        if (superclass.filter(p -> isValidTypeInfoSuperclass(current, p)).isPresent()) {
+            var parent = superclass.get().name().stringValue();
             var parentTypes = typeInfos.get(parent);
             if (parentTypes != null) {
                 typeInfo.types().addAll(parentTypes.types());
@@ -132,27 +163,14 @@ public class Registry {
             }
         }
         typeInfos.put(className, typeInfo);
+        return typeInfo;
+    }
 
-        for (var entry : current.constantPool()) {
-            if (entry instanceof ClassEntry classEntry) {
-                var referencedClass = classLoader.load(classEntry);
-                if (referencedClass.isPresent()) {
-                    walkClass(referencedClass.get());
-                } else {
-                    vtables.put(classEntry.name().stringValue(), new Vtable(classEntry.name().stringValue()));
-                }
-            } else if (entry instanceof MethodRefEntry method) {
-                var owner = method.owner();
-                if (vtables.containsKey(owner.name().stringValue())) continue;
+    private boolean isValidTypeInfoSuperclass(ClassModel current, ClassEntry p) {
+        return p.name().equalsString(EXCEPTION_NAME) || Utils.isValidSuperclass(current, classLoader.load(p).orElseThrow());
+    }
 
-                var referencedClass = classLoader.load(owner);
-                if (referencedClass.isPresent()) {
-                    walkClass(referencedClass.get());
-                } else {
-                    vtables.put(owner.name().stringValue(), new Vtable(owner.name().stringValue()));
-                }
-            }
-        }
+    private void addInterfaceInfo(ClassModel current, TypeInfo typeInfo) {
         current.interfaces()
             .stream()
             .map(i -> i.name().stringValue())
@@ -163,7 +181,28 @@ public class Registry {
             .distinct()
             .forEach(typeInfo.interfaces()::add);
         typeInfo.consolidateTypes();
-        return vtable;
+    }
+
+    private void handleConstantPool(ClassModel current) {
+        for (var entry : current.constantPool()) {
+            if (entry instanceof ClassEntry classEntry) {
+                handleConstantPoolClass(classEntry);
+            } else if (entry instanceof MethodRefEntry method) {
+                var owner = method.owner();
+                if (vtables.containsKey(owner.name().stringValue())) continue;
+
+                handleConstantPoolClass(owner);
+            }
+        }
+    }
+
+    private void handleConstantPoolClass(ClassEntry classEntry) {
+        var referencedClass = classLoader.load(classEntry);
+        if (referencedClass.isPresent()) {
+            walkClass(referencedClass.get());
+        } else {
+            vtables.put(classEntry.name().stringValue(), new Vtable(classEntry.name().stringValue()));
+        }
     }
 
     public boolean definesFunction(String className, VtableInfo vtableInfo) {
@@ -188,6 +227,6 @@ public class Registry {
 
     @FunctionalInterface
     public interface ClassLoader {
-        Optional<ClassModel> load(ClassEntry entry) throws IOException;
+        Optional<ClassModel> load(ClassEntry entry);
     }
 }

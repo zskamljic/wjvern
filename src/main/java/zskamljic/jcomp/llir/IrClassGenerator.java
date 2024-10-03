@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -155,51 +154,11 @@ public class IrClassGenerator {
     public String generate() {
         var builder = new StringBuilder();
 
-        var requiredTypes = new HashSet<>(classDependencies);
-        requiredTypes.addAll(registry.getRequiredTypes(className));
-        requiredTypes.addAll(methodRequiredTypes());
-        for (var typeDependency : requiredTypes) {
-            if (typeDependency.type().equals(className)) continue;
-
-            builder.append(definitionMapper.apply(typeDependency)).append("\n");
-        }
-        builder.append("%java_Array = type { i32, ptr }\n");
-        // number of classes (self+parents), class IDs, number of interfaces (incl. parent), interface IDs, interface VTables)
-        builder.append("%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }\n");
-        if (!className.equals("__entrypoint")) {
-            generateType(builder);
-        }
-        builder.append("\n");
-
-        if (!constants.isEmpty()) {
-            constants.forEach(entry -> builder.append(createStringConstant(entry)).append("\n"));
-            builder.append("\n");
-        }
-
+        generateTypes(builder);
+        generateConstants(builder);
         declareMethods(builder);
-
-        for (LlvmType.Declared t : classDependencies) {
-            generateVtable(t.type(), builder);
-            builder.append("\n");
-        }
-        if (!classDependencies.contains(new LlvmType.Declared(className))) {
-            generateVtable(className, builder);
-        }
-        builder.append("\n");
-        generateInterfaceVtables(builder);
-
+        generateVtables(builder);
         generateStatics(builder);
-
-        if (methods.stream().anyMatch(Utils::isVirtual)) {
-            var virtualMethodString = methods.stream()
-                .filter(m -> !m.flags().has(AccessFlag.ABSTRACT))
-                .filter(Utils::isVirtual)
-                .map(this::generateMethod)
-                .collect(Collectors.joining("\n\n"));
-            if (methods.stream().filter(m -> !m.flags().has(AccessFlag.ABSTRACT)).anyMatch(Utils::isVirtual)) {
-                builder.append(virtualMethodString).append("\n\n");
-            }
-        }
 
         if (!injectedCode.isEmpty()) {
             for (var method : injectedCode) {
@@ -216,13 +175,46 @@ public class IrClassGenerator {
         }
         builder.append("\n\n");
 
-        var methodString = methods.stream()
-            .filter(Predicate.not(Utils::isVirtual))
-            .map(this::generateMethod)
-            .collect(Collectors.joining("\n\n"));
-        builder.append(methodString).append("\n");
+        generateMethods(builder);
 
         return builder.toString();
+    }
+
+    private void generateTypes(StringBuilder builder) {
+        var requiredTypes = new HashSet<>(classDependencies);
+        requiredTypes.addAll(registry.getRequiredTypes(className));
+        requiredTypes.addAll(methodRequiredTypes());
+        for (var typeDependency : requiredTypes) {
+            if (typeDependency.type().equals(className)) continue;
+
+            builder.append(definitionMapper.apply(typeDependency)).append("\n");
+        }
+        builder.append("%java_Array = type { i32, ptr }\n");
+        // number of classes (self+parents), class IDs, number of interfaces (incl. parent), interface IDs, interface VTables)
+        builder.append("%java_TypeInfo = type { i32, i32*, i32, i32*, ptr }\n");
+        if (!className.equals("__entrypoint")) {
+            generateType(builder);
+        }
+        builder.append("\n");
+    }
+
+    private void generateConstants(StringBuilder builder) {
+        if (!constants.isEmpty()) {
+            constants.forEach(entry -> builder.append(createStringConstant(entry)).append("\n"));
+            builder.append("\n");
+        }
+    }
+
+    private void generateVtables(StringBuilder builder) {
+        for (LlvmType.Declared t : classDependencies) {
+            generateVtable(t.type(), builder);
+            builder.append("\n");
+        }
+        if (!classDependencies.contains(new LlvmType.Declared(className))) {
+            generateVtable(className, builder);
+        }
+        builder.append("\n");
+        generateInterfaceVtables(builder);
     }
 
     private void generateInterfaceVtables(StringBuilder builder) {
@@ -324,6 +316,13 @@ public class IrClassGenerator {
         });
     }
 
+    private void generateMethods(StringBuilder builder) {
+        var methodString = methods.stream()
+            .map(this::generateMethod)
+            .collect(Collectors.joining("\n\n"));
+        builder.append(methodString).append("\n");
+    }
+
     private List<LlvmType.Declared> methodRequiredTypes() {
         var externalDependencies = classDependencies.stream()
             .map(t -> registry.getVirtualFunctions(t.type()))
@@ -365,8 +364,8 @@ public class IrClassGenerator {
 
     private void generateVtable(String className, StringBuilder builder) {
         var typeName = Utils.vtableTypeName(className);
-        var vtableType = new LlvmType.Declared(typeName);
-        builder.append(vtableType).append(" = type {");
+        var currentVtable = new LlvmType.Declared(typeName);
+        builder.append(currentVtable).append(" = type {");
 
         var virtualFunctions = registry.getVirtualFunctions(className);
         var vtableString = virtualFunctions.stream()

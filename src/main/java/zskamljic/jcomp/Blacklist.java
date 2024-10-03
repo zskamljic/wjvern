@@ -8,11 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.MethodModel;
-import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.InvokeDynamicInstruction;
-import java.lang.classfile.instruction.InvokeInstruction;
-import java.lang.classfile.instruction.LookupSwitchInstruction;
-import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,7 +25,13 @@ public class Blacklist {
         var objectMapper = new ObjectMapper();
         Items blacklist;
         try {
-            supportedClasses = Files.readAllLines(Path.of(Blacklist.class.getResource("/supported_classes.txt").getPath()));
+            var supportedClassesFile = Blacklist.class.getResource("/supported_classes.txt");
+            if (supportedClassesFile != null) {
+                supportedClasses = Files.readAllLines(Path.of(supportedClassesFile.getPath()));
+            } else {
+                supportedClasses = new ArrayList<>();
+            }
+
             blacklist = objectMapper.readValue(
                 Blacklist.class.getResourceAsStream("/unsupported_functions.json"),
                 Items.class

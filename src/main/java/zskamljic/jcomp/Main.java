@@ -40,7 +40,6 @@ public class Main {
             var processes = ProcessBuilder.startPipeline(List.of(
                 linkFiles(buildDir, generatedFiles),
                 new ProcessBuilder("opt", "-S", "--O3"), // Optimize
-                new ProcessBuilder("llc"), // Generate assembly
                 compileAssembly(options.libraries)
             ));
             for (var process : processes) {
@@ -55,16 +54,19 @@ public class Main {
             }
             if (!options.debug) {
                 for (var generatedFile : generatedFiles.keySet()) {
-                    //Files.deleteIfExists(buildDir.resolve(STR."\{generatedFile}.ll"));
+                    Files.deleteIfExists(buildDir.resolve(generatedFile + ".ll"));
                 }
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while waiting for processes to finish: " + e.getMessage());
+        } catch (IOException e) {
             System.err.println("Unable to parse class file " + options.inputClass + ": " + e.getMessage());
         }
     }
 
     private static ProcessBuilder compileAssembly(List<Path> libraries) {
-        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "assembler", "-"));
+        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "ir", "-"));
         libraries.removeIf(p -> p.getFileName().toString().isBlank());
         if (!libraries.isEmpty()) {
             var paths = new HashSet<Path>();

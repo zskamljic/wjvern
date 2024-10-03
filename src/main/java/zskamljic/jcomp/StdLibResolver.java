@@ -46,7 +46,10 @@ public class StdLibResolver {
             var input = process.getInputStream();
             process.waitFor();
             System.out.println(new String(input.readAllBytes(), StandardCharsets.UTF_8));
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e.getMessage());
+        } catch (IOException e) {
             throw new IllegalStateException(e.getMessage());
         }
     }

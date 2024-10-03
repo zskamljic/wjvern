@@ -23,58 +23,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 @"InterfaceCalls_java/lang/Comparable_vtable" = global %"java/lang/Comparable_vtable_type" {
   i32(%"java/lang/Comparable"*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
-define i32 @"InterfaceCalls_compareTo(LInterfaceCalls;)I"(%InterfaceCalls* %param.0, %InterfaceCalls* %param.1) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %InterfaceCalls**
-  store %InterfaceCalls* %param.0, %InterfaceCalls** %local.0
-  %local.1 = alloca %InterfaceCalls**
-  store %InterfaceCalls* %param.1, %InterfaceCalls** %local.1
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; %o entered scope under name %local.1
-  ; Line 25
-  %1 = load %InterfaceCalls*, %InterfaceCalls** %local.0
-  %2 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 2
-  %3 = load i32, i32* %2
-  %4 = load %InterfaceCalls*, %InterfaceCalls** %local.1
-  %5 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %4, i32 0, i32 2
-  %6 = load i32, i32* %5
-  %7 = sub i32 %3, %6
-  ret i32 %7
-label1:
-  ; %this exited scope under name %local.0
-  ; %o exited scope under name %local.1
-  unreachable
-}
-
-define i32 @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"(%InterfaceCalls* %param.0, %"java/lang/Object"* %param.1) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %InterfaceCalls**
-  store %InterfaceCalls* %param.0, %InterfaceCalls** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 1
-  %1 = load %InterfaceCalls*, %InterfaceCalls** %local.0
-  %local.1 = alloca %"java/lang/Object"**
-  store %"java/lang/Object"* %param.1, %"java/lang/Object"** %local.1
-  %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 2)
-  br i1 %3, label %label2, label %label3
-label3:
-  call void @"java/lang/System_exit(I)V"(i32 69)
-  unreachable
-label2:
-  %4 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 0
-  %5 = load %InterfaceCalls_vtable_type*, %InterfaceCalls_vtable_type** %4
-  %6 = getelementptr inbounds %InterfaceCalls_vtable_type, %InterfaceCalls_vtable_type* %5, i32 0, i32 3
-  %7 = load i32(%InterfaceCalls*, %InterfaceCalls)*, i32(%InterfaceCalls*, %InterfaceCalls)** %6
-  %8 = call i32 %7(%InterfaceCalls* %1, %"java/lang/Object"* %2)
-  ret i32 %8
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -86,15 +34,10 @@ declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 declare i32 @llvm.eh.typeid.for(ptr)
-
 declare ptr @__cxa_allocate_exception(i64)
-
 declare void @__cxa_throw(ptr, ptr, ptr)
-
 declare ptr @__cxa_begin_catch(ptr)
-
 declare void @__cxa_end_catch()
-
 @_ZTVN10__cxxabiv117__class_type_infoE = external global ptr
 @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr
 
@@ -210,5 +153,57 @@ label4:
 label1:
   ; %first exited scope under name %local.0
   ; %second exited scope under name %local.1
+  unreachable
+}
+
+define i32 @"InterfaceCalls_compareTo(LInterfaceCalls;)I"(%InterfaceCalls* %param.0, %InterfaceCalls* %param.1) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %InterfaceCalls**
+  store %InterfaceCalls* %param.0, %InterfaceCalls** %local.0
+  %local.1 = alloca %InterfaceCalls**
+  store %InterfaceCalls* %param.1, %InterfaceCalls** %local.1
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; %o entered scope under name %local.1
+  ; Line 25
+  %1 = load %InterfaceCalls*, %InterfaceCalls** %local.0
+  %2 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 2
+  %3 = load i32, i32* %2
+  %4 = load %InterfaceCalls*, %InterfaceCalls** %local.1
+  %5 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %4, i32 0, i32 2
+  %6 = load i32, i32* %5
+  %7 = sub i32 %3, %6
+  ret i32 %7
+label1:
+  ; %this exited scope under name %local.0
+  ; %o exited scope under name %local.1
+  unreachable
+}
+
+define i32 @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"(%InterfaceCalls* %param.0, %"java/lang/Object"* %param.1) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %InterfaceCalls**
+  store %InterfaceCalls* %param.0, %InterfaceCalls** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 1
+  %1 = load %InterfaceCalls*, %InterfaceCalls** %local.0
+  %local.1 = alloca %"java/lang/Object"**
+  store %"java/lang/Object"* %param.1, %"java/lang/Object"** %local.1
+  %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
+  %3 = call i1 @instanceof(ptr %2, i32 2)
+  br i1 %3, label %label2, label %label3
+label3:
+  call void @"java/lang/System_exit(I)V"(i32 69)
+  unreachable
+label2:
+  %4 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 0
+  %5 = load %InterfaceCalls_vtable_type*, %InterfaceCalls_vtable_type** %4
+  %6 = getelementptr inbounds %InterfaceCalls_vtable_type, %InterfaceCalls_vtable_type* %5, i32 0, i32 3
+  %7 = load i32(%InterfaceCalls*, %InterfaceCalls)*, i32(%InterfaceCalls*, %InterfaceCalls)** %6
+  %8 = call i32 %7(%InterfaceCalls* %1, %"java/lang/Object"* %2)
+  ret i32 %8
+label1:
+  ; %this exited scope under name %local.0
   unreachable
 }

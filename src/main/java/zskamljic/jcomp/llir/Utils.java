@@ -32,7 +32,14 @@ public class Utils {
     }
 
     public static String methodName(MemberRefEntry method) {
-        return escape(method.owner().name() + "_" + method.name() + method.type());
+        String owner;
+        var ownerName = method.owner().name().stringValue();
+        if (ownerName.startsWith("[")) {
+            owner = "java_Array";
+        } else {
+            owner = ownerName;
+        }
+        return escape(owner + "_" + method.name() + method.type());
     }
 
     public static String staticVariableName(FieldRefEntry field) {
@@ -74,7 +81,7 @@ public class Utils {
             .map(Objects::toString)
             .collect(Collectors.toCollection(ArrayList::new));
         if (!isStatic) {
-            parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(method.owner().name().stringValue()))).toString());
+            parameters.addFirst(new LlvmType.Pointer(IrTypeMapper.mapType(method.owner().asSymbol())).toString());
         }
 
         var parameterString = String.join(", ", parameters);

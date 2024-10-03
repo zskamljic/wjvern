@@ -15,19 +15,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 
-define i32 @"ReturnReference_returnValue()I"(%ReturnReference* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %ReturnReference**
-  store %ReturnReference* %param.0, %ReturnReference** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 3
-  ret i32 4
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -66,6 +53,19 @@ label0:
   %5 = getelementptr inbounds %ReturnReference, %ReturnReference* %4, i32 0, i32 1
   store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
   ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
+}
+
+define i32 @"ReturnReference_returnValue()I"(%ReturnReference* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %ReturnReference**
+  store %ReturnReference* %param.0, %ReturnReference** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 3
+  ret i32 4
 label1:
   ; %this exited scope under name %local.0
   unreachable

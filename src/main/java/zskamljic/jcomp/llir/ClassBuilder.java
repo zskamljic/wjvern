@@ -10,13 +10,10 @@ import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.CompoundElement;
-import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.constantpool.ClassEntry;
-import java.lang.classfile.constantpool.MemberRefEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.constantpool.StringEntry;
-import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
@@ -30,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ClassBuilder {
+    public static final String EXCEPTION_NAME = "java/lang/Exception";
     private final ClassModel classModel;
     private final Path classPath;
     private final boolean debug;
@@ -42,7 +40,7 @@ public class ClassBuilder {
         this.classPath = classPath;
     }
 
-    public Map<String, IrClassGenerator> generate() throws IOException {
+    public Map<String, IrClassGenerator> generate() {
         var generated = new HashMap<String, IrClassGenerator>();
         var registry = generateRegistry();
         var globalInitializer = new GlobalInitializer();
@@ -58,8 +56,8 @@ public class ClassBuilder {
         return generated;
     }
 
-    private Registry generateRegistry() throws IOException {
-        var registry = new Registry(this::loadClass, Blacklist::isUnsupportedFunction);
+    private Registry generateRegistry() {
+        var registry = new Registry(this::loadClass);
         registry.walk(classModel);
 
         // TODO: when toString is enabled this will no longer be needed
@@ -73,62 +71,29 @@ public class ClassBuilder {
         Map<String, IrClassGenerator> generatedClasses,
         Registry registry,
         GlobalInitializer globalInitializer
-    ) throws IOException {
+    ) {
         var className = classModel.thisClass().name().stringValue();
         var classGenerator = new IrClassGenerator(className, debug, c -> generateType(c, generatedClasses), registry, classModel.flags().has(AccessFlag.INTERFACE));
 
         var thrownExceptions = new ArrayList<String>();
         generatedClasses.put(className, classGenerator);
-        if (classModel.superclass().filter(p -> p.name().equalsString("java/lang/Exception") || isValidSuperclassFor(classModel, p)).isPresent()) {
-            var superclass = classModel.superclass().get();
-            generateSuperClass(superclass, classGenerator, generatedClasses, registry, globalInitializer);
-            Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
-                .flatMap(IrClassGenerator::getExceptionDefinition)
-                .ifPresent(thrownExceptions::add);
-        }
-        var staticInvokes = classModel.methods()
-            .stream()
-            .map(MethodModel::code)
-            .flatMap(Optional::stream)
-            .flatMap(CompoundElement::elementStream)
-            .filter(InvokeInstruction.class::isInstance)
-            .map(InvokeInstruction.class::cast)
-            .filter(i -> i.opcode() == Opcode.INVOKESTATIC)
-            .map(InvokeInstruction::method)
-            .toList();
-
-        for (var entry : classModel.constantPool()) {
-            switch (entry) {
-                case ClassEntry classEntry ->
-                    handleClassEntry(classEntry, generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
-                case MethodRefEntry method -> handleMethodEntry(method, classGenerator, staticInvokes);
-                case StringEntry string -> handleStringEntry(string, classGenerator, globalInitializer);
-                default -> {
-                    // No need to do anything
-                }
-            }
-        }
-
+        classModel.superclass().ifPresent(parent -> generateParent(generatedClasses, registry, globalInitializer, parent, classGenerator, thrownExceptions));
+        handleConstPool(generatedClasses, registry, globalInitializer, classGenerator, thrownExceptions);
         globalInitializer.finishInitialization(classGenerator);
+        handleFields(classGenerator);
 
-        for (var field : classModel.fields()) {
-            var type = IrTypeMapper.mapType(field.fieldTypeSymbol());
-            if (type.isReferenceType()) {
-                type = new LlvmType.Pointer(type);
-            }
+        handleStaticRequirements(classGenerator, thrownExceptions);
 
-            if (field.flags().has(AccessFlag.STATIC)) {
-                classGenerator.addStaticField(Utils.staticVariableName(field), type);
-            } else {
-                classGenerator.addField(field.fieldName().stringValue(), type);
-            }
-        }
+        // TODO: when toString is enabled this will no longer be needed
+        var stringClass = loadClass("java/lang/String").orElseThrow();
+        handleClassEntry(stringClass.thisClass(), generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
+    }
 
+    private void handleStaticRequirements(IrClassGenerator classGenerator, List<String> thrownExceptions) {
         var hasThrow = false;
         for (var method : classModel.methods()) {
-            if (Blacklist.isUnsupportedFunction(method)) {
-                continue;
-            }
+            if (Blacklist.isUnsupportedFunction(method)) continue;
+
             hasThrow = hasThrow || method.code()
                 .stream()
                 .flatMap(CompoundElement::elementStream)
@@ -147,32 +112,73 @@ public class ClassBuilder {
             declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
             declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)""");
         if (hasThrow) {
-            classGenerator.injectCode("declare i32 @llvm.eh.typeid.for(ptr)");
-            classGenerator.injectCode("declare ptr @__cxa_allocate_exception(i64)");
-            classGenerator.injectCode("declare void @__cxa_throw(ptr, ptr, ptr)");
-            classGenerator.injectCode("declare ptr @__cxa_begin_catch(ptr)");
-            classGenerator.injectCode("declare void @__cxa_end_catch()");
-
             classGenerator.injectCode("""
+                declare i32 @llvm.eh.typeid.for(ptr)
+                declare ptr @__cxa_allocate_exception(i64)
+                declare void @__cxa_throw(ptr, ptr, ptr)
+                declare ptr @__cxa_begin_catch(ptr)
+                declare void @__cxa_end_catch()
                 @_ZTVN10__cxxabiv117__class_type_infoE = external global ptr
                 @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr""");
 
             thrownExceptions.forEach(classGenerator::injectCode);
         }
+    }
 
-        // TODO: when toString is enabled this will no longer be needed
-        var stringClass = loadClass("java/lang/String").orElseThrow();
-        handleClassEntry(stringClass.thisClass(), generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
+    private void generateParent(
+        Map<String, IrClassGenerator> generatedClasses,
+        Registry registry,
+        GlobalInitializer globalInitializer,
+        ClassEntry superclass,
+        IrClassGenerator classGenerator,
+        List<String> thrownExceptions
+    ) {
+        if (!superclass.name().equalsString(EXCEPTION_NAME) && !isValidSuperclassFor(classModel, superclass)) return;
+
+        generateSuperClass(superclass, classGenerator, generatedClasses, registry, globalInitializer);
+        Optional.ofNullable(generatedClasses.get(superclass.name().stringValue()))
+            .flatMap(IrClassGenerator::getExceptionDefinition)
+            .ifPresent(thrownExceptions::add);
+    }
+
+    private void handleConstPool(
+        Map<String, IrClassGenerator> generatedClasses,
+        Registry registry,
+        GlobalInitializer globalInitializer,
+        IrClassGenerator classGenerator,
+        List<String> thrownExceptions
+    ) {
+        for (var entry : classModel.constantPool()) {
+            switch (entry) {
+                case ClassEntry classEntry ->
+                    handleClassEntry(classEntry, generatedClasses, registry, classGenerator, thrownExceptions, globalInitializer);
+                case MethodRefEntry method -> handleMethodEntry(method, classGenerator, registry);
+                case StringEntry string -> handleStringEntry(string, classGenerator, globalInitializer);
+                default -> {
+                    // No need to do anything
+                }
+            }
+        }
+    }
+
+    private void handleFields(IrClassGenerator classGenerator) {
+        for (var field : classModel.fields()) {
+            var type = IrTypeMapper.mapType(field.fieldTypeSymbol());
+            if (type.isReferenceType()) {
+                type = new LlvmType.Pointer(type);
+            }
+
+            if (field.flags().has(AccessFlag.STATIC)) {
+                classGenerator.addStaticField(Utils.staticVariableName(field), type);
+            } else {
+                classGenerator.addField(field.fieldName().stringValue(), type);
+            }
+        }
     }
 
     private boolean isValidSuperclassFor(ClassModel current, ClassEntry parent) {
-        try {
-            var parentModel = loadClass(parent);
-            return parentModel.filter(classElements -> Utils.isValidSuperclass(current, classElements)).isPresent();
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            return false;
-        }
+        var parentModel = loadClass(parent);
+        return parentModel.filter(classElements -> Utils.isValidSuperclass(current, classElements)).isPresent();
     }
 
     private void handleClassEntry(
@@ -182,7 +188,7 @@ public class ClassBuilder {
         IrClassGenerator classGenerator,
         List<String> thrownExceptions,
         GlobalInitializer globalInitializer
-    ) throws IOException {
+    ) {
         generateClass(classEntry, generatedClasses, registry, globalInitializer);
         var dependent = Utils.unwrapType(classEntry);
         if (!dependent.isPrimitive()) {
@@ -193,18 +199,19 @@ public class ClassBuilder {
             .ifPresent(thrownExceptions::add);
     }
 
-    private static void handleMethodEntry(MethodRefEntry method, IrClassGenerator classGenerator, List<MemberRefEntry> staticInvokes) {
-        if (IrTypeMapper.mapType(method.typeSymbol().returnType()) instanceof LlvmType.Declared d && d.type().startsWith("java/lang/")) {
+    private static void handleMethodEntry(MethodRefEntry method, IrClassGenerator classGenerator, Registry registry) {
+        if (IrTypeMapper.mapType(method.typeSymbol().returnType()) instanceof LlvmType.Declared(var type) &&
+            type.startsWith("java/lang/")) {
             return;
         }
         if (method.typeSymbol()
             .parameterList()
             .stream()
             .map(IrTypeMapper::mapType)
-            .anyMatch(t -> t instanceof LlvmType.Declared d && d.type().startsWith("java/lang/"))) {
+            .anyMatch(t -> t instanceof LlvmType.Declared(var type) && type.startsWith("java/lang/"))) {
             return;
         }
-        classGenerator.addMethodDependency(method, staticInvokes.contains(method));
+        classGenerator.addMethodDependency(method, registry.isStatic(method));
     }
 
     private void handleStringEntry(StringEntry string, IrClassGenerator classGenerator, GlobalInitializer globalInitializer) {
@@ -226,7 +233,7 @@ public class ClassBuilder {
         Map<String, IrClassGenerator> generatedClasses,
         Registry registry,
         GlobalInitializer globalInitializer
-    ) throws IOException {
+    ) {
         generateClass(entry, generatedClasses, registry, globalInitializer);
         classGenerator.inherit(generatedClasses.get(entry.name().stringValue()));
     }
@@ -236,7 +243,7 @@ public class ClassBuilder {
         Map<String, IrClassGenerator> generatedClasses,
         Registry registry,
         GlobalInitializer globalInitializer
-    ) throws IOException {
+    ) {
         var type = Utils.unwrapType(entry);
         if (type.isPrimitive()) return;
 
@@ -245,9 +252,9 @@ public class ClassBuilder {
 
         ClassBuilder classBuilder;
         if (resolver.contains(name)) {
-            if (name.equals("java/lang/Exception")) {
+            if (name.equals(EXCEPTION_NAME)) {
                 var generator = new IrClassGenerator(
-                    "java/lang/Exception",
+                    EXCEPTION_NAME,
                     debug,
                     c -> generateType(c, generatedClasses),
                     registry,
@@ -257,7 +264,7 @@ public class ClassBuilder {
                       ret void
                     }""");
                 generator.setException();
-                generatedClasses.put("java/lang/Exception", generator);
+                generatedClasses.put(EXCEPTION_NAME, generator);
                 return;
             } else {
                 if (Blacklist.isSupportedClass(name)) {
@@ -287,14 +294,13 @@ public class ClassBuilder {
         return className + type.displayName();
     }
 
-    // TODO: join with generateClass
-    private Optional<ClassModel> loadClass(ClassEntry classEntry) throws IOException {
+    private Optional<ClassModel> loadClass(ClassEntry classEntry) {
         var type = Utils.unwrapType(classEntry);
         if (type.isPrimitive()) return Optional.empty();
         return loadClass(typeName(type));
     }
 
-    private Optional<ClassModel> loadClass(String className) throws IOException {
+    private Optional<ClassModel> loadClass(String className) {
         if (resolver.contains(className)) {
             if (Blacklist.isSupportedClass(className)) {
                 return Optional.of(resolver.resolve(className));
@@ -308,7 +314,11 @@ public class ClassBuilder {
                 System.err.println("Class not found: " + targetPath);
                 return Optional.empty();
             }
-            return Optional.of(ClassFile.of().parse(targetPath));
+            try {
+                return Optional.of(ClassFile.of().parse(targetPath));
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 }

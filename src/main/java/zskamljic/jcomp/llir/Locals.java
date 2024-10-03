@@ -87,8 +87,4 @@ public class Locals {
                 activeLocals.put(v.slot(), v);
             });
     }
-
-    public boolean contains(String value) {
-        return activeLocals.values().stream().anyMatch(v -> v.varName().equals(value));
-    }
 }

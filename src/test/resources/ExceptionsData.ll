@@ -30,15 +30,10 @@ declare void @llvm.memset.p0.i32(ptr,i8,i64,i1)
 declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
 
 declare i32 @llvm.eh.typeid.for(ptr)
-
 declare ptr @__cxa_allocate_exception(i64)
-
 declare void @__cxa_throw(ptr, ptr, ptr)
-
 declare ptr @__cxa_begin_catch(ptr)
-
 declare void @__cxa_end_catch()
-
 @_ZTVN10__cxxabiv117__class_type_infoE = external global ptr
 @_ZTVN10__cxxabiv119__pointer_type_infoE = external global ptr
 

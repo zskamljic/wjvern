@@ -15,40 +15,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %Parent_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Parent*)* }
 
-define void @"Parent_parentMethod()V"(%Parent* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %Parent**
-  store %Parent* %param.0, %Parent** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 6
-  %1 = load %Parent*, %Parent** %local.0
-  %2 = getelementptr inbounds %Parent, %Parent* %1, i32 0, i32 2
-  store i32 5, i32* %2
-  ; Line 7
-  ret void
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
-define void @"Parent_dynamic()V"(%Parent* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %Parent**
-  store %Parent* %param.0, %Parent** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 10
-  %1 = load %Parent*, %Parent** %local.0
-  %2 = getelementptr inbounds %Parent, %Parent* %1, i32 0, i32 3
-  store i32 3, i32* %2
-  ; Line 11
-  ret void
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -87,6 +53,40 @@ label0:
   %4 = load %Parent*, %Parent** %local.0
   %5 = getelementptr inbounds %Parent, %Parent* %4, i32 0, i32 1
   store %java_TypeInfo* @typeInfo, %java_TypeInfo** %5
+  ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
+}
+
+define void @"Parent_parentMethod()V"(%Parent* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Parent**
+  store %Parent* %param.0, %Parent** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 6
+  %1 = load %Parent*, %Parent** %local.0
+  %2 = getelementptr inbounds %Parent, %Parent* %1, i32 0, i32 2
+  store i32 5, i32* %2
+  ; Line 7
+  ret void
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
+}
+
+define void @"Parent_dynamic()V"(%Parent* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %Parent**
+  store %Parent* %param.0, %Parent** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 10
+  %1 = load %Parent*, %Parent** %local.0
+  %2 = getelementptr inbounds %Parent, %Parent* %1, i32 0, i32 3
+  store i32 3, i32* %2
+  ; Line 11
   ret void
 label1:
   ; %this exited scope under name %local.0

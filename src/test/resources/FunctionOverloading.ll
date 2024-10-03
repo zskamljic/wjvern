@@ -15,37 +15,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %FunctionOverloading_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%FunctionOverloading*)*, i32(%FunctionOverloading*, i32)* }
 
-define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %FunctionOverloading**
-  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 3
-  ret i32 1
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
-define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %FunctionOverloading**
-  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
-  %local.1 = alloca i32*
-  store i32 %param.1, i32* %local.1
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; %a entered scope under name %local.1
-  ; Line 7
-  %1 = load i32, i32* %local.1
-  ret i32 %1
-label1:
-  ; %this exited scope under name %local.0
-  ; %a exited scope under name %local.1
-  unreachable
-}
-
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -87,6 +56,37 @@ label0:
   ret void
 label1:
   ; %this exited scope under name %local.0
+  unreachable
+}
+
+define i32 @"FunctionOverloading_doSomething()I"(%FunctionOverloading* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %FunctionOverloading**
+  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 3
+  ret i32 1
+label1:
+  ; %this exited scope under name %local.0
+  unreachable
+}
+
+define i32 @"FunctionOverloading_doSomething(I)I"(%FunctionOverloading* %param.0, i32 %param.1) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %FunctionOverloading**
+  store %FunctionOverloading* %param.0, %FunctionOverloading** %local.0
+  %local.1 = alloca i32*
+  store i32 %param.1, i32* %local.1
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; %a entered scope under name %local.1
+  ; Line 7
+  %1 = load i32, i32* %local.1
+  ret i32 %1
+label1:
+  ; %this exited scope under name %local.0
+  ; %a exited scope under name %local.1
   unreachable
 }
 

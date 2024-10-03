@@ -10,22 +10,6 @@ declare void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*)
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
 
-define i32 @"CustomException_getCode()I"(%CustomException* %param.0) personality ptr @__gxx_personality_v0 {
-  %local.0 = alloca %CustomException**
-  store %CustomException* %param.0, %CustomException** %local.0
-  br label %label0
-label0:
-  ; %this entered scope under name %local.0
-  ; Line 27
-  %1 = load %CustomException*, %CustomException** %local.0
-  %2 = getelementptr inbounds %CustomException, %CustomException* %1, i32 0, i32 2
-  %3 = load i32, i32* %2
-  ret i32 %3
-label1:
-  ; %this exited scope under name %local.0
-  unreachable
-}
-
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -73,5 +57,21 @@ label0:
 label1:
   ; %this exited scope under name %local.0
   ; %code exited scope under name %local.1
+  unreachable
+}
+
+define i32 @"CustomException_getCode()I"(%CustomException* %param.0) personality ptr @__gxx_personality_v0 {
+  %local.0 = alloca %CustomException**
+  store %CustomException* %param.0, %CustomException** %local.0
+  br label %label0
+label0:
+  ; %this entered scope under name %local.0
+  ; Line 27
+  %1 = load %CustomException*, %CustomException** %local.0
+  %2 = getelementptr inbounds %CustomException, %CustomException* %1, i32 0, i32 2
+  %3 = load i32, i32* %2
+  ret i32 %3
+label1:
+  ; %this exited scope under name %local.0
   unreachable
 }

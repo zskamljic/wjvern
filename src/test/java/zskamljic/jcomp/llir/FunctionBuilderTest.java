@@ -21,7 +21,7 @@ class FunctionBuilderTest {
             .findFirst()
             .orElseThrow();
 
-        var functionRegistry = new Registry(ignored -> Optional.empty(), ignored -> false);
+        var functionRegistry = new Registry(ignored -> Optional.empty());
         var functionBuilder = new FunctionBuilder(coderMethod, List.of("coder"), functionRegistry, false);
 
         var generated = functionBuilder.generate();
