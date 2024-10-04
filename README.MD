@@ -1,6 +1,6 @@
-# JCompiler
+# wjvern - Wyvern with a J
 
-JCompiler compiles your Java classes to native executables. Class file is first parsed using the Java Class-File
+wjvern compiles your Java classes to native executables. Class file is first parsed using the Java Class-File
 API ([JEP-484](https://openjdk.org/jeps/484), [JEP-466](https://openjdk.org/jeps/466), [JEP-457](https://openjdk.org/jeps/457)),
 then transforms the code to [LLVM-IR](https://llvm.org/docs/LangRef.html), links the files, uses llvm `opt` with `-O3`
 and finally compiles the result with `clang++` to produce a native executable.
@@ -44,6 +44,7 @@ Usage in production is not recommended. No future/past compatibility guaranteed 
 ## Memory
 
 Currently, all memory is managed via stack, garbage collection is not present at all (nor are there any plans for it).
+Array data value may get released if returned from a function, use with caution.
 
 ## Known limitations
 
