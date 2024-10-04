@@ -25,6 +25,7 @@ public interface CodeEntry {
                 case SHL -> "shl";
                 case ASHR -> "ashr";
                 case LSHR -> "lshr";
+                case SREM -> "srem";
                 case AND -> "and";
                 case OR -> "or";
                 case XOR -> "xor";

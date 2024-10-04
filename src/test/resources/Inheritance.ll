@@ -1,4 +1,5 @@
 %"java/lang/Object" = type { ptr, ptr }
+%"java/lang/invoke/MethodHandles$Lookup" = type opaque
 %"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %Parent = type { ptr, ptr, i32, i32 }
 %java_Array = type { i32, ptr }
@@ -15,7 +16,7 @@ declare void @"Parent_dynamic()V"(%Parent*)
 declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %Parent_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Parent*)* }
 %Inheritance_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, void(%Parent*)*, void(%Inheritance*)*, void(%Inheritance*)* }
 
@@ -38,7 +39,7 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%Inheritance*)* @"Inheritance_childMethod()V"
 }
 
-@typeInfo_types = private global [3 x i32] [i32 3, i32 2, i32 1]
+@typeInfo_types = private global [3 x i32] [i32 10, i32 9, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }

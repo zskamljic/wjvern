@@ -1,5 +1,6 @@
 package zskamljic.jcomp.llir;
 
+import zskamljic.jcomp.Blacklist;
 import zskamljic.jcomp.llir.models.AggregateType;
 import zskamljic.jcomp.llir.models.LlvmType;
 import zskamljic.jcomp.llir.models.VtableInfo;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -121,6 +123,7 @@ public class IrClassGenerator {
             .map(MethodRefEntry.class::cast)
             .filter(me -> !me.owner().name().stringValue().equals(className))
             .filter(me -> parentMethods.stream().noneMatch(p -> p.methodName().equals(me.name()) && p.methodTypeSymbol().equals(me.typeSymbol())))
+            .filter(Predicate.not(Blacklist::hasUnsupportedType))
             .distinct()
             .forEach(this::addMethodDependency);
 
@@ -139,6 +142,7 @@ public class IrClassGenerator {
 
     public void addMethodDependency(MethodRefEntry method, boolean isStatic) {
         if (method.owner().name().stringValue().equals(className)) return;
+        if (Blacklist.hasUnsupportedType(method)) return;
 
         methodDependencies.add(Utils.methodDeclaration(method, isStatic));
     }
@@ -206,13 +210,18 @@ public class IrClassGenerator {
     }
 
     private void generateVtables(StringBuilder builder) {
-        for (LlvmType.Declared t : classDependencies) {
-            generateVtable(t.type(), builder);
-            builder.append("\n");
-        }
-        if (!classDependencies.contains(new LlvmType.Declared(className))) {
-            generateVtable(className, builder);
-        }
+        Stream.of(classDependencies.stream(),
+                registry.interfacesOf(className)
+                    .stream()
+                    .map(LlvmType.Declared::new),
+                Stream.of(new LlvmType.Declared(className)))
+            .flatMap(Function.identity())
+            .distinct()
+            .forEach(type -> {
+                generateVtable(type.type(), builder);
+                builder.append("\n");
+            });
+
         builder.append("\n");
         generateInterfaceVtables(builder);
     }

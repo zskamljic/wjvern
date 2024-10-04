@@ -1,5 +1,6 @@
 %"java/lang/Exception" = type { ptr, ptr }
 %"java/lang/Object" = type { ptr, ptr }
+%"java/lang/invoke/MethodHandles$Lookup" = type opaque
 %"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
@@ -7,7 +8,7 @@
 
 declare void @"java/lang/Exception_<init>()V"(%"java/lang/Exception"*)
 %"java/lang/Exception_vtable_type" = type {  }
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
 
 %"java/util/stream/IntStream" = type opaque
@@ -24,7 +25,7 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i32(%CustomException*)* @"CustomException_getCode()I"
 }
 
-@typeInfo_types = private global [1 x i32] [i32 3]
+@typeInfo_types = private global [1 x i32] [i32 10]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 1, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }

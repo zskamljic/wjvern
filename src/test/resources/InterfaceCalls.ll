@@ -1,4 +1,5 @@
 %"java/lang/Object" = type { ptr, ptr }
+%"java/lang/invoke/MethodHandles$Lookup" = type opaque
 %"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %"java/lang/Comparable" = type { ptr, ptr }
 %"java/lang/System" = type opaque
@@ -16,7 +17,7 @@ declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %InterfaceCalls_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%InterfaceCalls*, %InterfaceCalls)*, i32(%InterfaceCalls*, %"java/lang/Object")* }
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %"java/lang/Comparable_vtable_type" = type { i32(%"java/lang/Comparable"*, %"java/lang/Object")* }
 %"java/lang/System_vtable_type" = type {  }
 
@@ -49,8 +50,8 @@ declare void @__cxa_end_catch()
   i32(%InterfaceCalls*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 
-@typeInfo_types = private global [3 x i32] [i32 2, i32 1, i32 3]
-@typeInfo_interfaces = private global [1 x i32] [i32 3]
+@typeInfo_types = private global [3 x i32] [i32 9, i32 1, i32 7]
+@typeInfo_interfaces = private global [1 x i32] [i32 7]
 @typeInfo_interface_tables = private global [1 x ptr] [ptr @"InterfaceCalls_java/lang/Comparable_vtable"]
 @typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 1, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
 
@@ -133,7 +134,7 @@ label0:
   ; Line 16
   %1 = load %"java/lang/Comparable"*, %"java/lang/Comparable"** %local.0
   %2 = load %InterfaceCalls*, %InterfaceCalls** %local.1
-  %3 = call ptr @type_interface_vtable(ptr %1, i32 3)
+  %3 = call ptr @type_interface_vtable(ptr %1, i32 7)
   %4 = getelementptr inbounds %"java/lang/Comparable_vtable_type", %"java/lang/Comparable_vtable_type"* %3, i32 0, i32 0
   %5 = load i32(%"java/lang/Comparable"*, %"java/lang/Object")*, i32(%"java/lang/Comparable"*, %"java/lang/Object")** %4
   %6 = call i32 %5(%"java/lang/Comparable"* %1, %InterfaceCalls* %2)
@@ -191,10 +192,10 @@ label0:
   %local.1 = alloca %"java/lang/Object"**
   store %"java/lang/Object"* %param.1, %"java/lang/Object"** %local.1
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 2)
+  %3 = call i1 @instanceof(ptr %2, i32 9)
   br i1 %3, label %label2, label %label3
 label3:
-  call void @"java/lang/System_exit(I)V"(i32 69)
+  call void @__cxa_throw(ptr null, ptr null, ptr null)
   unreachable
 label2:
   %4 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 0

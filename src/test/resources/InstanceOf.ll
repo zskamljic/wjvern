@@ -1,4 +1,5 @@
 %"java/lang/Object" = type { ptr, ptr }
+%"java/lang/invoke/MethodHandles$Lookup" = type opaque
 %"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
 %"java/lang/System" = type opaque
 %java_Array = type { i32, ptr }
@@ -14,7 +15,7 @@ declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*,
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, i1(%"java/lang/String"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %InstanceOf_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %"java/lang/System_vtable_type" = type {  }
 
@@ -42,7 +43,7 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-@typeInfo_types = private global [2 x i32] [i32 2, i32 1]
+@typeInfo_types = private global [2 x i32] [i32 9, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
@@ -94,16 +95,16 @@ label4:
   ; %object entered scope under name %local.1
   ; Line 10
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 2)
+  %3 = call i1 @instanceof(ptr %2, i32 9)
   %4 = sext i1 %3 to i32
   %5 = icmp eq i32 %4, 0
   br i1 %5, label %label1, label %label5
 label5:
   %6 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %7 = call i1 @instanceof(ptr %6, i32 2)
+  %7 = call i1 @instanceof(ptr %6, i32 9)
   br i1 %7, label %label6, label %label7
 label7:
-  call void @"java/lang/System_exit(I)V"(i32 69)
+  call void @__cxa_throw(ptr null, ptr null, ptr null)
   unreachable
 label6:
   %local.2 = alloca ptr

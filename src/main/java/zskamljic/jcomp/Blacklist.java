@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.lang.classfile.CompoundElement;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class Blacklist {
     private static final List<String> blacklistedFunctions;
@@ -78,6 +80,12 @@ public class Blacklist {
                 .stream()
                 .filter(s -> method.methodName().equalsString(s.name()))
                 .anyMatch(s -> s.signatures().contains(method.methodType().stringValue()));
+    }
+
+    public static boolean hasUnsupportedType(MethodRefEntry method) {
+        return Stream.concat(Stream.of(method.typeSymbol().returnType()), method.typeSymbol().parameterList().stream())
+            .map(c -> c.packageName().replace(".", "/") + "/" + c.displayName())
+            .anyMatch(Blacklist::isSupportedClass);
     }
 
     record Items(BlacklistClass any, Map<String, BlacklistClass> classes) {

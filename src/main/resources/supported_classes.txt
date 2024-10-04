@@ -1,4 +1,9 @@
+java/lang/CharSequence
+java/lang/Comparable
+java/lang/Integer
+java/lang/Number
 java/lang/Object
 java/lang/String
 java/lang/Void
-java/lang/Comparable
+java/io/Serializable
+java/util/function/Supplier

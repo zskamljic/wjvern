@@ -595,10 +595,11 @@ public class FunctionBuilder {
                 handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.MUL);
             case DSUB, FSUB, ISUB, LSUB ->
                 handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SUB);
-            case IAND -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.AND);
-            case INEG -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, type, "0", operand);
+            case IAND, LAND -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.AND);
+            case INEG, LNEG -> generator.binaryOperator(IrMethodGenerator.Operator.SUB, type, "0", operand);
             case IOR, LOR ->
                 handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.OR);
+            case IREM, LREM -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SREM);
             case ISHL, LSHL ->
                 handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SHL);
             case ISHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
@@ -776,6 +777,9 @@ public class FunctionBuilder {
     private void getStatic(IrMethodGenerator generator, Map<String, LlvmType> types, VarStack stack, FieldRefEntry field) {
         var staticField = Utils.staticVariableName(field);
         var type = IrTypeMapper.mapType(field.typeSymbol());
+        if (type.isReferenceType()) {
+            type = new LlvmType.Pointer(type);
+        }
         var loaded = generator.load(type, new LlvmType.Pointer(type), staticField);
         types.put(loaded, type);
         stack.push(loaded);
@@ -1245,12 +1249,11 @@ public class FunctionBuilder {
         generator.label(classCastException);
 
         // TODO: throw class cast exception
-//        generator.call(LlvmType.Primitive.VOID, "__cxa_throw", List.of(
-//            new Parameter("null", LlvmType.Primitive.POINTER),
-//            new Parameter("null", LlvmType.Primitive.POINTER),
-//            new Parameter("null", LlvmType.Primitive.POINTER))
-//        );
-        generator.call(LlvmType.Primitive.VOID, "\"java/lang/System_exit(I)V\"", List.of(new Parameter("69", LlvmType.Primitive.INT)));
+        generator.call(LlvmType.Primitive.VOID, "__cxa_throw", List.of(
+            new Parameter("null", LlvmType.Primitive.POINTER),
+            new Parameter("null", LlvmType.Primitive.POINTER),
+            new Parameter("null", LlvmType.Primitive.POINTER))
+        );
         generator.unreachable();
         generator.label(instanceLabel);
         stack.push(value);

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class ClassBuilder {
     public static final String EXCEPTION_NAME = "java/lang/Exception";
@@ -211,6 +212,8 @@ public class ClassBuilder {
             .anyMatch(t -> t instanceof LlvmType.Declared(var type) && type.startsWith("java/lang/"))) {
             return;
         }
+        var hasUnsupported = Blacklist.hasUnsupportedType(method);
+        if (hasUnsupported) return;
         classGenerator.addMethodDependency(method, registry.isStatic(method));
     }
 

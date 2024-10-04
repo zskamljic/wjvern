@@ -33,7 +33,7 @@ class IrCodeTest {
 
         for (var output : generatedFiles.entrySet()) {
             var name = output.getKey();
-            if (name.startsWith("java/lang") || name.equals("__entrypoint")) {
+            if (name.startsWith("java/") || name.equals("__entrypoint")) {
                 output.getValue().generate();
                 continue;
             }

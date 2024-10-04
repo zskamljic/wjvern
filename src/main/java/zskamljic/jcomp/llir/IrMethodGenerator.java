@@ -318,6 +318,7 @@ public class IrMethodGenerator {
         SHL,
         ASHR,
         LSHR,
+        SREM,
         AND,
         OR,
         XOR

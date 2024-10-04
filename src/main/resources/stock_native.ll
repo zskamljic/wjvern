@@ -22,6 +22,19 @@ define void @"java/lang/String_getBytes()[B"(ptr sret(%java_Array*) %local.0, %"
     ret void
 }
 
+declare i32 @llvm.smax.i32(i32 %a, i32 %b)
+declare i32 @llvm.smin.i32(i32 %a, i32 %b)
+
+define i32 @"java/lang/Math_max(II)I"(i32 %a, i32 %b) {
+    %1 = call i32 @llvm.smax.i32(i32 %a, i32 %b)
+    ret i32 %1
+}
+
+define i32 @"java/lang/Math_min(II)I"(i32 %a, i32 %b) {
+    %1 = call i32 @llvm.smin.i32(i32 %a, i32 %b)
+    ret i32 %1
+}
+
 ; TODO: remove below once System.exit compiles
 
 declare void @exit(i32);

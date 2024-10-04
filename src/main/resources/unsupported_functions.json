@@ -7,8 +7,6 @@
       "getClass",
       "clone",
       "// from java/lang/String",
-      "value",
-      "resolveConstantDesc",
       "join",
       "getBytes",
       "bytesCompatible",
@@ -87,6 +85,39 @@
       "encodeUTF8_UTF16",
       "computeSizeUTF8_UTF16",
       "translateEscapes"
+    ]
+  },
+  "java/lang/CharSequence": {
+    "byName": [
+      "compare",
+      "lambda$codePoints$1",
+      "lambda$chars$0"
+    ]
+  },
+  "java/lang/Integer": {
+    "bySignature": [
+      {
+        "name": "<init>",
+        "signatures": [
+          "(Ljava/lang/String;)V"
+        ]
+      }
+    ],
+    "byName": [
+      "compare",
+      "compareTo",
+      "compareUnsigned",
+      "decode",
+      "parseInt",
+      "parseUnsignedInt",
+      "getInteger",
+      "toUnsignedString",
+      "toStringUTF16",
+      "toUnsignedString0",
+      "toHexString",
+      "toOctalString",
+      "toBinaryString",
+      "formatUnsignedIntUTF16"
     ]
   },
   "java/lang/String": {
