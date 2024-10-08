@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class ClassBuilder {
     public static final String EXCEPTION_NAME = "java/lang/Exception";
@@ -58,7 +57,7 @@ public class ClassBuilder {
     }
 
     private Registry generateRegistry() {
-        var registry = new Registry(this::loadClass);
+        var registry = new Registry(this::loadClass, this::loadClassStdlibAll);
         registry.walk(classModel);
 
         // TODO: when toString is enabled this will no longer be needed
@@ -301,6 +300,13 @@ public class ClassBuilder {
         var type = Utils.unwrapType(classEntry);
         if (type.isPrimitive()) return Optional.empty();
         return loadClass(typeName(type));
+    }
+
+    private Optional<ClassModel> loadClassStdlibAll(ClassEntry classEntry) {
+        var type = Utils.unwrapType(classEntry);
+        if (type.isPrimitive()) return Optional.empty();
+
+        return Optional.of(resolver.resolve(typeName(type)));
     }
 
     private Optional<ClassModel> loadClass(String className) {

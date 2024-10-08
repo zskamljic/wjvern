@@ -87,6 +87,48 @@
       "translateEscapes"
     ]
   },
+  "java/lang/Character": {
+    "byName": [
+      "toChars",
+      "getName",
+      "codePointOf",
+      "offsetByCodePointsImpl",
+      "isLowerCase",
+      "isUpperCase",
+      "isDigit",
+      "isAlphabetic",
+      "isIdeographic",
+      "isJavaIdentifierStart",
+      "isJavaIdentifierPart",
+      "isUnicodeIdentifierStart",
+      "isUnicodeIdentifierPart",
+      "isIdentifierIgnorable",
+      "isEmoji",
+      "isEmojiPresentation",
+      "isEmojiModifier",
+      "isEmojiModifierBase",
+      "isEmojiComponent",
+      "isExtendedPictographic",
+      "toTitleCase",
+      "digit",
+      "getNumericValue",
+      "isWhitespace",
+      "getType",
+      "getDirectionality",
+      "isMirrored",
+      "toUpperCaseEx",
+      "toUpperCaseCharArray",
+      "getName",
+      "isDefined",
+      "isLetter",
+      "isLetterOrDigit",
+      "isAlphabetic",
+      "isSpaceChar",
+      "isTitleCase",
+      "isJavaLetterOrDigit",
+      "isJavaLetter"
+    ]
+  },
   "java/lang/CharSequence": {
     "byName": [
       "compare",
@@ -163,13 +205,9 @@
   "java/lang/StringUTF16": {
     "byName": [
       "newBytesLength",
-      "putChar",
-      "getChar",
       "codePointAt",
       "codePointCount",
       "compareToCIImpl",
-      "indexOfUnsafe",
-      "indexOfLatin1Unsafe",
       "lastIndexOf",
       "replace",
       "toLowerCaseEx",

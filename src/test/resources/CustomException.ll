@@ -25,7 +25,7 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   i32(%CustomException*)* @"CustomException_getCode()I"
 }
 
-@typeInfo_types = private global [1 x i32] [i32 10]
+@typeInfo_types = private global [1 x i32] [i32 11]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 1, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }

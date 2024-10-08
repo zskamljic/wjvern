@@ -12,8 +12,8 @@
 declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
-declare %java_Array @"java/lang/String_getBytes()[B"(%"java/lang/String"*)
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
+declare void @"java/lang/String_getBytes()[B"(ptr, %"java/lang/String"*)
 declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"java/lang/String_length()I"(%"java/lang/String"*)
@@ -52,7 +52,7 @@ declare void @llvm.memset.p0.i64(ptr,i8,i64,i1)
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-@typeInfo_types = private global [2 x i32] [i32 9, i32 1]
+@typeInfo_types = private global [2 x i32] [i32 10, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }

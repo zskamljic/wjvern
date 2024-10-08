@@ -50,8 +50,8 @@ declare void @__cxa_end_catch()
   i32(%InterfaceCalls*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 
-@typeInfo_types = private global [3 x i32] [i32 9, i32 1, i32 7]
-@typeInfo_interfaces = private global [1 x i32] [i32 7]
+@typeInfo_types = private global [3 x i32] [i32 10, i32 1, i32 8]
+@typeInfo_interfaces = private global [1 x i32] [i32 8]
 @typeInfo_interface_tables = private global [1 x ptr] [ptr @"InterfaceCalls_java/lang/Comparable_vtable"]
 @typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 1, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
 
@@ -134,7 +134,7 @@ label0:
   ; Line 16
   %1 = load %"java/lang/Comparable"*, %"java/lang/Comparable"** %local.0
   %2 = load %InterfaceCalls*, %InterfaceCalls** %local.1
-  %3 = call ptr @type_interface_vtable(ptr %1, i32 7)
+  %3 = call ptr @type_interface_vtable(ptr %1, i32 8)
   %4 = getelementptr inbounds %"java/lang/Comparable_vtable_type", %"java/lang/Comparable_vtable_type"* %3, i32 0, i32 0
   %5 = load i32(%"java/lang/Comparable"*, %"java/lang/Object")*, i32(%"java/lang/Comparable"*, %"java/lang/Object")** %4
   %6 = call i32 %5(%"java/lang/Comparable"* %1, %InterfaceCalls* %2)
@@ -192,7 +192,7 @@ label0:
   %local.1 = alloca %"java/lang/Object"**
   store %"java/lang/Object"* %param.1, %"java/lang/Object"** %local.1
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 9)
+  %3 = call i1 @instanceof(ptr %2, i32 10)
   br i1 %3, label %label2, label %label3
 label3:
   call void @__cxa_throw(ptr null, ptr null, ptr null)

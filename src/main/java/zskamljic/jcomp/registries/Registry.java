@@ -29,12 +29,18 @@ public class Registry {
     private final Map<String, Vtable> vtables = new HashMap<>();
     private final Map<String, Set<MethodModel>> methods = new HashMap<>();
     private final ClassLoader classLoader;
+    /**
+     * Temporary separate loader used solely for static flags on methods, to be removed once
+     * stdlib support is increased
+     */
+    private final ClassLoader stdLibLoader;
     private final Map<String, Integer> typeIds = new HashMap<>();
     private final Map<Integer, String> idsToType = new HashMap<>();
     private final Map<String, TypeInfo> typeInfos = new HashMap<>();
 
-    public Registry(ClassLoader classLoader) {
+    public Registry(ClassLoader classLoader, ClassLoader stdLibLoader) {
         this.classLoader = classLoader;
+        this.stdLibLoader = stdLibLoader;
         // TODO: remove when exception compiles
         vtables.put(EXCEPTION_NAME, new Vtable(EXCEPTION_NAME));
         methods.put(EXCEPTION_NAME, new HashSet<>());
@@ -64,8 +70,13 @@ public class Registry {
     public boolean isStatic(MethodRefEntry method) {
         var owner = method.owner().name().stringValue();
         if (!methods.containsKey(owner)) {
-            var ownerClass = classLoader.load(method.owner());
-            if (ownerClass.isEmpty()) return true;
+            var ownerClass = classLoader.load(method.owner()).or(() -> stdLibLoader.load(method.owner()));
+            return ownerClass.stream()
+                .map(ClassModel::methods)
+                .flatMap(Collection::stream)
+                .filter(m -> m.methodName().equals(method.name()))
+                .filter(m -> m.methodType().equals(method.type()))
+                .anyMatch(m -> m.flags().has(AccessFlag.STATIC));
         }
 
         return methods.get(owner)

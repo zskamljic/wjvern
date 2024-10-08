@@ -73,7 +73,7 @@ public class Utils {
     }
 
     public static String methodDeclaration(MethodRefEntry method, boolean isStatic) {
-        var type = IrTypeMapper.mapType(method.typeSymbol().returnType());
+        var returnType = IrTypeMapper.mapType(method.typeSymbol().returnType());
         List<String> parameters = method.typeSymbol()
             .parameterList()
             .stream()
@@ -83,15 +83,19 @@ public class Utils {
         if (!isStatic) {
             parameters.addFirst(new LlvmType.Pointer(IrTypeMapper.mapType(method.owner().asSymbol())).toString());
         }
+        if (returnType.isReferenceType()) {
+            parameters.addFirst(LlvmType.Primitive.POINTER.toString());
+            returnType = LlvmType.Primitive.VOID;
+        }
 
         var parameterString = String.join(", ", parameters);
 
         var name = Utils.methodName(method);
-        return "declare " + type + " @" + name + "(" + parameterString + ")";
+        return "declare " + returnType + " @" + name + "(" + parameterString + ")";
     }
 
     public static String methodDeclaration(String owner, MethodModel method) {
-        var type = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
+        var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
         List<String> parameters = method.methodTypeSymbol()
             .parameterList()
             .stream()
@@ -101,11 +105,15 @@ public class Utils {
         if (!method.flags().has(AccessFlag.STATIC)) {
             parameters.addFirst(new LlvmType.Pointer(new LlvmType.Declared(Utils.escape(owner))).toString());
         }
+        if (returnType.isReferenceType()) {
+            parameters.addFirst(LlvmType.Primitive.POINTER.toString());
+            returnType = LlvmType.Primitive.VOID;
+        }
 
         var parameterString = String.join(", ", parameters);
 
         var name = Utils.methodName(owner, method);
-        return "declare " + type + " @" + name + "(" + parameterString + ")";
+        return "declare " + returnType + " @" + name + "(" + parameterString + ")";
     }
 
     public static boolean isValidSuperclass(ClassModel current, ClassModel parent) {

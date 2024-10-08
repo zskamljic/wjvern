@@ -43,7 +43,7 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-@typeInfo_types = private global [2 x i32] [i32 9, i32 1]
+@typeInfo_types = private global [2 x i32] [i32 10, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
@@ -95,13 +95,13 @@ label4:
   ; %object entered scope under name %local.1
   ; Line 10
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 9)
+  %3 = call i1 @instanceof(ptr %2, i32 10)
   %4 = sext i1 %3 to i32
   %5 = icmp eq i32 %4, 0
   br i1 %5, label %label1, label %label5
 label5:
   %6 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %7 = call i1 @instanceof(ptr %6, i32 9)
+  %7 = call i1 @instanceof(ptr %6, i32 10)
   br i1 %7, label %label6, label %label7
 label7:
   call void @__cxa_throw(ptr null, ptr null, ptr null)

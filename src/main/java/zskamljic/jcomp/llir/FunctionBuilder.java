@@ -602,17 +602,15 @@ public class FunctionBuilder {
             case IREM, LREM -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SREM);
             case ISHL, LSHL ->
                 handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.SHL);
-            case ISHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
-            case IUSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.LSHR);
-            case IXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
+            case ISHR, LSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
+            case IUSHR, LUSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.LSHR);
+            case IXOR, LXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
             case LCMP ->
                 signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
             default -> throw new IllegalArgumentException(instruction.opcode() + " is not supported yet");
         };
 
-        if (!types.containsKey(resultVar)) {
-            types.put(resultVar, IrTypeMapper.mapType(instruction.typeKind()));
-        }
+        types.computeIfAbsent(resultVar, ignored -> IrTypeMapper.mapType(instruction.typeKind()));
         stack.push(resultVar);
     }
 
