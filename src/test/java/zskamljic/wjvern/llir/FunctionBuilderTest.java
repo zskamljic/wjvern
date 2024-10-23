@@ -1,6 +1,8 @@
 package zskamljic.wjvern.llir;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import zskamljic.wjvern.StdLibResolver;
 import zskamljic.wjvern.registries.Registry;
 
 import java.io.IOException;
@@ -12,6 +14,11 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FunctionBuilderTest {
+    @BeforeAll
+    static void setUp() {
+        new StdLibResolver(Path.of("stdlib")).resolve("java/lang/String");
+    }
+
     @Test
     void compilesCoder() throws IOException {
         var stringClass = ClassFile.of().parse(Path.of("stdlib/classes/java/lang/String.class"));
