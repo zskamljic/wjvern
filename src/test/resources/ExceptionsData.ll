@@ -99,7 +99,7 @@ label7:
   store ptr %8, ptr %1
   br label %label6
 label6:
-  call void @__cxa_throw(ptr %1)
+  call void @__cxa_throw(ptr %1, ptr null, ptr null)
   unreachable
 label0:
   ; Line 9

@@ -1,8 +1,8 @@
 public class StaticFields {
-    static int VALUE;
+    static int value;
 
     static int main() {
-        VALUE++;
-        return VALUE;
+        value++;
+        return value;
     }
 }

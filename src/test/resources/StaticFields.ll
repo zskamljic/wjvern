@@ -16,7 +16,7 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %StaticFields_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 
-@StaticFields_VALUE = global i32 0
+@StaticFields_value = global i32 0
 
 %"java/util/stream/IntStream" = type opaque
 %"java/util/function/BiFunction" = type opaque
@@ -62,10 +62,10 @@ label1:
 
 define i32 @"StaticFields_main()I"() personality ptr @__gxx_personality_v0 {
   ; Line 5
-  %1 = load i32, i32* @StaticFields_VALUE
+  %1 = load i32, i32* @StaticFields_value
   %2 = add i32 %1, 1
-  store i32 %2, i32* @StaticFields_VALUE
+  store i32 %2, i32* @StaticFields_value
   ; Line 6
-  %3 = load i32, i32* @StaticFields_VALUE
+  %3 = load i32, i32* @StaticFields_value
   ret i32 %3
 }
