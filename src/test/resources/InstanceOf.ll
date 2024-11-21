@@ -1,6 +1,6 @@
 %"java/lang/Object" = type { ptr, ptr }
 %"java/lang/invoke/MethodHandles$Lookup" = type opaque
-%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/String" = type { ptr, ptr, ptr, i8, i32, i1 }
 %"java/lang/System" = type opaque
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
@@ -20,7 +20,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/System_vtable_type" = type {  }
 
 %"java/util/stream/IntStream" = type opaque
-%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
 declare ptr @type_interface_vtable(ptr,i32)
@@ -43,7 +42,7 @@ declare void @__cxa_end_catch()
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-@typeInfo_types = private global [2 x i32] [i32 10, i32 1]
+@typeInfo_types = private global [2 x i32] [i32 12, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
@@ -95,13 +94,13 @@ label4:
   ; %object entered scope under name %local.1
   ; Line 10
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 10)
+  %3 = call i1 @instanceof(ptr %2, i32 12)
   %4 = sext i1 %3 to i32
   %5 = icmp eq i32 %4, 0
   br i1 %5, label %label1, label %label5
 label5:
   %6 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %7 = call i1 @instanceof(ptr %6, i32 10)
+  %7 = call i1 @instanceof(ptr %6, i32 12)
   br i1 %7, label %label6, label %label7
 label7:
   call void @__cxa_throw(ptr null, ptr null, ptr null)

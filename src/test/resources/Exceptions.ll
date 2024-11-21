@@ -1,8 +1,8 @@
 %"java/lang/Object" = type { ptr, ptr }
 %"java/lang/invoke/MethodHandles$Lookup" = type opaque
-%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/String" = type { ptr, ptr, ptr, i8, i32, i1 }
 %CustomException = type { ptr, ptr, i32 }
-%"java/lang/Throwable" = type opaque
+%"java/lang/Throwable" = type { ptr, ptr, ptr, ptr, ptr, ptr, i32, ptr }
 %java_Array = type { i32, ptr }
 %java_TypeInfo = type { i32, i32*, i32, i32*, ptr }
 %Exceptions = type { %Exceptions_vtable_type*, %java_TypeInfo* }
@@ -20,10 +20,9 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
 %"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
 %Exceptions_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
-%"java/lang/Throwable_vtable_type" = type {  }
+%"java/lang/Throwable_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/Throwable"(%"java/lang/Throwable"*)* }
 
 %"java/util/stream/IntStream" = type opaque
-%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
 declare ptr @type_interface_vtable(ptr,i32)
@@ -45,13 +44,18 @@ declare void @__cxa_end_catch()
 @CustomException_type_info = constant { ptr, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv117__class_type_infoE, i64 2), ptr @CustomException_type_string }
 @PCustomException_type_info = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @PCustomException_type_string, i32 0, ptr @CustomException_type_info }
 
+@"java/lang/Throwable_type_string" = constant [22 x i8] c"19java/lang/Throwable\00"
+@"Pjava/lang/Throwable_type_string" = constant [23 x i8] c"P19java/lang/Throwable\00"
+@"java/lang/Throwable_type_info" = constant { ptr, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv117__class_type_infoE, i64 2), ptr @"java/lang/Throwable_type_string" }
+@"Pjava/lang/Throwable_type_info" = constant { ptr, ptr, i32, ptr } { ptr getelementptr inbounds (ptr, ptr @_ZTVN10__cxxabiv119__pointer_type_infoE, i64 2), ptr @"Pjava/lang/Throwable_type_string", i32 0, ptr @"java/lang/Throwable_type_info" }
+
 @Exceptions_vtable_data = global %Exceptions_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
   i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
-@typeInfo_types = private global [2 x i32] [i32 10, i32 1]
+@typeInfo_types = private global [2 x i32] [i32 12, i32 1]
 @typeInfo_interfaces = private global [0 x i32] []
 @typeInfo_interface_tables = private global [0 x ptr] []
 @typeInfo = private global %java_TypeInfo { i32 2, i32* @typeInfo_types, i32 0, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }

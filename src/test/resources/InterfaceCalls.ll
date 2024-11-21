@@ -1,6 +1,6 @@
 %"java/lang/Object" = type { ptr, ptr }
 %"java/lang/invoke/MethodHandles$Lookup" = type opaque
-%"java/lang/String" = type { ptr, ptr, %java_Array*, i8, i32, i1 }
+%"java/lang/String" = type { ptr, ptr, ptr, i8, i32, i1 }
 %"java/lang/Comparable" = type { ptr, ptr }
 %"java/lang/System" = type opaque
 %java_Array = type { i32, ptr }
@@ -25,7 +25,6 @@ declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
   i32(%"java/lang/Comparable"*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 %"java/util/stream/IntStream" = type opaque
-%"java/util/function/BiFunction" = type opaque
 declare i32 @__gxx_personality_v0(...)
 declare i1 @instanceof(ptr,i32)
 declare ptr @type_interface_vtable(ptr,i32)
@@ -50,7 +49,7 @@ declare void @__cxa_end_catch()
   i32(%InterfaceCalls*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 
-@typeInfo_types = private global [3 x i32] [i32 10, i32 1, i32 8]
+@typeInfo_types = private global [3 x i32] [i32 12, i32 1, i32 8]
 @typeInfo_interfaces = private global [1 x i32] [i32 8]
 @typeInfo_interface_tables = private global [1 x ptr] [ptr @"InterfaceCalls_java/lang/Comparable_vtable"]
 @typeInfo = private global %java_TypeInfo { i32 3, i32* @typeInfo_types, i32 1, i32* @typeInfo_interfaces, ptr @typeInfo_interface_tables }
@@ -192,7 +191,7 @@ label0:
   %local.1 = alloca %"java/lang/Object"**
   store %"java/lang/Object"* %param.1, %"java/lang/Object"** %local.1
   %2 = load %"java/lang/Object"*, %"java/lang/Object"** %local.1
-  %3 = call i1 @instanceof(ptr %2, i32 10)
+  %3 = call i1 @instanceof(ptr %2, i32 12)
   br i1 %3, label %label2, label %label3
 label3:
   call void @__cxa_throw(ptr null, ptr null, ptr null)

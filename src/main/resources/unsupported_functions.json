@@ -217,9 +217,49 @@
       "lastIndexOfLatin1"
     ]
   },
+  "java/lang/Throwable": {
+    "byName": [
+      "addSuppressed",
+      "getSuppressed",
+      "initCause",
+      "lockedPrintStackTrace",
+      "printEnclosedStackTrace",
+      "printStackTrace",
+      "readObject",
+      "setStackTrace",
+      "validateSuppressedExceptionsList",
+      "getOurStackTrace",
+      "writeObject",
+      "getStackTrace",
+      "writeObject",
+      "lockedPrintStackTrace",
+      "printEnclosedStackTrace",
+      "fillInStackTrace"
+    ],
+    "bySignature": [
+      {
+        "name": "<init>",
+        "signatures": [
+          "()V",
+          "(Ljava/lang/String;)V",
+          "(Ljava/lang/String;Ljava/lang/Throwable;)V",
+          "(Ljava/lang/Throwable;)V",
+          "(Ljava/lang/String;Ljava/lang/Throwable;ZZ)V"
+        ]
+      }
+    ]
+  },
   "java/util/List": {
     "byName": [
-      "spliterator"
+      "copyOf",
+      "of",
+      "sort",
+      "spliterator",
+      "getFirst",
+      "getLast",
+      "removeFirst",
+      "removeLast",
+      "reversed"
     ]
   }
 }

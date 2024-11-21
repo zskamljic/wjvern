@@ -5,6 +5,8 @@ java/lang/Integer
 java/lang/Number
 java/lang/Object
 java/lang/String
+java/lang/Throwable
 java/lang/Void
 java/io/Serializable
+java/util/List
 java/util/function/Supplier

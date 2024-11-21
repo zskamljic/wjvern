@@ -14,6 +14,7 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.instruction.InvokeInstruction;
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -143,6 +144,16 @@ public class IrClassGenerator {
     public void addMethodDependency(MethodRefEntry method, boolean isStatic) {
         if (method.owner().name().stringValue().equals(className)) return;
         if (Blacklist.hasUnsupportedType(method)) return;
+
+        method.typeSymbol()
+            .parameterList()
+            .stream()
+            .distinct()
+            .filter(Predicate.not(ClassDesc::isArray))
+            .filter(Predicate.not(ClassDesc::isPrimitive))
+            .map(Utils::typeName)
+            .map(LlvmType.Declared::new)
+            .forEach(this::addRequiredType);
 
         methodDependencies.add(Utils.methodDeclaration(method, isStatic));
     }

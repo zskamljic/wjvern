@@ -85,7 +85,7 @@ public class Blacklist {
     public static boolean hasUnsupportedType(MethodRefEntry method) {
         return Stream.concat(Stream.of(method.typeSymbol().returnType()), method.typeSymbol().parameterList().stream())
             .map(c -> c.packageName().replace(".", "/") + "/" + c.displayName())
-            .anyMatch(Blacklist::isSupportedClass);
+            .allMatch(Blacklist::isSupportedClass);
     }
 
     record Items(BlacklistClass any, Map<String, BlacklistClass> classes) {

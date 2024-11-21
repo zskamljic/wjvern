@@ -107,7 +107,6 @@ public class ClassBuilder {
 
         classGenerator.injectCode("""
             %"java/util/stream/IntStream" = type opaque
-            %"java/util/function/BiFunction" = type opaque
             declare i32 @__gxx_personality_v0(...)
             declare i1 @instanceof(ptr,i32)
             declare ptr @type_interface_vtable(ptr,i32)
@@ -196,7 +195,7 @@ public class ClassBuilder {
         generateClass(classEntry, generatedClasses, registry, globalInitializer);
         var dependent = Utils.unwrapType(classEntry);
         if (!dependent.isPrimitive()) {
-            classGenerator.addRequiredType(new LlvmType.Declared(typeName(dependent)));
+            classGenerator.addRequiredType(new LlvmType.Declared(Utils.typeName(dependent)));
         }
         Optional.ofNullable(generatedClasses.get(classEntry.name().stringValue()))
             .flatMap(IrClassGenerator::getExceptionDefinition)
@@ -253,7 +252,7 @@ public class ClassBuilder {
         var type = Utils.unwrapType(entry);
         if (type.isPrimitive()) return;
 
-        var name = typeName(type);
+        var name = Utils.typeName(type);
         if (generatedClasses.containsKey(name)) return;
 
         ClassBuilder classBuilder;
@@ -292,25 +291,17 @@ public class ClassBuilder {
         classBuilder.generate(generatedClasses, registry, globalInitializer);
     }
 
-    private String typeName(ClassDesc type) {
-        var className = type.packageName().replace('.', '/');
-        if (!className.isEmpty()) {
-            className += "/";
-        }
-        return className + type.displayName();
-    }
-
     private Optional<ClassModel> loadClass(ClassEntry classEntry) {
         var type = Utils.unwrapType(classEntry);
         if (type.isPrimitive()) return Optional.empty();
-        return loadClass(typeName(type));
+        return loadClass(Utils.typeName(type));
     }
 
     private Optional<ClassModel> loadClassStdlibAll(ClassEntry classEntry) {
         var type = Utils.unwrapType(classEntry);
         if (type.isPrimitive()) return Optional.empty();
 
-        return Optional.of(resolver.resolve(typeName(type)));
+        return Optional.of(resolver.resolve(Utils.typeName(type)));
     }
 
     private Optional<ClassModel> loadClass(String className) {

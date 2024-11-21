@@ -27,6 +27,14 @@ public class Utils {
         return name;
     }
 
+    public static String typeName(ClassDesc type) {
+        var className = type.packageName().replace('.', '/');
+        if (!className.isEmpty()) {
+            className += "/";
+        }
+        return className + type.displayName();
+    }
+
     public static String methodName(String parent, MethodModel method) {
         return escape(parent + "_" + method.methodName() + method.methodTypeSymbol().descriptorString());
     }

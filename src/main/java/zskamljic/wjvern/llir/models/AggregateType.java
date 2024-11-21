@@ -15,7 +15,8 @@ public sealed interface AggregateType {
             builder.append(type).append(" = type { ");
 
             var fieldsString = fields.stream()
-                .map(String::valueOf)
+                //.map(String::valueOf)
+                .map(f -> f instanceof LlvmType.Pointer ? "ptr" : f.toString())
                 .collect(Collectors.joining(", "));
             builder.append(fieldsString);
 
