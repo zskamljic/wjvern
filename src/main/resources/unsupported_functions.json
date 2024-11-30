@@ -162,6 +162,43 @@
       "formatUnsignedIntUTF16"
     ]
   },
+  "java/lang/Long": {
+    "bySignature": [
+      {
+        "name": "<init>",
+        "signatures": [
+          "(Ljava/lang/String;)V"
+        ]
+      }
+    ],
+    "byName": [
+      "compress",
+      "compare",
+      "compareTo",
+      "compareUnsigned",
+      "decode",
+      "divideUnsigned",
+      "expand",
+      "getLong",
+      "max",
+      "min",
+      "remainderUnsigned",
+      "rotateLeft",
+      "rotateRight",
+      "parseLong",
+      "parseUnsignedLong",
+      "sum",
+      "toHexString",
+      "toOctalString",
+      "toBinaryString",
+      "toUnsignedString",
+      "toStringUTF16",
+      "toUnsignedString0",
+      "toUnsignedBigInteger",
+      "formatUnsignedLong0",
+      "formatUnsignedLong0UTF16"
+    ]
+  },
   "java/lang/String": {
     "bySignature": [
       {

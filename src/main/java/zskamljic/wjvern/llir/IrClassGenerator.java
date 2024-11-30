@@ -531,6 +531,10 @@ public class IrClassGenerator {
         return Optional.of(type);
     }
 
+    public boolean hasMethodDependency(String signature) {
+        return methodDependencies.contains(signature);
+    }
+
     private record StringConstant(int index, int length, String content) {
     }
 }
