@@ -8,6 +8,7 @@ import zskamljic.wjvern.llir.models.PhiEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -32,8 +33,24 @@ public class IrMethodGenerator {
         parameters.add(new Parameter(name, type));
     }
 
-    boolean hasParameter(String name) {
-        return parameters.stream().anyMatch(e -> e.name().equals(name));
+    OptionalInt getParameter(int slot) {
+        var realParameters = parameters.stream()
+            .filter(Predicate.not(Parameter::isReturn))
+            .toList();
+
+        int currentIndex = 0;
+        for (int i = 0; i < realParameters.size(); i++) {
+            var parameter = realParameters.get(i);
+            var nextIndex = currentIndex + switch (parameter.type()) {
+                case LlvmType.Primitive.LONG, LlvmType.Primitive.DOUBLE -> 2;
+                default -> 1;
+            };
+            if (slot == currentIndex) return OptionalInt.of(i);
+
+            currentIndex = nextIndex;
+        }
+
+        return OptionalInt.empty();
     }
 
     public String alloca(LlvmType type) {

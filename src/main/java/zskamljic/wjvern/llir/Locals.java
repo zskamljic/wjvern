@@ -8,7 +8,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.OptionalInt;
+import java.util.function.Function;
 
 public class Locals {
     public static final String LOCAL_PREFIX = "%local.";
@@ -18,9 +19,11 @@ public class Locals {
     private final IrMethodGenerator generator;
     private final Map<String, LlvmType> types;
     private final LabelGenerator labelGenerator;
-    private final Predicate<String> parameterChecker;
+    private final Function<Integer, OptionalInt> parameterChecker;
 
-    public Locals(IrMethodGenerator generator, Map<String, LlvmType> types, LabelGenerator labelGenerator, Predicate<String> parameterChecker) {
+    public Locals(
+        IrMethodGenerator generator, Map<String, LlvmType> types, LabelGenerator labelGenerator, Function<Integer, OptionalInt> parameterChecker
+    ) {
         this.generator = generator;
         this.types = types;
         this.labelGenerator = labelGenerator;
@@ -32,11 +35,12 @@ public class Locals {
             var name = LOCAL_PREFIX + s;
             var local = new Local(name, LlvmType.Primitive.POINTER, s, null, null);
             if (!types.containsKey(name)) {
-                if (parameterChecker.test("param." + slot)) {
-                    var paramType = types.get(PARAM_PREFIX + slot);
+                var parameter = parameterChecker.apply(slot);
+                if (parameter.isPresent()) {
+                    var paramType = types.get(PARAM_PREFIX + parameter.getAsInt());
                     var type = new LlvmType.Pointer(paramType);
                     generator.alloca(name, type);
-                    generator.store(paramType, PARAM_PREFIX + slot, type, name);
+                    generator.store(paramType, PARAM_PREFIX + parameter.getAsInt(), type, name);
                     types.put(name, type);
                 } else {
                     generator.alloca(name, LlvmType.Primitive.POINTER);
@@ -56,9 +60,10 @@ public class Locals {
             type = new LlvmType.Pointer(type);
         }
 
-        if (parameterChecker.test("param." + variable.slot())) {
+        var parameter = parameterChecker.apply(variable.slot());
+        if (parameter.isPresent()) {
             generator.alloca(LOCAL_PREFIX + variable.slot(), new LlvmType.Pointer(type));
-            generator.store(type, PARAM_PREFIX + variable.slot(), new LlvmType.Pointer(type), LOCAL_PREFIX + variable.slot());
+            generator.store(type, PARAM_PREFIX + parameter.getAsInt(), new LlvmType.Pointer(type), LOCAL_PREFIX + variable.slot());
         }
         type = new LlvmType.Pointer(type);
 

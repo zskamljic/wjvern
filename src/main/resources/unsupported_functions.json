@@ -187,7 +187,6 @@
       "rotateRight",
       "parseLong",
       "parseUnsignedLong",
-      "sum",
       "toHexString",
       "toOctalString",
       "toBinaryString",

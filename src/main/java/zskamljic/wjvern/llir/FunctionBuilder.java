@@ -133,7 +133,7 @@ public class FunctionBuilder {
         var stack = new VarStack(generator, types);
         var exceptionState = new ExceptionState();
         var labelGenerator = new LabelGenerator();
-        var locals = new Locals(generator, types, labelGenerator, generator::hasParameter);
+        var locals = new Locals(generator, types, labelGenerator, generator::getParameter);
         String currentLabel = null;
         for (var element : code) {
             if (debug && !(element instanceof Label)) {
