@@ -11,18 +11,18 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/System_exit(I)V"(i32)
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object"*)
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
-declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
-%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
-%InterfaceCalls_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%InterfaceCalls*, %InterfaceCalls)*, i32(%InterfaceCalls*, %"java/lang/Object")* }
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
-%"java/lang/Comparable_vtable_type" = type { i32(%"java/lang/Comparable"*, %"java/lang/Object")* }
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)* }
+%InterfaceCalls_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)*, i32(%InterfaceCalls*, %InterfaceCalls*)*, i32(%InterfaceCalls*, %"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup"*)*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup"*)* }
+%"java/lang/Comparable_vtable_type" = type { i32(%"java/lang/Comparable"*, %"java/lang/Object"*)* }
 %"java/lang/System_vtable_type" = type {  }
 
 @"InterfaceCalls_java/lang/Comparable_vtable" = global %"java/lang/Comparable_vtable_type" {
-  i32(%"java/lang/Comparable"*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
+  i32(%"java/lang/Comparable"*, %"java/lang/Object"*)* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 %"java/util/stream/IntStream" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -43,10 +43,10 @@ declare void @__cxa_end_catch()
 
 @InterfaceCalls_vtable_data = global %InterfaceCalls_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  i1(%"java/lang/Object"*, %"java/lang/Object"*)* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V",
-  i32(%InterfaceCalls*, %InterfaceCalls)* @"InterfaceCalls_compareTo(LInterfaceCalls;)I",
-  i32(%InterfaceCalls*, %"java/lang/Object")* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
+  i32(%InterfaceCalls*, %InterfaceCalls*)* @"InterfaceCalls_compareTo(LInterfaceCalls;)I",
+  i32(%InterfaceCalls*, %"java/lang/Object"*)* @"InterfaceCalls_compareTo(Ljava/lang/Object;)I"
 }
 
 @typeInfo_types = private global [3 x i32] [i32 13, i32 1, i32 8]
@@ -135,7 +135,7 @@ label0:
   %2 = load %InterfaceCalls*, %InterfaceCalls** %local.1
   %3 = call ptr @type_interface_vtable(ptr %1, i32 8)
   %4 = getelementptr inbounds %"java/lang/Comparable_vtable_type", %"java/lang/Comparable_vtable_type"* %3, i32 0, i32 0
-  %5 = load i32(%"java/lang/Comparable"*, %"java/lang/Object")*, i32(%"java/lang/Comparable"*, %"java/lang/Object")** %4
+  %5 = load i32(%"java/lang/Comparable"*, %"java/lang/Object"*)*, i32(%"java/lang/Comparable"*, %"java/lang/Object"*)** %4
   %6 = call i32 %5(%"java/lang/Comparable"* %1, %InterfaceCalls* %2)
   %7 = icmp sge i32 %6, 0
   br i1 %7, label %label2, label %label3
@@ -200,7 +200,7 @@ label2:
   %4 = getelementptr inbounds %InterfaceCalls, %InterfaceCalls* %1, i32 0, i32 0
   %5 = load %InterfaceCalls_vtable_type*, %InterfaceCalls_vtable_type** %4
   %6 = getelementptr inbounds %InterfaceCalls_vtable_type, %InterfaceCalls_vtable_type* %5, i32 0, i32 3
-  %7 = load i32(%InterfaceCalls*, %InterfaceCalls)*, i32(%InterfaceCalls*, %InterfaceCalls)** %6
+  %7 = load i32(%InterfaceCalls*, %InterfaceCalls*)*, i32(%InterfaceCalls*, %InterfaceCalls*)** %6
   %8 = call i32 %7(%InterfaceCalls* %1, %"java/lang/Object"* %2)
   ret i32 %8
 label1:

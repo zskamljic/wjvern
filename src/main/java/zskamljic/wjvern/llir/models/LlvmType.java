@@ -84,6 +84,9 @@ public sealed interface LlvmType {
             for (int i = 0; i < methodTypeSymbol.parameterCount(); i++) {
                 var parameter = methodTypeSymbol.parameterType(i);
                 var type = IrTypeMapper.mapType(parameter);
+                if (type.isReferenceType()) {
+                    type = new Pointer(type);
+                }
                 parameterList.add(type);
             }
             return parameterList;

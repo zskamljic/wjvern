@@ -16,6 +16,7 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
 import java.lang.classfile.constantpool.StringEntry;
+import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.ThrowInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
@@ -101,7 +102,9 @@ public class ClassBuilder {
             hasThrow = hasThrow || method.code()
                 .stream()
                 .flatMap(CompoundElement::elementStream)
-                .anyMatch(c -> c instanceof ThrowInstruction || c instanceof TypeCheckInstruction t && t.opcode() == Opcode.CHECKCAST);
+                .anyMatch(c -> c instanceof ThrowInstruction ||
+                    c instanceof ExceptionCatch ||
+                    c instanceof TypeCheckInstruction t && t.opcode() == Opcode.CHECKCAST);
             classGenerator.addMethod(method);
         }
 

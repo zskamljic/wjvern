@@ -70,7 +70,7 @@ public class Main {
     }
 
     private static ProcessBuilder compileAssembly(List<Path> libraries) {
-        var items = new ArrayList<>(List.of("clang++", "-static", "-x", "ir", "-"));
+        var items = new ArrayList<>(List.of("clang++", "-x", "ir", "-"));
         libraries.removeIf(p -> p.getFileName().toString().isBlank());
         if (!libraries.isEmpty()) {
             var paths = new HashSet<Path>();
@@ -80,7 +80,7 @@ public class Main {
                 paths.add(library.toAbsolutePath().getParent());
                 libs.add(library.getFileName()
                     .toString()
-                    .replaceAll("^lib", "")
+                .replaceAll("^lib", "")
                     .replaceAll("\\.(so|a)$", ""));
             }
             libs.forEach(l -> items.add("-l" + l));

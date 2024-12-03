@@ -11,16 +11,16 @@ declare void @"java/lang/Object_notifyAll()V"(%"java/lang/Object"*) nounwind
 declare i32 @"java/lang/Object_hashCode()I"(%"java/lang/Object"*) nounwind
 declare void @"java/lang/Object_notify()V"(%"java/lang/Object"*) nounwind
 declare void @"CustomException_<init>(I)V"(%CustomException*, i32)
+declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object"*)
 declare void @"java/lang/Object_finalize()V"(%"java/lang/Object"*)
-declare i1 @"java/lang/Object_equals(Ljava/lang/Object;)Z"(%"java/lang/Object"*, %"java/lang/Object")
 declare void @"java/lang/Object_<init>()V"(%"java/lang/Object"*)
 declare i32 @"CustomException_getCode()I"(%CustomException*)
 declare void @"java/lang/Object_wait0(J)V"(%"java/lang/Object"*, i64) nounwind
-%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
-%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup")* }
-%Exceptions_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)* }
+%"java/lang/Object_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)* }
+%"java/lang/String_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)*, i32(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*)*, i8(%"java/lang/String"*)*, %java_Array(%"java/lang/String"*)*, i1(%"java/lang/String"*)*, %"java/lang/String"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup"*)*, %"java/lang/Object"(%"java/lang/String"*, %"java/lang/invoke/MethodHandles$Lookup"*)* }
+%Exceptions_vtable_type = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)* }
 %CustomException_vtable_type = type { i32(%CustomException*)* }
-%"java/lang/Throwable_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object")*, void(%"java/lang/Object"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/Throwable"(%"java/lang/Throwable"*)* }
+%"java/lang/Throwable_vtable_type" = type { i32(%"java/lang/Object"*)*, i1(%"java/lang/Object"*, %"java/lang/Object"*)*, void(%"java/lang/Object"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/String"(%"java/lang/Throwable"*)*, %"java/lang/Throwable"(%"java/lang/Throwable"*)* }
 
 %"java/util/stream/IntStream" = type opaque
 declare i32 @__gxx_personality_v0(...)
@@ -51,7 +51,7 @@ declare void @__cxa_end_catch()
 
 @Exceptions_vtable_data = global %Exceptions_vtable_type {
   i32(%"java/lang/Object"*)* @"java/lang/Object_hashCode()I",
-  i1(%"java/lang/Object"*, %"java/lang/Object")* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
+  i1(%"java/lang/Object"*, %"java/lang/Object"*)* @"java/lang/Object_equals(Ljava/lang/Object;)Z",
   void(%"java/lang/Object"*)* @"java/lang/Object_finalize()V"
 }
 
@@ -186,4 +186,4 @@ define void @"Exceptions_print()V"() personality ptr @__gxx_personality_v0 {
   ret void
 }
 
-declare i32 @puts(%java_Array) nounwind
+declare i32 @puts(ptr) nounwind

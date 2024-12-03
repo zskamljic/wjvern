@@ -137,7 +137,12 @@ public class FunctionBuilder {
         String currentLabel = null;
         for (var element : code) {
             if (debug && !(element instanceof Label)) {
-                generator.comment(element.toString());
+                if (element instanceof ExceptionCatch e) {
+                    generator.comment("ExceptionCatch[catchType="+e.catchType()+",start="+labelGenerator.getLabel(e.tryStart())+
+                        ",end="+labelGenerator.getLabel(e.tryEnd())+",handler="+labelGenerator.getLabel(e.handler())+"]");
+                } else {
+                    generator.comment(element.toString());
+                }
             }
             switch (element) {
                 case ArrayStoreInstruction as -> handleArrayStore(generator, stack, types, as);

@@ -251,7 +251,18 @@ public class IrClassGenerator {
                     var name = f.simpleName();
                     var interfaceMethod = Stream.concat(methods.stream(), parentMethods.stream())
                         .filter(m -> m.methodName().equalsString(name) &&
-                            m.methodTypeSymbol().parameterList().stream().map(IrTypeMapper::mapType).toList().equals(requiredParams))
+                            m.methodTypeSymbol()
+                                .parameterList()
+                                .stream()
+                                .map(IrTypeMapper::mapType)
+                                .map(t -> {
+                                    if (t.isReferenceType()) {
+                                        return new LlvmType.Pointer(t);
+                                    }
+                                    return t;
+                                })
+                                .toList()
+                                .equals(requiredParams))
                         .findFirst();
                     return f.signature() + "* " + interfaceMethod.map(methodElements -> "@" + Utils.methodName(methodElements.parent().get().thisClass().name().stringValue(), methodElements))
                         .orElse("null");
@@ -351,6 +362,13 @@ public class IrClassGenerator {
             .<LlvmType>mapMulti((f, c) -> {
                 c.accept(f.returnType());
                 f.parameters().forEach(c);
+            })
+            .map(t -> {
+                if (t instanceof LlvmType.Pointer(var d)) {
+                    return d;
+                } else {
+                    return t;
+                }
             })
             .filter(LlvmType.Declared.class::isInstance)
             .map(LlvmType.Declared.class::cast)
@@ -481,7 +499,15 @@ public class IrClassGenerator {
             if (isVarArg && i == symbol.parameterCount() - 1) {
                 parameters.add("...");
             } else {
-                parameters.add(IrTypeMapper.mapType(parameter).toString());
+                var parameterType = IrTypeMapper.mapType(parameter);
+                if (parameterType.isReferenceType()) {
+                    if (method.flags().has(AccessFlag.NATIVE)) {
+                        parameterType = LlvmType.Primitive.POINTER;
+                    } else {
+                        parameterType = new LlvmType.Pointer(parameterType);
+                    }
+                }
+                parameters.add(parameterType.toString());
             }
         }
         declaration.append(String.join(", ", parameters));
