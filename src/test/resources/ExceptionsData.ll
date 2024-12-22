@@ -92,112 +92,107 @@ label5:
   %5 = call i32 @llvm.eh.typeid.for(ptr @PCustomException_type_info)
   %6 = icmp eq i32 %4, %5
   br i1 %6, label %label2, label %label6
-label7:
-  %7 = landingpad { ptr, i32 } cleanup
-  %8 = extractvalue { ptr, i32 } %7, 0
-  store ptr %8, ptr %1
-  br label %label6
 label6:
   call void @__cxa_throw(ptr %1, ptr null, ptr null)
   unreachable
 label0:
   ; Line 9
-  invoke void @"ExceptionsData_throwing()V"() to label %label8 unwind label %label5
-label8:
+  invoke void @"ExceptionsData_throwing()V"() to label %label7 unwind label %label5
+label7:
   br label %label1
 label1:
   ; Line 12
   br label %label4
 label2:
-  %9 = load ptr, ptr %1
-  %10 = call ptr @__cxa_begin_catch(ptr %9)
+  %7 = load ptr, ptr %1
+  %8 = call ptr @__cxa_begin_catch(ptr %7)
+  call void @__cxa_end_catch()
   ; Line 10
   %local.0 = alloca ptr
-  store ptr %10, ptr %local.0
-  call void @__cxa_end_catch()
+  store ptr %8, ptr %local.0
   br label %label3
 label3:
   ; %e entered scope under name %local.0
   ; Line 11
-  %11 = alloca %java_Array
-  %12 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 0
-  store i32 12, i32* %12
-  %13 = alloca i8, i32 12
-  %14 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  store ptr %13, ptr %14
-  call void @llvm.memset.p0.i8(ptr %13, i8 0, i64 12, i1 false)
-  %15 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %16 = load ptr, ptr %15
-  %17 = getelementptr inbounds i8, ptr %16, i32 0
-  store i8 67, ptr %17
-  %18 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %19 = load ptr, ptr %18
-  %20 = getelementptr inbounds i8, ptr %19, i32 1
-  store i8 97, ptr %20
-  %21 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %22 = load ptr, ptr %21
-  %23 = getelementptr inbounds i8, ptr %22, i32 2
-  store i8 117, ptr %23
-  %24 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %25 = load ptr, ptr %24
-  %26 = getelementptr inbounds i8, ptr %25, i32 3
-  store i8 103, ptr %26
-  %27 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %28 = load ptr, ptr %27
-  %29 = getelementptr inbounds i8, ptr %28, i32 4
-  store i8 104, ptr %29
-  %30 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %31 = load ptr, ptr %30
-  %32 = getelementptr inbounds i8, ptr %31, i32 5
-  store i8 116, ptr %32
-  %33 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %34 = load ptr, ptr %33
-  %35 = getelementptr inbounds i8, ptr %34, i32 6
-  store i8 58, ptr %35
-  %36 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %37 = load ptr, ptr %36
-  %38 = getelementptr inbounds i8, ptr %37, i32 7
-  store i8 32, ptr %38
-  %39 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %40 = load ptr, ptr %39
-  %41 = getelementptr inbounds i8, ptr %40, i32 8
-  store i8 37, ptr %41
-  %42 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %43 = load ptr, ptr %42
-  %44 = getelementptr inbounds i8, ptr %43, i32 9
-  store i8 100, ptr %44
-  %45 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %46 = load ptr, ptr %45
-  %47 = getelementptr inbounds i8, ptr %46, i32 10
-  store i8 10, ptr %47
-  %48 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %49 = load ptr, ptr %48
-  %50 = getelementptr inbounds i8, ptr %49, i32 11
-  store i8 0, ptr %50
-  %51 = alloca %java_Array
-  %52 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 0
-  store i32 1, i32* %52
-  %53 = alloca i32, i32 1
-  %54 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
-  store ptr %53, ptr %54
-  call void @llvm.memset.p0.i32(ptr %53, i8 0, i64 4, i1 false)
-  %55 = load %CustomException*, %CustomException** %local.0
-  %56 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %55, i32 0, i32 0
-  %57 = load %CustomException_vtable_type*, %CustomException_vtable_type** %56
-  %58 = getelementptr inbounds %CustomException_vtable_type, %CustomException_vtable_type* %57, i32 0, i32 0
-  %59 = load i32(%CustomException*)*, i32(%CustomException*)** %58
-  %60 = call i32 %59(%CustomException* %55)
-  %61 = getelementptr inbounds %java_Array, %java_Array* %51, i32 0, i32 1
-  %62 = load ptr, ptr %61
-  %63 = getelementptr inbounds i32, ptr %62, i32 0
-  store i32 %60, ptr %63
-  %64 = getelementptr inbounds %java_Array, ptr %51, i32 0, i32 1
-  %65 = load ptr, ptr %64
-  %66 = getelementptr inbounds %java_Array, ptr %65, i32 0
-  %67 = load i32, i32* %66
-  %68 = getelementptr inbounds %java_Array, %java_Array* %11, i32 0, i32 1
-  %69 = load ptr, ptr %68
-  %70 = call i32(i8*,...) @printf(i8* %69, i32 %67)
+  %9 = alloca %java_Array
+  %10 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 0
+  store i32 12, i32* %10
+  %11 = alloca i8, i32 12
+  %12 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  store ptr %11, ptr %12
+  call void @llvm.memset.p0.i8(ptr %11, i8 0, i64 12, i1 false)
+  %13 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %14 = load ptr, ptr %13
+  %15 = getelementptr inbounds i8, ptr %14, i32 0
+  store i8 67, ptr %15
+  %16 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %17 = load ptr, ptr %16
+  %18 = getelementptr inbounds i8, ptr %17, i32 1
+  store i8 97, ptr %18
+  %19 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %20 = load ptr, ptr %19
+  %21 = getelementptr inbounds i8, ptr %20, i32 2
+  store i8 117, ptr %21
+  %22 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %23 = load ptr, ptr %22
+  %24 = getelementptr inbounds i8, ptr %23, i32 3
+  store i8 103, ptr %24
+  %25 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %26 = load ptr, ptr %25
+  %27 = getelementptr inbounds i8, ptr %26, i32 4
+  store i8 104, ptr %27
+  %28 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %29 = load ptr, ptr %28
+  %30 = getelementptr inbounds i8, ptr %29, i32 5
+  store i8 116, ptr %30
+  %31 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %32 = load ptr, ptr %31
+  %33 = getelementptr inbounds i8, ptr %32, i32 6
+  store i8 58, ptr %33
+  %34 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %35 = load ptr, ptr %34
+  %36 = getelementptr inbounds i8, ptr %35, i32 7
+  store i8 32, ptr %36
+  %37 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %38 = load ptr, ptr %37
+  %39 = getelementptr inbounds i8, ptr %38, i32 8
+  store i8 37, ptr %39
+  %40 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %41 = load ptr, ptr %40
+  %42 = getelementptr inbounds i8, ptr %41, i32 9
+  store i8 100, ptr %42
+  %43 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %44 = load ptr, ptr %43
+  %45 = getelementptr inbounds i8, ptr %44, i32 10
+  store i8 10, ptr %45
+  %46 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %47 = load ptr, ptr %46
+  %48 = getelementptr inbounds i8, ptr %47, i32 11
+  store i8 0, ptr %48
+  %49 = alloca %java_Array
+  %50 = getelementptr inbounds %java_Array, %java_Array* %49, i32 0, i32 0
+  store i32 1, i32* %50
+  %51 = alloca i32, i32 1
+  %52 = getelementptr inbounds %java_Array, %java_Array* %49, i32 0, i32 1
+  store ptr %51, ptr %52
+  call void @llvm.memset.p0.i32(ptr %51, i8 0, i64 4, i1 false)
+  %53 = load %CustomException*, %CustomException** %local.0
+  %54 = getelementptr inbounds %ExceptionsData, %ExceptionsData* %53, i32 0, i32 0
+  %55 = load %CustomException_vtable_type*, %CustomException_vtable_type** %54
+  %56 = getelementptr inbounds %CustomException_vtable_type, %CustomException_vtable_type* %55, i32 0, i32 0
+  %57 = load i32(%CustomException*)*, i32(%CustomException*)** %56
+  %58 = call i32 %57(%CustomException* %53)
+  %59 = getelementptr inbounds %java_Array, %java_Array* %49, i32 0, i32 1
+  %60 = load ptr, ptr %59
+  %61 = getelementptr inbounds i32, ptr %60, i32 0
+  store i32 %58, ptr %61
+  %62 = getelementptr inbounds %java_Array, ptr %49, i32 0, i32 1
+  %63 = load ptr, ptr %62
+  %64 = getelementptr inbounds %java_Array, ptr %63, i32 0
+  %65 = load i32, i32* %64
+  %66 = getelementptr inbounds %java_Array, %java_Array* %9, i32 0, i32 1
+  %67 = load ptr, ptr %66
+  %68 = call i32(i8*,...) @printf(i8* %67, i32 %65)
   br label %label4
 label4:
   ; %e exited scope under name %local.0

@@ -22,7 +22,7 @@ class IrCodeTest {
         "VariableAssignment", "InstanceFields", "IfStatements", "ForLoop", "WhileLoop", "BasicMath", "VirtualMethods",
         "Inheritance", "Parameters", "Exceptions", "ExceptionsData", "Switch", "Comparisons", "FunctionOverloading",
         "ReturnReference", "ObjectArrays", "ReusedLocals", "ForEach", "Conversions", "StaticFields", "ReturnArray",
-        "ReferenceFields", "Strings", "StandardMain", "MutableParameters", "InstanceOf", "InterfaceCalls"
+        "ReferenceFields", "Strings", "StandardMain", "MutableParameters", "InstanceOf", "InterfaceCalls", "TryWithResources"
     })
     void generatesValid(String fileName) throws IOException {
         var classPath = Path.of("target/test-classes/");

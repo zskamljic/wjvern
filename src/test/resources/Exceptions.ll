@@ -105,10 +105,10 @@ label7:
 label1:
   %9 = load ptr, ptr %1
   %10 = call ptr @__cxa_begin_catch(ptr %9)
+  call void @__cxa_end_catch()
   ; Line 5
   %local.0 = alloca ptr
   store ptr %10, ptr %local.0
-  call void @__cxa_end_catch()
   br label %label4
 label4:
   ; %e entered scope under name %local.0
@@ -132,6 +132,7 @@ label3:
   ; %e exited scope under name %local.0
   %18 = load ptr, ptr %1
   %19 = call ptr @__cxa_begin_catch(ptr %18)
+  call void @__cxa_end_catch()
   ; Line 8
   %local.2 = alloca ptr
   store ptr %19, ptr %local.2

@@ -226,11 +226,6 @@ public class FunctionBuilder {
         }
 
         if (nullHandler.isEmpty()) {
-            var defaultDispatcher = exceptions.getDefaultDispatcher(labelGenerator::nextLabel);
-            generator.label(defaultDispatcher);
-            var cleanupPad = generator.landingPad(null);
-            var exception = generator.extractValue(LANDING_PAD_COMPOSITE, cleanupPad, 0);
-            generator.store(LlvmType.Primitive.POINTER, exception, LlvmType.Primitive.POINTER, exceptions.getExceptionVariable());
             generator.label(defaultCatchLabel);
             StandardFunctions.callThrow(generator, LlvmType.Primitive.POINTER, exceptions.getExceptionVariable());
             generator.unreachable();
@@ -1040,9 +1035,6 @@ public class FunctionBuilder {
             generateLandingPad(generator, labelGenerator, exceptions);
         }
 
-        if (exceptions.isCatching(currentLabel)) {
-            generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
-        }
         generator.label(nextLabel);
         locals.enteredLabel(nextLabel);
         stack.enteredLabel(nextLabel);
@@ -1050,6 +1042,7 @@ public class FunctionBuilder {
         if (exceptions.isCatching(nextLabel)) {
             var loaded = generator.load(LlvmType.Primitive.POINTER, LlvmType.Primitive.POINTER, exceptionVariable);
             var instance = generator.call(LlvmType.Primitive.POINTER, "__cxa_begin_catch", List.of(new Parameter(loaded, LlvmType.Primitive.POINTER)));
+            generator.call(LlvmType.Primitive.VOID, "__cxa_end_catch", List.of());
             stack.push(instance);
         }
         currentLabel = nextLabel;
@@ -1144,7 +1137,7 @@ public class FunctionBuilder {
         var targetType = local.type();
 
         generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, targetType, local.varName());
-        if (!types.containsKey(local.varName()) || types.get(local.varName()) == LlvmType.Primitive.POINTER) {
+        if (!types.containsKey(local.varName()) || types.get(local.varName()) == LlvmType.Primitive.POINTER && sourceType != LlvmType.Primitive.POINTER) {
             types.put(local.varName(), new LlvmType.Pointer(sourceType));
         }
     }
