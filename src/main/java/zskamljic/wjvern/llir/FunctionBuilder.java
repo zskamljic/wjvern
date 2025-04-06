@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class FunctionBuilder {
@@ -310,7 +311,7 @@ public class FunctionBuilder {
         };
 
         var indexPointer = generator.getElementPointer(type, LlvmType.Primitive.POINTER, array, index);
-        if (instruction.typeKind() == TypeKind.ReferenceType) {
+        if (instruction.typeKind() == TypeKind.REFERENCE) {
             type = new LlvmType.Pointer(type);
         }
         var value = generator.load(type, LlvmType.Primitive.POINTER, indexPointer);
@@ -585,7 +586,7 @@ public class FunctionBuilder {
     ) {
         var operand = loadIfNeeded(generator, types, stack.pop());
 
-        var type = IrTypeMapper.mapType(instruction.opcode().primaryTypeKind());
+        var type = IrTypeMapper.mapType(instruction.typeKind());
         var resultVar = switch (instruction.opcode()) {
             case ARRAYLENGTH -> {
                 var pointer = generator.getElementPointer(ARRAY_TYPE, ARRAY_POINTER_TYPE, operand, List.of("0", "0"));
@@ -603,7 +604,8 @@ public class FunctionBuilder {
             case ISHR, LSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.ASHR);
             case IUSHR, LUSHR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.LSHR);
             case IXOR, LXOR -> handleBinaryOperator(generator, stack, types, type, operand, IrMethodGenerator.Operator.XOR);
-            case LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
+            // TODO: fcmpg, fcmpl, dcmpg, dcmpl handling of NaN
+            case FCMPG, FCMPL, LCMP -> signCompare(generator, labelGenerator, types, loadIfNeeded(generator, types, stack.pop()), operand);
             default -> throw new IllegalArgumentException(instruction.opcode() + " is not supported yet");
         };
 
@@ -633,9 +635,14 @@ public class FunctionBuilder {
         var result = generator.alloca(LlvmType.Primitive.INT);
         types.put(result, new LlvmType.Pointer(LlvmType.Primitive.INT));
 
+        var compareType = types.get(operand1);
+        if (compareType == null || compareType == LlvmType.Primitive.POINTER) {
+            compareType = types.get(operand2);
+        }
+
         var end = labelGenerator.nextLabel();
-        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.LESS, operand1, operand2, result, "-1", end);
-        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.GREATER, operand1, operand2, result, "1", end);
+        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.LESS, compareType, operand1, operand2, result, "-1", end);
+        sideComparison(generator, labelGenerator, IrMethodGenerator.Condition.GREATER, compareType, operand1, operand2, result, "1", end);
 
         generator.store(LlvmType.Primitive.INT, "0", new LlvmType.Pointer(LlvmType.Primitive.INT), result);
         generator.branchLabel(end);
@@ -648,13 +655,14 @@ public class FunctionBuilder {
         IrMethodGenerator generator,
         LabelGenerator labelGenerator,
         IrMethodGenerator.Condition condition,
+        LlvmType compareType,
         String operand1,
         String operand2,
         String varName,
         String value,
         String endLabel
     ) {
-        var result = generator.compare(condition, LlvmType.Primitive.LONG, operand1, operand2);
+        var result = generator.compare(condition, compareType, operand1, operand2);
         var resultTrue = labelGenerator.nextLabel();
         var resultFalse = labelGenerator.nextLabel();
         generator.branchBool(result, resultTrue, resultFalse);
@@ -1139,6 +1147,8 @@ public class FunctionBuilder {
         generator.store(Objects.requireNonNullElse(sourceType, local.type()), reference, targetType, local.varName());
         if (!types.containsKey(local.varName()) || types.get(local.varName()) == LlvmType.Primitive.POINTER && sourceType != LlvmType.Primitive.POINTER) {
             types.put(local.varName(), new LlvmType.Pointer(sourceType));
+        } else if (sourceType == LlvmType.Primitive.POINTER) {
+            types.put(local.varName(), sourceType);
         }
     }
 

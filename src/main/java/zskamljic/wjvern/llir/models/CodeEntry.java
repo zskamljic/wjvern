@@ -109,19 +109,35 @@ public interface CodeEntry {
         public String toString() {
             var comparisonType = switch (type) {
                 case LlvmType.Primitive p when !p.isFloatingPoint() -> "icmp";
+                case LlvmType.Primitive.FLOAT -> "fcmp";
                 case LlvmType.Primitive.POINTER -> "icmp";
                 default -> throw new IllegalArgumentException("Comparison between types of " + type + " not yet supported ");
             };
-            var cond = switch (condition) {
-                case EQUAL -> "eq";
-                case GREATER -> "sgt";
-                case GREATER_EQUAL -> "sge";
-                case LESS -> "slt";
-                case LESS_EQUAL -> "sle";
-                case NOT_EQUAL -> "ne";
-            };
+            String cond = selectOperand(comparisonType);
 
             return varName + " = " + comparisonType + " " + cond + " " + type + " " + a + ", " + b;
+        }
+
+        private String selectOperand(String comparisonType) {
+            if ("icmp".equals(comparisonType)) {
+                return switch (condition) {
+                    case EQUAL -> "eq";
+                    case GREATER -> "sgt";
+                    case GREATER_EQUAL -> "sge";
+                    case LESS -> "slt";
+                    case LESS_EQUAL -> "sle";
+                    case NOT_EQUAL -> "ne";
+                };
+            } else {
+                return switch (condition) {
+                    case EQUAL -> "oeq";
+                    case GREATER -> "ogt";
+                    case GREATER_EQUAL -> "oge";
+                    case LESS -> "olt";
+                    case LESS_EQUAL -> "ole";
+                    case NOT_EQUAL -> "one";
+                };
+            }
         }
     }
 

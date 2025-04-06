@@ -35,7 +35,7 @@ define i32 @"java/lang/Math_min(II)I"(i32 %a, i32 %b) {
     ret i32 %1
 }
 
-define void @"java/lang/Throwable_addSuppressed(Ljava/lang/Throwable;)V"(ptr) {
+define void @"java/lang/Throwable_addSuppressed(Ljava/lang/Throwable;)V"(ptr, ptr) {
     ret void
 }
 

@@ -73,9 +73,11 @@ public sealed interface LlvmType {
 
     record Function(LlvmType returnType, List<LlvmType> parameters, boolean isNative) implements LlvmType {
         public Function(String className, MethodModel method) {
-            var returnType = IrTypeMapper.mapType(method.methodTypeSymbol().returnType());
-            var parameterList = generateParameterList(className, method.methodTypeSymbol());
-            this(returnType, parameterList, Utils.isNative(method));
+            this(
+                IrTypeMapper.mapType(method.methodTypeSymbol().returnType()),
+                generateParameterList(className, method.methodTypeSymbol()),
+                Utils.isNative(method)
+            );
         }
 
         private static List<LlvmType> generateParameterList(String className, MethodTypeDesc methodTypeSymbol) {

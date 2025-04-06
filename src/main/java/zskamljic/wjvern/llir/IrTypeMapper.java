@@ -43,12 +43,12 @@ public class IrTypeMapper {
 
     public static LlvmType.Primitive mapType(TypeKind typeKind) {
         return switch (typeKind) {
-            case ByteType -> LlvmType.Primitive.BYTE;
-            case DoubleType -> LlvmType.Primitive.DOUBLE;
-            case CharType, ShortType -> LlvmType.Primitive.SHORT;
-            case FloatType -> LlvmType.Primitive.FLOAT;
-            case IntType -> LlvmType.Primitive.INT;
-            case LongType -> LlvmType.Primitive.LONG;
+            case BYTE -> LlvmType.Primitive.BYTE;
+            case DOUBLE -> LlvmType.Primitive.DOUBLE;
+            case CHAR, SHORT -> LlvmType.Primitive.SHORT;
+            case FLOAT -> LlvmType.Primitive.FLOAT;
+            case INT -> LlvmType.Primitive.INT;
+            case LONG -> LlvmType.Primitive.LONG;
             default -> LlvmType.Primitive.POINTER;
         };
     }

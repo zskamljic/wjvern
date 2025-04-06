@@ -338,11 +338,12 @@ public class IrClassGenerator {
     private void generateStatics(StringBuilder builder) {
         staticFields.forEach((name, type) -> {
             builder.append(name).append(" = global ").append(type);
-            if (type instanceof LlvmType.Primitive) {
-                builder.append(" 0\n");
-            } else {
-                builder.append(" null\n");
-            }
+            var value = switch (type) {
+                case LlvmType.Primitive p when !p.isFloatingPoint() -> " 0\n";
+                case LlvmType.Primitive _ -> " 0.0\n";
+                default -> " null\n";
+            };
+            builder.append(value);
             if (!staticFields.isEmpty()) builder.append("\n");
         });
     }
